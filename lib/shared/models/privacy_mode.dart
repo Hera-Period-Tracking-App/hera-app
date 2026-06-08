@@ -1,0 +1,4 @@
+enum PrivacyMode {
+  localOnly,
+  secureSync,
+}

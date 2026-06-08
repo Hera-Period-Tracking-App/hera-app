@@ -1,0 +1,16 @@
+# Flutter / Dart / IntelliJ / VS Code
+.dart_tool/
+.idea/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub/
+.pub-cache/
+build/
+coverage/
+ios/Flutter/.last_build_id
+
+# Generated files
+*.g.dart
+*.freezed.dart
+tmp/

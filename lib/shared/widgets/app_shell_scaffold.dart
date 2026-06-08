@@ -1,0 +1,157 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+class AppShellScaffold extends StatelessWidget {
+  const AppShellScaffold({
+    required this.navigationShell,
+    super.key,
+  });
+
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: navigationShell,
+      extendBody: true,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddMenu(context),
+        child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 72,
+            child: Row(
+              children: [
+                _ShellTabButton(
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home,
+                  label: 'Home',
+                  isSelected: navigationShell.currentIndex == 0,
+                  onTap: () => navigationShell.goBranch(
+                    0,
+                    initialLocation: 0 == navigationShell.currentIndex,
+                  ),
+                ),
+                _ShellTabButton(
+                  icon: Icons.calendar_today_outlined,
+                  activeIcon: Icons.calendar_today,
+                  label: 'Calendar',
+                  isSelected: navigationShell.currentIndex == 1,
+                  onTap: () => navigationShell.goBranch(
+                    1,
+                    initialLocation: 1 == navigationShell.currentIndex,
+                  ),
+                ),
+                const SizedBox(width: 56),
+                _ShellTabButton(
+                  icon: Icons.edit_note_outlined,
+                  activeIcon: Icons.edit_note,
+                  label: 'Notes',
+                  isSelected: navigationShell.currentIndex == 2,
+                  onTap: () => navigationShell.goBranch(
+                    2,
+                    initialLocation: 2 == navigationShell.currentIndex,
+                  ),
+                ),
+                _ShellTabButton(
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person,
+                  label: 'Profile',
+                  isSelected: navigationShell.currentIndex == 3,
+                  onTap: () => navigationShell.goBranch(
+                    3,
+                    initialLocation: 3 == navigationShell.currentIndex,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.playlist_add_circle_outlined),
+                  title: const Text('Start new cycle'),
+                  subtitle: const Text('Begin tracking a fresh cycle start date.'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('New cycle flow will be added here.'),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ShellTabButton extends StatelessWidget {
+  const _ShellTabButton({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final selectedColor = theme.colorScheme.primary;
+    final unselectedColor = theme.colorScheme.onSurfaceVariant;
+
+    return Expanded(
+      child: InkResponse(
+        onTap: onTap,
+        radius: 32,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? selectedColor : unselectedColor,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: isSelected ? selectedColor : unselectedColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
