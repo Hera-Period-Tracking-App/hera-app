@@ -2,10 +2,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
+
+part 'month_cycle_dots_ring_header.dart';
+part 'month_cycle_dots_ring_ring.dart';
+part 'month_cycle_dots_ring_phase.dart';
 
 class MonthCycleDotsRing extends ConsumerWidget {
   const MonthCycleDotsRing({super.key});
@@ -18,10 +23,10 @@ class MonthCycleDotsRing extends ConsumerWidget {
       data: (value) => value.averageCycleLength,
       orElse: () => null,
     );
-    final dotsCount =
-        (averageCycleLength != null && averageCycleLength > 0)
-            ? averageCycleLength
-            : 28;
+    // Keep a strict, single source of truth for the ring dot count.
+    final dotsCount = averageCycleLength != null && averageCycleLength > 0
+      ? averageCycleLength
+      : 28;
 
     return cyclesAsync.when(
       data: (cycles) => _MonthCycleDotsRingView(
@@ -56,7 +61,7 @@ class _MonthCycleDotsRingView extends StatefulWidget {
 class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
   static const double _pixelsPerDay = 22;
   late DateTime _selectedDate;
-  double _dragCarry = 0;
+  double _dragProgress = 0;
 
   @override
   void initState() {
@@ -64,35 +69,48 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
     _selectedDate = DateTime.now();
   }
 
-  void _shiftSelectedDate(int days) {
-    if (days == 0) {
-      return;
-    }
-
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
     setState(() {
-      _selectedDate = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day + days,
-      );
+      _dragProgress += -details.delta.dx / _pixelsPerDay;
+
+      while (_dragProgress >= 1) {
+        _selectedDate = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day + 1,
+        );
+        _dragProgress -= 1;
+      }
+
+      while (_dragProgress <= -1) {
+        _selectedDate = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day - 1,
+        );
+        _dragProgress += 1;
+      }
     });
   }
 
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
-    _dragCarry += details.delta.dx;
-    while (_dragCarry.abs() >= _pixelsPerDay) {
-      if (_dragCarry > 0) {
-        _shiftSelectedDate(-1);
-        _dragCarry -= _pixelsPerDay;
-      } else {
-        _shiftSelectedDate(1);
-        _dragCarry += _pixelsPerDay;
-      }
-    }
-  }
-
   void _onHorizontalDragEnd(DragEndDetails details) {
-    _dragCarry = 0;
+    setState(() {
+      if (_dragProgress >= 0.5) {
+        _selectedDate = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day + 1,
+        );
+      } else if (_dragProgress <= -0.5) {
+        _selectedDate = DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day - 1,
+        );
+      }
+
+      _dragProgress = 0;
+    });
   }
 
   @override
@@ -102,10 +120,17 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
       _selectedDate.month,
       _selectedDate.day,
     );
-    final daysInMonth =
-        DateUtils.getDaysInMonth(displayDate.year, displayDate.month);
-    final menstruationDays = _menstruationDaysInMonth(widget.cycles, displayDate);
-    final ovulationDays = _ovulationDaysInMonth(widget.cycles, displayDate);
+    final phaseContext = _cyclePhaseContextForDate(
+      widget.cycles,
+      displayDate,
+      widget.dotsCount,
+    );
+    final cyclePhase = phaseContext.phase;
+    final phasesByDay = _phasesByDayInMonth(
+      widget.cycles,
+      displayDate,
+      widget.dotsCount,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -115,272 +140,139 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
         onHorizontalDragEnd: _onHorizontalDragEnd,
         child: SizedBox(
           width: double.infinity,
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Column(
-              children: [
-                _CurrentDayHeader(
-                  selectedDate: displayDate,
-                  onSelectDate: (date) {
-                    setState(() {
-                      _selectedDate = DateTime(date.year, date.month, date.day);
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: _DotsRing(
-                    dotsCount: widget.dotsCount,
-                    currentDay: displayDate.day,
-                    menstruationDays: menstruationDays,
-                    ovulationDays: ovulationDays,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Set<int> _menstruationDaysInMonth(List<CycleSummary> cycles, DateTime month) {
-    final result = <int>{};
-    final monthStart = DateTime(month.year, month.month, 1);
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
-
-    for (final cycle in cycles) {
-      final menstruationLength = cycle.menstruationLength;
-      if (menstruationLength == null || menstruationLength <= 0) {
-        continue;
-      }
-
-      final start = DateTime(
-        cycle.startDate.year,
-        cycle.startDate.month,
-        cycle.startDate.day,
-      );
-
-      for (var i = 0; i < menstruationLength; i++) {
-        final date = start.add(Duration(days: i));
-        if (date.isBefore(monthStart) || date.isAfter(monthEnd)) {
-          continue;
-        }
-        result.add(date.day);
-      }
-    }
-
-    return result;
-  }
-
-  Set<int> _ovulationDaysInMonth(List<CycleSummary> cycles, DateTime month) {
-    final result = <int>{};
-    final monthStart = DateTime(month.year, month.month, 1);
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
-
-    for (final cycle in cycles) {
-      final cycleLength = cycle.cycleLength;
-      if (cycleLength == null || cycleLength <= 0) {
-        continue;
-      }
-
-      final start = DateTime(
-        cycle.startDate.year,
-        cycle.startDate.month,
-        cycle.startDate.day,
-      );
-
-      final cycleEnd = start.add(Duration(days: cycleLength - 1));
-      final ovulationStart = cycleEnd.subtract(const Duration(days: 17));
-
-      // Ovulation phase: 17,16,15,14,13 days before cycle end (5 days total).
-      for (var i = 0; i < 5; i++) {
-        final date = ovulationStart.add(Duration(days: i));
-        if (date.isBefore(monthStart) || date.isAfter(monthEnd)) {
-          continue;
-        }
-        result.add(date.day);
-      }
-    }
-
-    return result;
-  }
-
-}
-
-class _CurrentDayHeader extends StatelessWidget {
-  const _CurrentDayHeader({
-    required this.selectedDate,
-    required this.onSelectDate,
-  });
-
-  final DateTime selectedDate;
-  final ValueChanged<DateTime> onSelectDate;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dates = List<DateTime>.generate(
-      7,
-      (index) => DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day + (index - 3),
-      ),
-    );
-    final centered = dates[3];
-
-    return SizedBox(
-      height: 52,
-      child: Row(
-        children: [
-          for (final date in dates)
-            Expanded(
-              child: InkWell(
-                onTap: () => onSelectDate(date),
-                child: _DateStripItem(
-                  date: date,
-                  isCenter: date == centered,
+          child: Column(
+            children: [
+              _CycleInfoQuickRow(
+                cycleStart: phaseContext.cycleStart,
+                cycleEnd: phaseContext.cycleEnd,
+                ovulationDay: phaseContext.ovulationDay,
+              ),
+              const SizedBox(height: 10),
+              AspectRatio(
+                aspectRatio: 1,
+                child: Column(
+                  children: [
+                    _CurrentDayHeader(
+                      selectedDate: displayDate,
+                      dragProgress: _dragProgress,
+                      onSelectDate: (date) {
+                        setState(() {
+                          _dragProgress = 0;
+                          _selectedDate = DateTime(date.year, date.month, date.day);
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: _DotsRing(
+                        dotsCount: widget.dotsCount,
+                        currentDay: displayDate.day,
+                        dragProgress: _dragProgress,
+                        cyclePhase: cyclePhase,
+                        phasesByDay: phasesByDay,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-        ],
+              const SizedBox(height: 12),
+              Text(
+                'Day ${phaseContext.dayOfCycle} of ${phaseContext.cycleLength}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _phaseLabelForContext(phaseContext),
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _nextEventCountdownLabel(phaseContext),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _DateStripItem extends StatelessWidget {
-  const _DateStripItem({required this.date, required this.isCenter});
+class _CycleInfoQuickRow extends StatelessWidget {
+  const _CycleInfoQuickRow({
+    required this.cycleStart,
+    required this.cycleEnd,
+    required this.ovulationDay,
+  });
 
-  final DateTime date;
-  final bool isCenter;
+  final DateTime cycleStart;
+  final DateTime cycleEnd;
+  final DateTime ovulationDay;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    final textColor = isCenter
-        ? theme.colorScheme.onSurface
-        : theme.colorScheme.onSurfaceVariant;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
+    return Row(
       children: [
-        Text(
-          weekdayLabels[date.weekday - 1].toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: textColor,
-            fontWeight: isCenter ? FontWeight.w700 : FontWeight.w500,
-            letterSpacing: 1,
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.calendar_month,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${_formatShortDate(cycleStart)} - ${_formatShortDate(cycleEnd)}',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          '${date.day}',
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: textColor,
-            fontWeight: isCenter ? FontWeight.w700 : FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: 2,
-          height: 10,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: isCenter
-                  ? theme.colorScheme.onSurface
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(1),
-            ),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _formatShortDate(ovulationDay),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
           ),
         ),
       ],
     );
   }
-}
 
-class _DotsRing extends StatelessWidget {
-  const _DotsRing({
-    required this.dotsCount,
-    required this.currentDay,
-    required this.menstruationDays,
-    required this.ovulationDays,
-  });
-
-  final int dotsCount;
-  final int currentDay;
-  final Set<int> menstruationDays;
-  final Set<int> ovulationDays;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final ringSize = constraints.biggest.shortestSide;
-        final center = ringSize / 2;
-        final dotSize = (ringSize * 0.075).clamp(12.0, 26.0);
-        final radius = (ringSize / 2) - (dotSize / 2);
-
-        return Align(
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: ringSize,
-            height: ringSize,
-            child: Stack(
-              children: [
-                for (var day = 1; day <= dotsCount; day++)
-                  _buildDot(
-                    day: day,
-                    center: center,
-                    radius: radius,
-                    dotSize: dotSize,
-                    color: menstruationDays.contains(day)
-                        ? Colors.red.shade500
-                        : ovulationDays.contains(day)
-                            ? Colors.teal.shade400
-                            : theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.38),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDot({
-    required int day,
-    required double center,
-    required double radius,
-    required double dotSize,
-    required Color color,
-  }) {
-    final normalizedIndex =
-      ((day - currentDay) % dotsCount + dotsCount) % dotsCount;
-
-    final angle =
-      (-math.pi / 2) + (2 * math.pi * normalizedIndex / dotsCount);
-
-    final x = center + radius * math.cos(angle);
-    final y = center + radius * math.sin(angle);
-
-    return Positioned(
-      left: x - (dotSize / 2),
-      top: y - (dotSize / 2),
-      child: Container(
-        width: dotSize,
-        height: dotSize,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
-      ),
-    );
+  String _formatShortDate(DateTime date) {
+    const months = [
+      'jan',
+      'feb',
+      'mar',
+      'apr',
+      'may',
+      'jun',
+      'jul',
+      'aug',
+      'sep',
+      'oct',
+      'nov',
+      'dec',
+    ];
+    return '${date.day}. ${months[date.month - 1]}';
   }
 }
