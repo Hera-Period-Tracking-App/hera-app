@@ -12,7 +12,7 @@ import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: AppRoutePaths.onboarding,
+    initialLocation: AppRoutePaths.home,
     routes: [
       GoRoute(
         path: AppRoutePaths.onboarding,

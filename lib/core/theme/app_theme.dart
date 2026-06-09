@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/core/theme/app_text_theme.dart';
 import 'package:hera_app/core/theme/app_theme_style.dart';
+import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 
 class AppTheme {
   const AppTheme._();
@@ -19,6 +20,12 @@ class AppTheme {
           scaffoldColor: AppColors.mist,
           cardColor: Colors.white,
           indicatorColor: AppColors.sand,
+          cyclePhaseColors: const CyclePhaseColors(
+            luteal: Color(0xFF332C42),
+            follicular: Color(0xFFF8DFBA),
+            ovulation: Color(0xFFEEBA2B),
+            menstrual: Color(0xFFEF3934),
+          ),
         ),
       AppThemeStyle.dark => _themeData(
           colorScheme: ColorScheme.fromSeed(
@@ -31,6 +38,12 @@ class AppTheme {
           scaffoldColor: AppColors.twilight,
           cardColor: const Color(0xFF1B1D27),
           indicatorColor: const Color(0xFF2B2D38),
+          cyclePhaseColors: const CyclePhaseColors(
+            luteal: Color(0xFF332C42),
+            follicular: Color(0xFFF8DFBA),
+            ovulation: Color(0xFFEEBA2B),
+            menstrual: Color(0xFFEF3934),
+          ),
         ),
     };
   }
@@ -40,10 +53,14 @@ class AppTheme {
     required Color scaffoldColor,
     required Color cardColor,
     required Color indicatorColor,
+    required CyclePhaseColors cyclePhaseColors,
   }) {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      extensions: <ThemeExtension<dynamic>>[
+        cyclePhaseColors,
+      ],
       scaffoldBackgroundColor: scaffoldColor,
       textTheme: AppTextTheme.build(colorScheme),
       appBarTheme: AppBarTheme(
