@@ -6,8 +6,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
   }
 
   void _cancelCalendarFlow() {
-    setState(() => _selectedDate = null);
-    _noteController.clear();
+    _clearCalendarFlowState();
     context.go(AppRoutePaths.calendar);
   }
 
@@ -23,7 +22,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
       return;
     }
 
-    setState(() => _isSavingNote = true);
+    _setSavingNote(true);
     try {
       await ref.read(noteRepositoryProvider).addNote(
             date: selectedDate,
@@ -46,7 +45,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
       _showMessage('Could not save note: $error');
     } finally {
       if (mounted) {
-        setState(() => _isSavingNote = false);
+        _setSavingNote(false);
       }
     }
   }
@@ -74,7 +73,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
       return;
     }
 
-    setState(() => _isSavingCycle = true);
+    _setSavingCycle(true);
     try {
       await ref.read(cycleRepositoryProvider).addCycle(
             startDate: selectedDate,
@@ -105,7 +104,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
       _showMessage('Could not create cycle: $error');
     } finally {
       if (mounted) {
-        setState(() => _isSavingCycle = false);
+        _setSavingCycle(false);
       }
     }
   }

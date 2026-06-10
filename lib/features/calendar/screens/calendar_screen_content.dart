@@ -29,8 +29,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
         : DateTime(targetFocusDate.year, targetFocusDate.month);
     final focusedMonthIndex = (focusedMonth.year - firstMonth.year) * 12 +
         (focusedMonth.month - firstMonth.month);
-    final safeFocusedMonthIndex =
-        focusedMonthIndex.clamp(0, monthCount - 1) as int;
+    final safeFocusedMonthIndex = focusedMonthIndex.clamp(0, monthCount - 1);
     final safeFocusedMonth = DateTime(
       firstMonth.year,
       firstMonth.month + safeFocusedMonthIndex,
@@ -103,9 +102,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
                   selectedDate: isFlowActive ? _selectedDate : null,
                   onDatePressed: (date) {
                     if (isFlowActive) {
-                      setState(() {
-                        _selectedDate = DateUtils.dateOnly(date);
-                      });
+                      _setSelectedDate(DateUtils.dateOnly(date));
                       return;
                     }
                     context.push(AppRoutePaths.calendarDateDetailsFor(date));
