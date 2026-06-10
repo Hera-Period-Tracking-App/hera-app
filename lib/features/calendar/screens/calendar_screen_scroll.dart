@@ -3,8 +3,8 @@ part of 'calendar_screen.dart';
 extension _CalendarScreenScroll on _CalendarScreenState {
   void _ensureCurrentMonthInitialPosition({
     required DateTime firstMonth,
-    required DateTime nowMonth,
-    required int currentMonthIndex,
+    required DateTime focusedMonth,
+    required int focusedMonthIndex,
     required bool forceRecenter,
   }) {
     if (_positionedAtCurrentMonth && !forceRecenter) {
@@ -18,17 +18,21 @@ extension _CalendarScreenScroll on _CalendarScreenState {
 
       final targetOffset = _estimateOffsetToMonthIndex(
         firstMonth: firstMonth,
-        monthIndex: currentMonthIndex,
+        monthIndex: focusedMonthIndex,
       );
       final currentMonthSectionHeight =
-          CalendarViewUtils.estimateMonthSectionHeight(nowMonth);
+          CalendarViewUtils.estimateMonthSectionHeight(focusedMonth);
       final viewport = _monthScrollController.position.viewportDimension;
-      final centeredOffset = targetOffset - ((viewport - currentMonthSectionHeight) / 2);
+      final centeredOffset =
+          targetOffset - ((viewport - currentMonthSectionHeight) / 2);
 
       final maxOffset = _monthScrollController.position.maxScrollExtent;
-      _monthScrollController.jumpTo(centeredOffset.clamp(0, maxOffset));
+      _monthScrollController.jumpTo(
+        centeredOffset.clamp(0.0, maxOffset) as double,
+      );
       _positionedAtCurrentMonth = true;
       _forceRecenterOnBuild = false;
+      _pendingFocusDate = null;
     });
   }
 
