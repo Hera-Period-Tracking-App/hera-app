@@ -48,7 +48,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         !oldWidget.isStartNewCycleFlow && widget.isStartNewCycleFlow;
     final focusTokenChanged =
         oldWidget.focusTodayToken != widget.focusTodayToken &&
-        widget.focusTodayToken != null;
+            widget.focusTodayToken != null;
 
     if (enteringStartCycleFlow || focusTokenChanged) {
       _positionedAtCurrentMonth = false;
@@ -70,7 +70,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendar')),
+      appBar: AppBar(
+        title: const Text('Calendar'),
+        actions: [
+          if (widget.isStartNewCycleFlow)
+            TextButton(
+              onPressed: _isSavingCycle ? null : _cancelStartNewCycle,
+              child: const Text('Cancel'),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -117,18 +126,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final phaseColors = theme.extension<CyclePhaseColors>();
     final now = DateTime.now();
     final nowMonth = DateTime(now.year, now.month);
-    final earliestCycleMonth = CalendarViewUtils.earliestCycleMonth(cycles) ?? nowMonth;
+    final earliestCycleMonth =
+        CalendarViewUtils.earliestCycleMonth(cycles) ?? nowMonth;
     final firstMonth = DateTime(
       earliestCycleMonth.year,
       earliestCycleMonth.month - _monthsBeforeEarliestCycle,
     );
-    final lastMonth = DateTime(nowMonth.year, nowMonth.month + _monthsAfterCurrent);
-    final monthCount =
-        (lastMonth.year - firstMonth.year) * 12 +
+    final lastMonth =
+        DateTime(nowMonth.year, nowMonth.month + _monthsAfterCurrent);
+    final monthCount = (lastMonth.year - firstMonth.year) * 12 +
         (lastMonth.month - firstMonth.month) +
         1;
-    final currentMonthIndex =
-        (nowMonth.year - firstMonth.year) * 12 + (nowMonth.month - firstMonth.month);
+    final currentMonthIndex = (nowMonth.year - firstMonth.year) * 12 +
+        (nowMonth.month - firstMonth.month);
 
     _ensureCurrentMonthInitialPosition(
       firstMonth: firstMonth,
@@ -184,7 +194,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 child: CalendarMonthSection(
                   month: month,
                   cycles: cycles,
-                  selectedDate: widget.isStartNewCycleFlow ? _selectedDate : null,
+                  selectedDate:
+                      widget.isStartNewCycleFlow ? _selectedDate : null,
                   onDatePressed: (date) {
                     if (widget.isStartNewCycleFlow) {
                       setState(() {
@@ -201,53 +212,79 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
         if (widget.isStartNewCycleFlow) ...[
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isSavingCycle
-                  ? null
-                  : () => _startNewCycle(
-                        cycles: cycles,
-                        profileCycleLength: profileCycleLength,
-                        profileMenstruationLength: profileMenstruationLength,
-                      ),
-              child: _isSavingCycle
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Start new cycle'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isSavingCycle ? null : _cancelStartNewCycle,
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _isSavingCycle
+                      ? null
+                      : () => _startNewCycle(
+                            cycles: cycles,
+                            profileCycleLength: profileCycleLength,
+                            profileMenstruationLength:
+                                profileMenstruationLength,
+                          ),
+                  child: _isSavingCycle
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Start new cycle'),
+                ),
+              ),
+            ],
           ),
         ],
-        Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          children: [
-            CalendarLegendItem(
-              color: Colors.red.withValues(alpha: 0.18),
-              label: 'Menstruation days',
-            ),
-            CalendarLegendItem(
-              color: (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-                  .withValues(alpha: 0.14),
-              label: 'Fertile window',
-            ),
-            CalendarLegendItem(
-              color: (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-                  .withValues(alpha: 0.28),
-              label: 'Ovulation day',
-            ),
-            CalendarLegendItem(
-              color: theme.colorScheme.primary.withValues(alpha: 0.22),
-              label: 'Today',
-              outlined: true,
-            ),
-          ],
+        if (!widget.isStartNewCycleFlow)
+          _buildLegend(theme, phaseColors)
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _buildLegend(theme, phaseColors),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLegend(ThemeData theme, CyclePhaseColors? phaseColors) {
+    return Wrap(
+      spacing: 16,
+      runSpacing: 8,
+      children: [
+        CalendarLegendItem(
+          color: Colors.red.withValues(alpha: 0.18),
+          label: 'Menstruation days',
+        ),
+        CalendarLegendItem(
+          color: (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+              .withValues(alpha: 0.14),
+          label: 'Fertile window',
+        ),
+        CalendarLegendItem(
+          color: (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+              .withValues(alpha: 0.28),
+          label: 'Ovulation day',
+        ),
+        CalendarLegendItem(
+          color: theme.colorScheme.primary.withValues(alpha: 0.22),
+          label: 'Today',
+          outlined: true,
         ),
       ],
     );
+  }
+
+  void _cancelStartNewCycle() {
+    setState(() => _selectedDate = null);
+    context.go(AppRoutePaths.calendar);
   }
 
   Future<void> _startNewCycle({
@@ -337,7 +374,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       final currentMonthSectionHeight =
           CalendarViewUtils.estimateMonthSectionHeight(nowMonth);
       final viewport = _monthScrollController.position.viewportDimension;
-      final centeredOffset = targetOffset - ((viewport - currentMonthSectionHeight) / 2);
+      final centeredOffset =
+          targetOffset - ((viewport - currentMonthSectionHeight) / 2);
 
       final maxOffset = _monthScrollController.position.maxScrollExtent;
       _monthScrollController.jumpTo(centeredOffset.clamp(0, maxOffset));
