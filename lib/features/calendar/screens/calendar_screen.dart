@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
-import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_legend_card.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_month_section.dart';
