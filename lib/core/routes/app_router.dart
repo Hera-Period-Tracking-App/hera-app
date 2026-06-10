@@ -11,19 +11,31 @@ import 'package:hera_app/features/notes/screens/notes_screen.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
+import 'package:hera_app/shared/providers/app_startup_provider.dart';
+import 'package:hera_app/shared/screens/startup_loading_screen.dart';
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingState = ref.watch(onboardingProvider);
+  final startupReadyState = ref.watch(appStartupReadyProvider);
   final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
 
   return GoRouter(
-    initialLocation: AppRoutePaths.onboarding,
+    initialLocation: AppRoutePaths.splash,
     redirect: (context, state) {
+      final isSplashRoute = state.matchedLocation == AppRoutePaths.splash;
       final isOnboardingRoute = state.matchedLocation == AppRoutePaths.onboarding;
 
-      if (onboardingState.isLoading || onboardingState.hasError) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+      if (onboardingState.isLoading || startupReadyState.isLoading) {
+        return isSplashRoute ? null : AppRoutePaths.splash;
+      }
+
+      if (startupReadyState.hasError) {
+        return isSplashRoute ? null : AppRoutePaths.splash;
+      }
+
+      if (onboardingState.hasError) {
+        return isSplashRoute ? null : AppRoutePaths.splash;
       }
 
       final hasCompletedOnboarding =
@@ -37,13 +49,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return isOnboardingRoute ? null : AppRoutePaths.onboarding;
       }
 
-      if (isOnboardingRoute) {
+      if (isOnboardingRoute || isSplashRoute) {
         return AppRoutePaths.home;
       }
 
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutePaths.splash,
+        name: 'splash',
+        builder: (context, state) => const StartupLoadingScreen(),
+      ),
       GoRoute(
         path: AppRoutePaths.onboarding,
         name: 'onboarding',
