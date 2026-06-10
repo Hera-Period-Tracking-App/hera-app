@@ -217,41 +217,48 @@ class _CycleInfoQuickRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final phaseColors = theme.extension<CyclePhaseColors>();
+    final displayYear = cycleStart.year;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.calendar_month,
-                size: 18,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '${_formatShortDate(cycleStart)} - ${_formatShortDate(cycleEnd)}',
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.calendar_month,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${_formatShortDate(cycleStart)} - ${_formatShortDate(cycleEnd)}',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
         ),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                size: 18,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                _formatShortDate(ovulationDay),
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
+        const SizedBox(width: 14),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              size: 18,
+              color: phaseColors?.ovulation ?? theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _formatShortDate(ovulationDay),
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
+        ),
+        const Spacer(),
+        Text(
+          '$displayYear',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],

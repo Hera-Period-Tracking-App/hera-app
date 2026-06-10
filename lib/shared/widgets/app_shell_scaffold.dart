@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 
 class AppShellScaffold extends StatelessWidget {
   const AppShellScaffold({
@@ -11,12 +13,17 @@ class AppShellScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final phaseColors = Theme.of(context).extension<CyclePhaseColors>();
+
     return Scaffold(
       body: navigationShell,
       extendBody: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddMenu(context),
+        backgroundColor: phaseColors?.luteal,
+        foregroundColor: Colors.white,
+        shape: const CircleBorder(),
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -94,10 +101,9 @@ class AppShellScaffold extends StatelessWidget {
                   subtitle: const Text('Begin tracking a fresh cycle start date.'),
                   onTap: () {
                     Navigator.pop(sheetContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('New cycle flow will be added here.'),
-                      ),
+                    final focusToday = DateTime.now().millisecondsSinceEpoch;
+                    context.go(
+                      '${AppRoutePaths.calendar}?startNewCycle=true&focusToday=$focusToday',
                     );
                   },
                 ),

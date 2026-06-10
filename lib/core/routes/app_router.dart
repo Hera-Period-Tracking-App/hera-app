@@ -1,18 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/dev/dev_flags.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/features/auth/screens/auth_screen.dart';
+import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_screen.dart';
 import 'package:hera_app/features/home/screens/home_screen.dart';
 import 'package:hera_app/features/notes/screens/notes_screen.dart';
+import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final onboardingState = ref.watch(onboardingProvider);
+  final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
+
   return GoRouter(
-    initialLocation: AppRoutePaths.home,
+    initialLocation: AppRoutePaths.onboarding,
+    redirect: (context, state) {
+      final isOnboardingRoute = state.matchedLocation == AppRoutePaths.onboarding;
+
+      if (onboardingState.isLoading || onboardingState.hasError) {
+        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+      }
+
+      final hasCompletedOnboarding =
+          onboardingState.asData?.value.hasCompletedOnboarding ?? false;
+
+      if (forceShowOnboarding) {
+        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+      }
+
+      if (!hasCompletedOnboarding) {
+        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+      }
+
+      if (isOnboardingRoute) {
+        return AppRoutePaths.home;
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: AppRoutePaths.onboarding,
@@ -43,7 +73,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutePaths.calendar,
                 name: 'calendar',
-                builder: (context, state) => const CalendarScreen(),
+                builder: (context, state) {
+                  final startNewCycle =
+                      state.uri.queryParameters['startNewCycle'] == 'true';
+                  final focusTodayToken =
+                      int.tryParse(state.uri.queryParameters['focusToday'] ?? '');
+                  return CalendarScreen(
+                    isStartNewCycleFlow: startNewCycle,
+                    focusTodayToken: focusTodayToken,
+                  );
+                },
+              ),
+              GoRoute(
+                path: AppRoutePaths.calendarDateDetails,
+                name: 'calendar-date-details',
+                builder: (context, state) {
+                  final dateParam = state.pathParameters['date'];
+                  final date = _parseCalendarRouteDate(dateParam);
+                  if (date == null) {
+                    return const CalendarScreen();
+                  }
+                  return CalendarDateDetailsScreen(date: date);
+                },
               ),
             ],
           ),
@@ -77,3 +128,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
   );
 });
+
+DateTime? _parseCalendarRouteDate(String? value) {
+  if (value == null) {
+    return null;
+  }
+
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
+  if (match == null) {
+    return null;
+  }
+
+  final year = int.tryParse(match.group(1)!);
+  final month = int.tryParse(match.group(2)!);
+  final day = int.tryParse(match.group(3)!);
+  if (year == null || month == null || day == null) {
+    return null;
+  }
+
+  final parsed = DateTime(year, month, day);
+  if (parsed.year != year || parsed.month != month || parsed.day != day) {
+    return null;
+  }
+  return parsed;
+}
