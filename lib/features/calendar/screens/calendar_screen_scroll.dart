@@ -27,9 +27,7 @@ extension _CalendarScreenScroll on _CalendarScreenState {
           targetOffset - ((viewport - currentMonthSectionHeight) / 2);
 
       final maxOffset = _monthScrollController.position.maxScrollExtent;
-      _monthScrollController.jumpTo(
-        centeredOffset.clamp(0.0, maxOffset) as double,
-      );
+      _monthScrollController.jumpTo(centeredOffset.clamp(0.0, maxOffset));
       _positionedAtCurrentMonth = true;
       _forceRecenterOnBuild = false;
       _pendingFocusDate = null;

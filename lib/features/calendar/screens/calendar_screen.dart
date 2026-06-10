@@ -181,6 +181,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       ),
     );
   }
+
+  void _setSelectedDate(DateTime? date) {
+    setState(() => _selectedDate = date);
+  }
+
+  void _clearCalendarFlowState() {
+    setState(() => _selectedDate = null);
+    _noteController.clear();
+  }
+
+  void _setSavingNote(bool value) {
+    setState(() => _isSavingNote = value);
+  }
+
+  void _setSavingCycle(bool value) {
+    setState(() => _isSavingCycle = value);
+  }
+
   void _focusDateAfterFlow(DateTime date) {
     _pendingFocusDate = DateUtils.dateOnly(date);
     _positionedAtCurrentMonth = false;
