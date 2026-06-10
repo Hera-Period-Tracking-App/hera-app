@@ -14,17 +14,27 @@ import 'package:hera_app/features/cycles/exceptions/overlapping_cycle_exception.
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
+import 'package:hera_app/features/notes/exceptions/duplicate_note_date_exception.dart';
+import 'package:hera_app/features/notes/models/note.dart';
+import 'package:hera_app/features/notes/providers/notes_provider.dart';
+import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({
     this.isStartNewCycleFlow = false,
+    this.isAddNoteFlow = false,
     this.focusTodayToken,
+    this.focusAddNoteToken,
+    this.focusDate,
     super.key,
   });
 
   final bool isStartNewCycleFlow;
+  final bool isAddNoteFlow;
   final int? focusTodayToken;
+  final int? focusAddNoteToken;
+  final DateTime? focusDate;
 
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
@@ -35,10 +45,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const int _monthsAfterCurrent = 24;
 
   final ScrollController _monthScrollController = ScrollController();
+  final TextEditingController _noteController = TextEditingController();
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
   DateTime? _selectedDate;
+  DateTime? _pendingFocusDate;
   bool _isSavingCycle = false;
+  bool _isSavingNote = false;
 
   @override
   void didUpdateWidget(covariant CalendarScreen oldWidget) {
@@ -46,20 +59,42 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     final enteringStartCycleFlow =
         !oldWidget.isStartNewCycleFlow && widget.isStartNewCycleFlow;
+    final enteringAddNoteFlow =
+        !oldWidget.isAddNoteFlow && widget.isAddNoteFlow;
+    final exitingFlow =
+        (oldWidget.isStartNewCycleFlow || oldWidget.isAddNoteFlow) &&
+            !widget.isStartNewCycleFlow &&
+            !widget.isAddNoteFlow;
     final focusTokenChanged =
         oldWidget.focusTodayToken != widget.focusTodayToken &&
             widget.focusTodayToken != null;
+    final addNoteFocusTokenChanged =
+        oldWidget.focusAddNoteToken != widget.focusAddNoteToken &&
+            widget.focusAddNoteToken != null;
+    final focusDateChanged =
+        oldWidget.focusDate != widget.focusDate && widget.focusDate != null;
 
-    if (enteringStartCycleFlow || focusTokenChanged) {
+    if (enteringStartCycleFlow ||
+        enteringAddNoteFlow ||
+        focusTokenChanged ||
+        addNoteFocusTokenChanged ||
+        focusDateChanged) {
       _positionedAtCurrentMonth = false;
       _forceRecenterOnBuild = true;
-      _selectedDate = null;
+      if (focusDateChanged) {
+        _pendingFocusDate = widget.focusDate;
+      }
+      if (!exitingFlow) {
+        _selectedDate = null;
+      }
+      _noteController.clear();
     }
   }
 
   @override
   void dispose() {
     _monthScrollController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -67,15 +102,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget build(BuildContext context) {
     final cyclesAsync = ref.watch(cyclesProvider);
     final profileAsync = ref.watch(profileSettingsProvider);
+    final notesAsync = ref.watch(notesProvider);
+    final notes = notesAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => const <Note>[],
+    );
     final theme = Theme.of(context);
+    final isFlowActive = widget.isStartNewCycleFlow || widget.isAddNoteFlow;
+    final isBusy = _isSavingCycle || _isSavingNote;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendar'),
         actions: [
-          if (widget.isStartNewCycleFlow)
+          if (isFlowActive)
             TextButton(
-              onPressed: _isSavingCycle ? null : _cancelStartNewCycle,
+              onPressed: isBusy ? null : _cancelCalendarFlow,
               child: const Text('Cancel'),
             ),
         ],
@@ -85,10 +127,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           padding: const EdgeInsets.all(16),
           child: cyclesAsync.when(
             data: (cycles) {
+              if (widget.isAddNoteFlow) {
+                return notesAsync.when(
+                  data: (notes) => _buildCalendarContent(
+                    theme,
+                    cycles,
+                    notes: notes,
+                    profileCycleLength: null,
+                    profileMenstruationLength: null,
+                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Center(
+                    child: Text('Could not load notes: $error'),
+                  ),
+                );
+              }
+
               if (!widget.isStartNewCycleFlow) {
                 return _buildCalendarContent(
                   theme,
                   cycles,
+                  notes: notes,
                   profileCycleLength: null,
                   profileMenstruationLength: null,
                 );
@@ -98,6 +158,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 data: (settings) => _buildCalendarContent(
                   theme,
                   cycles,
+                  notes: notes,
                   profileCycleLength: settings.averageCycleLength,
                   profileMenstruationLength: settings.averageMenstruationLength,
                 ),
@@ -120,6 +181,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget _buildCalendarContent(
     ThemeData theme,
     List<CycleSummary> cycles, {
+    required List<Note> notes,
     required int? profileCycleLength,
     required int? profileMenstruationLength,
   }) {
@@ -137,26 +199,44 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final monthCount = (lastMonth.year - firstMonth.year) * 12 +
         (lastMonth.month - firstMonth.month) +
         1;
-    final currentMonthIndex = (nowMonth.year - firstMonth.year) * 12 +
-        (nowMonth.month - firstMonth.month);
+    final targetFocusDate = _pendingFocusDate ?? widget.focusDate;
+    final focusedMonth = targetFocusDate == null
+        ? nowMonth
+        : DateTime(targetFocusDate.year, targetFocusDate.month);
+    final focusedMonthIndex = (focusedMonth.year - firstMonth.year) * 12 +
+        (focusedMonth.month - firstMonth.month);
+    final safeFocusedMonthIndex = focusedMonthIndex.clamp(0, monthCount - 1);
+    final safeFocusedMonth = DateTime(
+      firstMonth.year,
+      firstMonth.month + safeFocusedMonthIndex,
+    );
+    final hasExistingNoteForSelectedDate = _selectedDate != null &&
+        notes.any((note) => DateUtils.isSameDay(note.date, _selectedDate));
+    final noteDateKeys =
+        notes.map((note) => CalendarViewUtils.dateKey(note.date)).toSet();
+    final isFlowActive = widget.isStartNewCycleFlow || widget.isAddNoteFlow;
 
     _ensureCurrentMonthInitialPosition(
       firstMonth: firstMonth,
-      nowMonth: nowMonth,
-      currentMonthIndex: currentMonthIndex,
+      focusedMonth: safeFocusedMonth,
+      focusedMonthIndex: safeFocusedMonthIndex,
       forceRecenter: _forceRecenterOnBuild,
     );
 
     return Column(
       children: [
-        if (widget.isStartNewCycleFlow) ...[
+        if (isFlowActive) ...[
           Text(
-            'Select a start date for your new cycle.',
+            widget.isStartNewCycleFlow
+                ? 'Select a start date for your new cycle.'
+                : 'Select a date for your note.',
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'Future dates are disabled. Existing cycle rules are applied when saving.',
+            widget.isStartNewCycleFlow
+                ? 'Future dates are disabled. Existing cycle rules are applied when saving.'
+                : 'Each date can have one note.',
             style: theme.textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
@@ -194,10 +274,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 child: CalendarMonthSection(
                   month: month,
                   cycles: cycles,
-                  selectedDate:
-                      widget.isStartNewCycleFlow ? _selectedDate : null,
+                  noteDateKeys: noteDateKeys,
+                  selectedDate: isFlowActive ? _selectedDate : null,
                   onDatePressed: (date) {
-                    if (widget.isStartNewCycleFlow) {
+                    if (isFlowActive) {
                       setState(() {
                         _selectedDate = DateUtils.dateOnly(date);
                       });
@@ -243,7 +323,49 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ],
           ),
         ],
-        if (!widget.isStartNewCycleFlow)
+        if (widget.isAddNoteFlow) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: _noteController,
+            minLines: 3,
+            maxLines: 6,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: 'Write a private note...',
+              errorText: hasExistingNoteForSelectedDate
+                  ? 'A note already exists for this date.'
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isSavingNote ? null : _cancelCalendarFlow,
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _isSavingNote || hasExistingNoteForSelectedDate
+                      ? null
+                      : _saveNote,
+                  child: _isSavingNote
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save note'),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (!isFlowActive)
           _buildLegend(theme, phaseColors)
         else
           Padding(
@@ -283,8 +405,53 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   void _cancelStartNewCycle() {
+    _cancelCalendarFlow();
+  }
+
+  void _cancelCalendarFlow() {
     setState(() => _selectedDate = null);
+    _noteController.clear();
     context.go(AppRoutePaths.calendar);
+  }
+
+  Future<void> _saveNote() async {
+    final selectedDate = _selectedDate;
+    final content = _noteController.text.trim();
+    if (selectedDate == null) {
+      _showMessage('Please select a date first.');
+      return;
+    }
+    if (content.isEmpty) {
+      _showMessage('Write a note before saving.');
+      return;
+    }
+
+    setState(() => _isSavingNote = true);
+    try {
+      await ref.read(noteRepositoryProvider).addNote(
+            date: selectedDate,
+            content: content,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage('Note saved.');
+      _noteController.clear();
+      _focusDateAfterFlow(selectedDate);
+      context.go(
+        '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(selectedDate)}',
+      );
+    } on DuplicateNoteDateException catch (error) {
+      _showMessage(error.message);
+    } catch (error) {
+      _showMessage('Could not save note: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingNote = false);
+      }
+    }
   }
 
   Future<void> _startNewCycle({
@@ -323,7 +490,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       }
 
       _showMessage('New cycle started successfully.');
-      context.go(AppRoutePaths.calendar);
+      _focusDateAfterFlow(selectedDate);
+      context.go(
+        '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(selectedDate)}',
+      );
     } on FutureCycleException catch (error) {
       _showMessage(error.message);
     } on CycleLengthException catch (error) {
@@ -354,8 +524,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   void _ensureCurrentMonthInitialPosition({
     required DateTime firstMonth,
-    required DateTime nowMonth,
-    required int currentMonthIndex,
+    required DateTime focusedMonth,
+    required int focusedMonthIndex,
     required bool forceRecenter,
   }) {
     if (_positionedAtCurrentMonth && !forceRecenter) {
@@ -369,10 +539,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
       final targetOffset = _estimateOffsetToMonthIndex(
         firstMonth: firstMonth,
-        monthIndex: currentMonthIndex,
+        monthIndex: focusedMonthIndex,
       );
       final currentMonthSectionHeight =
-          CalendarViewUtils.estimateMonthSectionHeight(nowMonth);
+          CalendarViewUtils.estimateMonthSectionHeight(focusedMonth);
       final viewport = _monthScrollController.position.viewportDimension;
       final centeredOffset =
           targetOffset - ((viewport - currentMonthSectionHeight) / 2);
@@ -381,7 +551,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _monthScrollController.jumpTo(centeredOffset.clamp(0, maxOffset));
       _positionedAtCurrentMonth = true;
       _forceRecenterOnBuild = false;
+      _pendingFocusDate = null;
     });
+  }
+
+  void _focusDateAfterFlow(DateTime date) {
+    _pendingFocusDate = DateUtils.dateOnly(date);
+    _positionedAtCurrentMonth = false;
+    _forceRecenterOnBuild = true;
   }
 
   double _estimateOffsetToMonthIndex({
@@ -397,4 +574,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     return offset;
   }
+}
+
+String _formatRouteDate(DateTime date) {
+  final normalized = DateTime(date.year, date.month, date.day);
+  return '${normalized.year.toString().padLeft(4, '0')}-'
+      '${normalized.month.toString().padLeft(2, '0')}-'
+      '${normalized.day.toString().padLeft(2, '0')}';
 }
