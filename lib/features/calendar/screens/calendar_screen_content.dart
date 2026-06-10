@@ -8,7 +8,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
     required int? profileCycleLength,
     required int? profileMenstruationLength,
   }) {
-    final phaseColors = theme.extension<CyclePhaseColors>();
+    const double legendOverlayHeight = 108;
     final now = DateTime.now();
     final nowMonth = DateTime(now.year, now.month);
     final earliestCycleMonth =
@@ -18,8 +18,10 @@ extension _CalendarScreenContent on _CalendarScreenState {
       earliestCycleMonth.month -
           _CalendarScreenState._monthsBeforeEarliestCycle,
     );
-    final lastMonth =
-        DateTime(nowMonth.year, nowMonth.month + _CalendarScreenState._monthsAfterCurrent);
+    final lastMonth = DateTime(
+      nowMonth.year,
+      nowMonth.month + _CalendarScreenState._monthsAfterCurrent,
+    );
     final monthCount = (lastMonth.year - firstMonth.year) * 12 +
         (lastMonth.month - firstMonth.month) +
         1;
@@ -87,29 +89,42 @@ extension _CalendarScreenContent on _CalendarScreenState {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: ListView.builder(
-            controller: _monthScrollController,
-            physics: const SlowScrollPhysics(),
-            itemCount: monthCount,
-            itemBuilder: (context, index) {
-              final month = DateTime(firstMonth.year, firstMonth.month + index);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: CalendarMonthSection(
-                  month: month,
-                  cycles: cycles,
-                  noteDateKeys: noteDateKeys,
-                  selectedDate: isFlowActive ? _selectedDate : null,
-                  onDatePressed: (date) {
-                    if (isFlowActive) {
-                      _setSelectedDate(DateUtils.dateOnly(date));
-                      return;
-                    }
-                    context.push(AppRoutePaths.calendarDateDetailsFor(date));
-                  },
+          child: Stack(
+            children: [
+              ListView.builder(
+                controller: _monthScrollController,
+                physics: const SlowScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: legendOverlayHeight + 8),
+                itemCount: monthCount,
+                itemBuilder: (context, index) {
+                  final month = DateTime(firstMonth.year, firstMonth.month + index);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: CalendarMonthSection(
+                      month: month,
+                      cycles: cycles,
+                      noteDateKeys: noteDateKeys,
+                      selectedDate: isFlowActive ? _selectedDate : null,
+                      onDatePressed: (date) {
+                        if (isFlowActive) {
+                          _setSelectedDate(DateUtils.dateOnly(date));
+                          return;
+                        }
+                        context.push(AppRoutePaths.calendarDateDetailsFor(date));
+                      },
+                    ),
+                  );
+                },
+              ),
+              const Positioned(
+                left: 0,
+                bottom: 0,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: CalendarLegendCard(),
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
         if (widget.isStartNewCycleFlow) ...[
@@ -187,41 +202,6 @@ extension _CalendarScreenContent on _CalendarScreenState {
             ],
           ),
         ],
-        if (!isFlowActive)
-          _buildLegend(theme, phaseColors)
-        else
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: _buildLegend(theme, phaseColors),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildLegend(ThemeData theme, CyclePhaseColors? phaseColors) {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 8,
-      children: [
-        CalendarLegendItem(
-          color: Colors.red.withValues(alpha: 0.18),
-          label: 'Menstruation days',
-        ),
-        CalendarLegendItem(
-          color: (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-              .withValues(alpha: 0.14),
-          label: 'Fertile window',
-        ),
-        CalendarLegendItem(
-          color: (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-              .withValues(alpha: 0.28),
-          label: 'Ovulation day',
-        ),
-        CalendarLegendItem(
-          color: theme.colorScheme.primary.withValues(alpha: 0.22),
-          label: 'Today',
-          outlined: true,
-        ),
       ],
     );
   }

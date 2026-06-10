@@ -26,9 +26,7 @@ class CalendarLegendCard extends StatelessWidget {
             vertical: 14,
           ),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withValues(
-              alpha: 0.5,
-            ),
+            color: Colors.white.withValues(alpha: 0.08),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
