@@ -33,6 +33,44 @@ class CycleLocalDataSource {
     return existing != null;
   }
 
+  Future<DateTime?> nextCycleStartAfter(DateTime startDate) async {
+    final dayStart = DateTime(startDate.year, startDate.month, startDate.day);
+
+    final next = await (_database.select(_database.cycleEntries)
+          ..where((entry) => entry.startDateLocal.isBiggerThanValue(dayStart))
+          ..orderBy([(entry) => OrderingTerm.asc(entry.startDateLocal)]))
+        .getSingleOrNull();
+
+    return next?.startDateLocal;
+  }
+
+  Future<bool> hasOverlappingCycle({
+    required DateTime startDate,
+    required int cycleLength,
+  }) async {
+    final newStart = DateTime(startDate.year, startDate.month, startDate.day);
+    final newEnd = newStart.add(Duration(days: cycleLength - 1));
+
+    final allCycles = await _database.select(_database.cycleEntries).get();
+
+    for (final cycle in allCycles) {
+      final existingStart = DateTime(
+        cycle.startDateLocal.year,
+        cycle.startDateLocal.month,
+        cycle.startDateLocal.day,
+      );
+      final existingEnd = existingStart.add(Duration(days: cycle.cycleLength - 1));
+
+      final doesOverlap =
+          !newEnd.isBefore(existingStart) && !newStart.isAfter(existingEnd);
+      if (doesOverlap) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   Future<void> insertCycleEntry({
   required DateTime startDate,
   required int cycleLength,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 
@@ -6,17 +7,26 @@ class CalendarMonthSection extends StatelessWidget {
   const CalendarMonthSection({
     required this.month,
     required this.cycles,
+    required this.onDatePressed,
+    this.selectedDate,
     super.key,
   });
 
   final DateTime month;
   final List<CycleSummary> cycles;
+  final ValueChanged<DateTime> onDatePressed;
+  final DateTime? selectedDate;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final phaseColors = theme.extension<CyclePhaseColors>();
     final menstruationDates = CalendarViewUtils.menstruationDatesForMonth(cycles, month);
-    final cycleStartDates = CalendarViewUtils.cycleStartDatesForMonth(cycles, month);
+    final ovulationDates = CalendarViewUtils.ovulationDatesForMonth(cycles, month);
+    final fertileDates = CalendarViewUtils.fertileWindowDatesForMonth(cycles, month);
+    final todayKey = CalendarViewUtils.dateKey(DateTime.now());
+    final today = DateUtils.dateOnly(DateTime.now());
+    final selectedKey = selectedDate == null ? null : CalendarViewUtils.dateKey(selectedDate!);
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
     final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
     final leadingEmptyCells = firstDayOfMonth.weekday - 1;
@@ -49,25 +59,55 @@ class CalendarMonthSection extends StatelessWidget {
             final date = DateTime(month.year, month.month, dayNumber);
             final key = CalendarViewUtils.dateKey(date);
             final isMenstruationDay = menstruationDates.contains(key);
-            final isCycleStart = cycleStartDates.contains(key);
+            final isOvulationDay = ovulationDates.contains(key);
+            final isFertileDay = fertileDates.contains(key);
+            final isToday = key == todayKey;
+            final isFutureDate = date.isAfter(today);
+            final isSelectedDate = selectedKey == key;
 
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: isMenstruationDay
-                    ? Colors.red.withValues(alpha: 0.18)
-                    : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isCycleStart ? theme.colorScheme.primary : Colors.transparent,
-                  width: 1.4,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  '$dayNumber',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isMenstruationDay ? Colors.red.shade900 : null,
-                    fontWeight: isCycleStart ? FontWeight.w700 : FontWeight.w500,
+            final cellColor = isMenstruationDay
+              ? Colors.red.withValues(alpha: 0.18)
+              : isOvulationDay
+                ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+                  .withValues(alpha: 0.28)
+                : isFertileDay
+                  ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+                    .withValues(alpha: 0.14)
+                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35);
+
+            final dayTextColor = isMenstruationDay
+              ? Colors.red.shade900
+              : isOvulationDay
+                ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+                : null;
+
+            return Opacity(
+              opacity: isFutureDate ? 0.55 : 1,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: isFutureDate ? null : () => onDatePressed(date),
+                  borderRadius: BorderRadius.circular(10),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: cellColor,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelectedDate
+                            ? theme.colorScheme.secondary
+                            : (isToday ? theme.colorScheme.primary : Colors.transparent),
+                        width: 1.4,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$dayNumber',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: dayTextColor,
+                          fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
