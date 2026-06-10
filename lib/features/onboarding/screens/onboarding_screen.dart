@@ -9,6 +9,7 @@ import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart'
 import 'package:hera_app/features/cycles/exceptions/duplicate_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/future_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/menstruation_length_exception.dart';
+import 'package:hera_app/features/cycles/exceptions/overlapping_cycle_exception.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
 import 'package:hera_app/features/onboarding/models/onboarding_step.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
@@ -232,6 +233,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } on MenstruationLengthException catch (error) {
       _showSaveError(error.message);
     } on DuplicateCycleException catch (error) {
+      _showSaveError(error.message);
+    } on OverlappingCycleException catch (error) {
       _showSaveError(error.message);
     } catch (error) {
       debugPrint('Onboarding save failed: $error');

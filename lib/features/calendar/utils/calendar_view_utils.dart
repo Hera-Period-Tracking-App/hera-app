@@ -14,6 +14,8 @@ class CalendarLayout {
 class CalendarViewUtils {
   const CalendarViewUtils._();
 
+  static const int _lutealPhaseLength = 13;
+
   static DateTime? earliestCycleMonth(List<CycleSummary> cycles) {
     if (cycles.isEmpty) {
       return null;
@@ -69,6 +71,74 @@ class CalendarViewUtils {
       );
       if (date.year == month.year && date.month == month.month) {
         result.add(dateKey(date));
+      }
+    }
+
+    return result;
+  }
+
+  static Set<String> ovulationDatesForMonth(
+    List<CycleSummary> cycles,
+    DateTime month,
+  ) {
+    final result = <String>{};
+    final monthStart = DateTime(month.year, month.month, 1);
+    final monthEnd = DateTime(month.year, month.month + 1, 0);
+
+    for (final cycle in cycles) {
+      final cycleLength = cycle.cycleLength;
+      if (cycleLength == null || cycleLength <= 0) {
+        continue;
+      }
+
+      final start = DateTime(
+        cycle.startDate.year,
+        cycle.startDate.month,
+        cycle.startDate.day,
+      );
+      final ovulationDay = start.add(
+        Duration(days: cycleLength - _lutealPhaseLength),
+      );
+
+      if (ovulationDay.isBefore(monthStart) || ovulationDay.isAfter(monthEnd)) {
+        continue;
+      }
+      result.add(dateKey(ovulationDay));
+    }
+
+    return result;
+  }
+
+  static Set<String> fertileWindowDatesForMonth(
+    List<CycleSummary> cycles,
+    DateTime month,
+  ) {
+    final result = <String>{};
+    final monthStart = DateTime(month.year, month.month, 1);
+    final monthEnd = DateTime(month.year, month.month + 1, 0);
+
+    for (final cycle in cycles) {
+      final cycleLength = cycle.cycleLength;
+      if (cycleLength == null || cycleLength <= 0) {
+        continue;
+      }
+
+      final start = DateTime(
+        cycle.startDate.year,
+        cycle.startDate.month,
+        cycle.startDate.day,
+      );
+      final ovulationDay = start.add(
+        Duration(days: cycleLength - _lutealPhaseLength),
+      );
+      final fertileStart = ovulationDay.subtract(const Duration(days: 5));
+
+      for (var i = 0; i < 5; i++) {
+        final fertileDate = fertileStart.add(Duration(days: i));
+        if (fertileDate.isBefore(monthStart) || fertileDate.isAfter(monthEnd)) {
+          continue;
+        }
+        result.add(dateKey(fertileDate));
       }
     }
 

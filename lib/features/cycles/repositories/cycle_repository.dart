@@ -4,6 +4,7 @@ import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart'
 import 'package:hera_app/features/cycles/exceptions/duplicate_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/future_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/menstruation_length_exception.dart';
+import 'package:hera_app/features/cycles/exceptions/overlapping_cycle_exception.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 
 final cycleRepositoryProvider = Provider<CycleRepository>(
@@ -35,24 +36,65 @@ class CycleRepository {
     required int cycleLength,
     required int menstruationLength,
   }) async {
+    final startDateOnly = DateTime(startDate.year, startDate.month, startDate.day);
+    final effectiveCycleLength = await _resolveEffectiveCycleLength(
+      startDate: startDateOnly,
+      providedCycleLength: cycleLength,
+    );
+
     _validateCycle(
-      startDate: startDate,
-      cycleLength: cycleLength,
+      startDate: startDateOnly,
+      cycleLength: effectiveCycleLength,
       menstruationLength: menstruationLength,
     );
 
-    final hasDuplicate = await _dataSource.hasCycleWithStartDate(startDate);
+    final hasDuplicate = await _dataSource.hasCycleWithStartDate(startDateOnly);
     if (hasDuplicate) {
       throw DuplicateCycleException(
         'A cycle with this start date already exists.',
       );
     }
 
+    final hasOverlap = await _dataSource.hasOverlappingCycle(
+      startDate: startDateOnly,
+      cycleLength: effectiveCycleLength,
+    );
+    if (hasOverlap) {
+      throw OverlappingCycleException(
+        'The new cycle overlaps with an existing cycle.',
+      );
+    }
+
     return _dataSource.insertCycleEntry(
-      startDate: startDate,
-      cycleLength: cycleLength,
+      startDate: startDateOnly,
+      cycleLength: effectiveCycleLength,
       menstruationLength: menstruationLength,
     );
+  }
+
+  Future<int> _resolveEffectiveCycleLength({
+    required DateTime startDate,
+    required int providedCycleLength,
+  }) async {
+    final nextCycleStart = await _dataSource.nextCycleStartAfter(startDate);
+    if (nextCycleStart == null) {
+      return providedCycleLength;
+    }
+
+    final nextStartOnly = DateTime(
+      nextCycleStart.year,
+      nextCycleStart.month,
+      nextCycleStart.day,
+    );
+    final boundedLength = nextStartOnly.difference(startDate).inDays;
+
+    if (boundedLength < 15) {
+      throw CycleLengthException(
+        'Cycle length must be at least 15 days and end before the next cycle start.',
+      );
+    }
+
+    return boundedLength;
   }
 
   void _validateCycle({
