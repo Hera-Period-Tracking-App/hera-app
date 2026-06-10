@@ -63,6 +63,17 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
   late DateTime _selectedDate;
   double _dragProgress = 0;
 
+  DateTime get _today {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  bool get _isOnToday {
+    return _selectedDate.year == _today.year &&
+        _selectedDate.month == _today.month &&
+        _selectedDate.day == _today.day;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -113,6 +124,14 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
     });
   }
 
+  void _resetToToday() {
+    final today = _today;
+    setState(() {
+      _dragProgress = 0;
+      _selectedDate = today;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayDate = DateTime(
@@ -140,61 +159,86 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
         onHorizontalDragEnd: _onHorizontalDragEnd,
         child: SizedBox(
           width: double.infinity,
-          child: Column(
+          child: Stack(
             children: [
-              _CycleInfoQuickRow(
-                cycleStart: phaseContext.cycleStart,
-                cycleEnd: phaseContext.cycleEnd,
-                ovulationDay: phaseContext.ovulationDay,
-              ),
-              const SizedBox(height: 10),
-              AspectRatio(
-                aspectRatio: 1,
-                child: Column(
-                  children: [
-                    _CurrentDayHeader(
-                      selectedDate: displayDate,
-                      dragProgress: _dragProgress,
-                      onSelectDate: (date) {
-                        setState(() {
-                          _dragProgress = 0;
-                          _selectedDate = DateTime(date.year, date.month, date.day);
-                        });
-                      },
+              Column(
+                children: [
+                  _CycleInfoQuickRow(
+                    cycleStart: phaseContext.cycleStart,
+                    cycleEnd: phaseContext.cycleEnd,
+                    ovulationDay: phaseContext.ovulationDay,
+                  ),
+                  const SizedBox(height: 10),
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: Column(
+                      children: [
+                        _CurrentDayHeader(
+                          selectedDate: displayDate,
+                          dragProgress: _dragProgress,
+                          onSelectDate: (date) {
+                            setState(() {
+                              _dragProgress = 0;
+                              _selectedDate = DateTime(date.year, date.month, date.day);
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: _DotsRing(
+                            dotsCount: widget.dotsCount,
+                            currentDay: displayDate.day,
+                            dragProgress: _dragProgress,
+                            cyclePhase: cyclePhase,
+                            phasesByDay: phasesByDay,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: _DotsRing(
-                        dotsCount: widget.dotsCount,
-                        currentDay: displayDate.day,
-                        dragProgress: _dragProgress,
-                        cyclePhase: cyclePhase,
-                        phasesByDay: phasesByDay,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Day ${phaseContext.dayOfCycle} of ${phaseContext.cycleLength}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _phaseLabelForContext(phaseContext),
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _nextEventCountdownLabel(phaseContext),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              if (!_isOnToday)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8, bottom: 8),
+                    child: Material(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      child: IconButton(
+                        tooltip: 'Back to today',
+                        onPressed: _resetToToday,
+                        icon: Icon(
+                          Icons.replay,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Day ${phaseContext.dayOfCycle} of ${phaseContext.cycleLength}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _phaseLabelForContext(phaseContext),
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _nextEventCountdownLabel(phaseContext),
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
             ],
           ),
         ),
@@ -254,7 +298,14 @@ class _CycleInfoQuickRow extends StatelessWidget {
             ),
           ],
         ),
-        const Spacer(),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+          ),
+        ),
+        const SizedBox(width: 12),
         Text(
           '$displayYear',
           style: theme.textTheme.bodyMedium?.copyWith(
