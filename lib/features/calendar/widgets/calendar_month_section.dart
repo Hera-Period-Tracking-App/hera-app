@@ -7,6 +7,7 @@ class CalendarMonthSection extends StatelessWidget {
   const CalendarMonthSection({
     required this.month,
     required this.cycles,
+    required this.noteDateKeys,
     required this.onDatePressed,
     this.selectedDate,
     super.key,
@@ -14,6 +15,7 @@ class CalendarMonthSection extends StatelessWidget {
 
   final DateTime month;
   final List<CycleSummary> cycles;
+  final Set<String> noteDateKeys;
   final ValueChanged<DateTime> onDatePressed;
   final DateTime? selectedDate;
 
@@ -21,12 +23,16 @@ class CalendarMonthSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final phaseColors = theme.extension<CyclePhaseColors>();
-    final menstruationDates = CalendarViewUtils.menstruationDatesForMonth(cycles, month);
-    final ovulationDates = CalendarViewUtils.ovulationDatesForMonth(cycles, month);
-    final fertileDates = CalendarViewUtils.fertileWindowDatesForMonth(cycles, month);
+    final menstruationDates =
+        CalendarViewUtils.menstruationDatesForMonth(cycles, month);
+    final ovulationDates =
+        CalendarViewUtils.ovulationDatesForMonth(cycles, month);
+    final fertileDates =
+        CalendarViewUtils.fertileWindowDatesForMonth(cycles, month);
     final todayKey = CalendarViewUtils.dateKey(DateTime.now());
     final today = DateUtils.dateOnly(DateTime.now());
-    final selectedKey = selectedDate == null ? null : CalendarViewUtils.dateKey(selectedDate!);
+    final selectedKey =
+        selectedDate == null ? null : CalendarViewUtils.dateKey(selectedDate!);
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
     final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
     final leadingEmptyCells = firstDayOfMonth.weekday - 1;
@@ -64,22 +70,25 @@ class CalendarMonthSection extends StatelessWidget {
             final isToday = key == todayKey;
             final isFutureDate = date.isAfter(today);
             final isSelectedDate = selectedKey == key;
+            final hasNote = noteDateKeys.contains(key);
 
             final cellColor = isMenstruationDay
-              ? Colors.red.withValues(alpha: 0.18)
-              : isOvulationDay
-                ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-                  .withValues(alpha: 0.28)
-                : isFertileDay
-                  ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-                    .withValues(alpha: 0.14)
-                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35);
+                ? Colors.red.withValues(alpha: 0.18)
+                : isOvulationDay
+                    ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+                        .withValues(alpha: 0.28)
+                    : isFertileDay
+                        ? (phaseColors?.ovulation ??
+                                theme.colorScheme.secondary)
+                            .withValues(alpha: 0.14)
+                        : theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.35);
 
             final dayTextColor = isMenstruationDay
-              ? Colors.red.shade900
-              : isOvulationDay
-                ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-                : null;
+                ? Colors.red.shade900
+                : isOvulationDay
+                    ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+                    : null;
 
             return Opacity(
               opacity: isFutureDate ? 0.55 : 1,
@@ -95,18 +104,42 @@ class CalendarMonthSection extends StatelessWidget {
                       border: Border.all(
                         color: isSelectedDate
                             ? theme.colorScheme.secondary
-                            : (isToday ? theme.colorScheme.primary : Colors.transparent),
+                            : (isToday
+                                ? theme.colorScheme.primary
+                                : Colors.transparent),
                         width: 1.4,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        '$dayNumber',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: dayTextColor,
-                          fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Text(
+                            '$dayNumber',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: dayTextColor,
+                              fontWeight:
+                                  isToday ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
                         ),
-                      ),
+                        if (hasNote)
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: theme.colorScheme.surface,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
