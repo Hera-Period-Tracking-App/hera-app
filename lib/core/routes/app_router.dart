@@ -20,7 +20,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutePaths.onboarding,
     redirect: (context, state) {
-      final isOnboardingRoute = state.matchedLocation == AppRoutePaths.onboarding;
+      final isOnboardingRoute =
+          state.matchedLocation == AppRoutePaths.onboarding;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
         return isOnboardingRoute ? null : AppRoutePaths.onboarding;
@@ -76,11 +77,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final startNewCycle =
                       state.uri.queryParameters['startNewCycle'] == 'true';
-                  final focusTodayToken =
-                      int.tryParse(state.uri.queryParameters['focusToday'] ?? '');
+                  final addNote =
+                      state.uri.queryParameters['addNote'] == 'true';
+                  final focusTodayToken = int.tryParse(
+                      state.uri.queryParameters['focusToday'] ?? '');
+                  final focusAddNoteToken = int.tryParse(
+                      state.uri.queryParameters['focusAddNote'] ?? '');
+                  final focusDate = _parseCalendarRouteDate(
+                    state.uri.queryParameters['focusDate'],
+                  );
                   return CalendarScreen(
                     isStartNewCycleFlow: startNewCycle,
+                    isAddNoteFlow: addNote,
                     focusTodayToken: focusTodayToken,
+                    focusAddNoteToken: focusAddNoteToken,
+                    focusDate: focusDate,
                   );
                 },
               ),

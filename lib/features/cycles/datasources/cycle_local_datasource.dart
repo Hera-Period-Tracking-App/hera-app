@@ -14,8 +14,8 @@ class CycleLocalDataSource {
 
   Stream<List<CycleEntry>> watchCycleEntries() {
     return (_database.select(_database.cycleEntries)
-    ..orderBy([(entry) => OrderingTerm.desc(entry.startDate)]))
-    .watch();
+          ..orderBy([(entry) => OrderingTerm.desc(entry.startDate)]))
+        .watch();
   }
 
   Future<bool> hasCycleWithStartDate(DateTime startDate) async {
@@ -39,9 +39,9 @@ class CycleLocalDataSource {
     final next = await (_database.select(_database.cycleEntries)
           ..where((entry) => entry.startDateLocal.isBiggerThanValue(dayStart))
           ..orderBy([(entry) => OrderingTerm.asc(entry.startDateLocal)]))
-        .getSingleOrNull();
+        .get();
 
-    return next?.startDateLocal;
+    return next.isEmpty ? null : next.first.startDateLocal;
   }
 
   Future<bool> hasOverlappingCycle({
@@ -59,7 +59,8 @@ class CycleLocalDataSource {
         cycle.startDateLocal.month,
         cycle.startDateLocal.day,
       );
-      final existingEnd = existingStart.add(Duration(days: cycle.cycleLength - 1));
+      final existingEnd =
+          existingStart.add(Duration(days: cycle.cycleLength - 1));
 
       final doesOverlap =
           !newEnd.isBefore(existingStart) && !newStart.isAfter(existingEnd);
@@ -72,19 +73,20 @@ class CycleLocalDataSource {
   }
 
   Future<void> insertCycleEntry({
-  required DateTime startDate,
-  required int cycleLength,
-  required int menstruationLength,
-}) {
-    return _database.into(_database.cycleEntries).insert(CycleEntriesCompanion.insert(
-      id: const Uuid().v4(),
-      startDate: startDate,
-      startDateLocal: startDate,
-      cycleLength: cycleLength,
-      menstruationLength: menstruationLength,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-      ),
-    );
+    required DateTime startDate,
+    required int cycleLength,
+    required int menstruationLength,
+  }) {
+    return _database.into(_database.cycleEntries).insert(
+          CycleEntriesCompanion.insert(
+            id: const Uuid().v4(),
+            startDate: startDate,
+            startDateLocal: startDate,
+            cycleLength: cycleLength,
+            menstruationLength: menstruationLength,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
   }
 }

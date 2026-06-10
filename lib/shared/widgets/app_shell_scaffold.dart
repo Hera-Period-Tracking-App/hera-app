@@ -98,12 +98,25 @@ class AppShellScaffold extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.playlist_add_circle_outlined),
                   title: const Text('Start new cycle'),
-                  subtitle: const Text('Begin tracking a fresh cycle start date.'),
+                  subtitle:
+                      const Text('Begin tracking a fresh cycle start date.'),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     final focusToday = DateTime.now().millisecondsSinceEpoch;
                     context.go(
                       '${AppRoutePaths.calendar}?startNewCycle=true&focusToday=$focusToday',
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.note_add_outlined),
+                  title: const Text('Add note'),
+                  subtitle: const Text('Pick a date and write a private note.'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    final focusAddNote = DateTime.now().millisecondsSinceEpoch;
+                    context.go(
+                      '${AppRoutePaths.calendar}?addNote=true&focusAddNote=$focusAddNote',
                     );
                   },
                 ),
