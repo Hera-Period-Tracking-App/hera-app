@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/database/app_database.dart';
+import 'package:hera_app/core/constants/app_constants.dart';
+import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:hera_app/core/encryption/encryption_service.dart';
 import 'package:hera_app/features/notes/datasources/note_local_datasource.dart';
 import 'package:hera_app/features/notes/exceptions/duplicate_note_date_exception.dart';
@@ -7,47 +12,41 @@ import 'package:hera_app/features/notes/models/note.dart';
 final noteRepositoryProvider = Provider<NoteRepository>(
   (ref) => NoteRepository(
     ref.watch(noteLocalDataSourceProvider),
+    ref.watch(secureStorageDataSourceProvider),
     ref.watch(encryptionServiceProvider),
   ),
 );
 
 class NoteRepository {
-  NoteRepository(this._dataSource, this._encryptionService);
+  NoteRepository(
+    this._dataSource,
+    this._secureStorage,
+    this._encryptionService,
+  );
 
   final NoteLocalDataSource _dataSource;
+  final SecureStorageDataSource _secureStorage;
   final EncryptionService _encryptionService;
 
   Stream<List<Note>> watchNotes() {
-    return _dataSource.watchNoteEntries().map(
-          (rows) => rows
-              .map(
-                (row) => Note(
-                  id: row.id,
-                  cycleId: row.cycleId,
-                  date: row.date,
-                  encryptedContent: row.encryptedContent,
-                  createdAt: row.createdAt,
-                  updatedAt: row.updatedAt,
-                ),
-              )
-              .toList(growable: false),
-        );
+    return _dataSource.watchNoteEntries().asyncMap(
+      (rows) async {
+        final notes = <Note>[];
+        for (final row in rows) {
+          notes.add(await _toDecryptedNote(row));
+        }
+        return notes.toList(growable: false);
+      },
+    );
   }
 
   Stream<Note?> watchNoteForDate(DateTime date) {
-    return _dataSource.watchNoteForDate(date).map((row) {
+    return _dataSource.watchNoteForDate(date).asyncMap((row) async {
       if (row == null) {
         return null;
       }
 
-      return Note(
-        id: row.id,
-        cycleId: row.cycleId,
-        date: row.date,
-        encryptedContent: row.encryptedContent,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-      );
+      return _toDecryptedNote(row);
     });
   }
 
@@ -72,6 +71,94 @@ class NoteRepository {
       cycleId: cycleId,
       date: dateOnly,
       encryptedContent: encryptedContent,
+    );
+  }
+
+  Future<void> deleteNote(Note note) async {
+    final deleted = await _dataSource.deleteNoteEntry(note.id);
+    if (deleted <= 0) {
+      return;
+    }
+
+    final tombstones = await loadDeletedNoteTombstones();
+    tombstones.removeWhere((entry) => entry.noteId == note.id);
+    tombstones.add(
+      DeletedNoteTombstone(
+        noteId: note.id,
+        deletedAtUtc: DateTime.now().toUtc(),
+      ),
+    );
+    await _saveDeletedNoteTombstones(tombstones);
+  }
+
+  Future<List<DeletedNoteTombstone>> loadDeletedNoteTombstones() async {
+    final raw = await _secureStorage.read(AppConstants.deletedNoteTombstonesKey);
+    if (raw == null || raw.isEmpty) {
+      return <DeletedNoteTombstone>[];
+    }
+
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) {
+      return <DeletedNoteTombstone>[];
+    }
+
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map(DeletedNoteTombstone.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<Note> _toDecryptedNote(NoteEntry row) async {
+    String content;
+    try {
+      content = await _encryptionService.decrypt(row.encryptedContent);
+    } catch (_) {
+      content = row.encryptedContent;
+    }
+
+    return Note(
+      id: row.id,
+      cycleId: row.cycleId,
+      date: row.date,
+      encryptedContent: content,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    );
+  }
+
+  Future<void> _saveDeletedNoteTombstones(
+    List<DeletedNoteTombstone> tombstones,
+  ) {
+    return _secureStorage.write(
+      AppConstants.deletedNoteTombstonesKey,
+      jsonEncode(
+        tombstones.map((entry) => entry.toJson()).toList(growable: false),
+      ),
+    );
+  }
+}
+
+class DeletedNoteTombstone {
+  const DeletedNoteTombstone({
+    required this.noteId,
+    required this.deletedAtUtc,
+  });
+
+  final String noteId;
+  final DateTime deletedAtUtc;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'noteId': noteId,
+      'deletedAtUtc': deletedAtUtc.toUtc().toIso8601String(),
+    };
+  }
+
+  factory DeletedNoteTombstone.fromJson(Map<String, dynamic> json) {
+    return DeletedNoteTombstone(
+      noteId: json['noteId'] as String? ?? '',
+      deletedAtUtc:
+          DateTime.parse(json['deletedAtUtc'] as String).toUtc(),
     );
   }
 }

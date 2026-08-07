@@ -7,6 +7,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
     required List<Note> notes,
     required int? profileCycleLength,
     required int? profileMenstruationLength,
+    required CycleForecast? forecast,
   }) {
     const double legendOverlayHeight = 108;
     final now = DateTime.now();
@@ -103,6 +104,9 @@ extension _CalendarScreenContent on _CalendarScreenState {
                     child: CalendarMonthSection(
                       month: month,
                       cycles: cycles,
+                      fallbackCycleLength:
+                          profileCycleLength ?? defaultCycleLength,
+                      forecast: forecast,
                       noteDateKeys: noteDateKeys,
                       selectedDate: isFlowActive ? _selectedDate : null,
                       onDatePressed: (date) {

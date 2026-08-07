@@ -6,6 +6,8 @@ import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_legend_card.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_month_section.dart';
 import 'package:hera_app/features/calendar/widgets/slow_scroll_physics.dart';
+import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
+import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/duplicate_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/future_cycle_exception.dart';
@@ -14,6 +16,7 @@ import 'package:hera_app/features/cycles/exceptions/overlapping_cycle_exception.
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
+import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
 import 'package:hera_app/features/notes/exceptions/duplicate_note_date_exception.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
@@ -107,6 +110,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final cyclesAsync = ref.watch(cyclesProvider);
     final profileAsync = ref.watch(profileSettingsProvider);
     final notesAsync = ref.watch(notesProvider);
+    final forecastAsync = ref.watch(upcomingCycleForecastProvider);
     final notes = notesAsync.maybeWhen(
       data: (value) => value,
       orElse: () => const <Note>[],
@@ -139,6 +143,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     notes: notes,
                     profileCycleLength: null,
                     profileMenstruationLength: null,
+                    forecast: forecastAsync.value,
                   ),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
@@ -155,6 +160,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   notes: notes,
                   profileCycleLength: null,
                   profileMenstruationLength: null,
+                  forecast: forecastAsync.value,
                 );
               }
 
@@ -165,6 +171,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   notes: notes,
                   profileCycleLength: settings.averageCycleLength,
                   profileMenstruationLength: settings.averageMenstruationLength,
+                  forecast: forecastAsync.value,
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
+import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
@@ -16,6 +18,7 @@ class NotesScreen extends ConsumerWidget {
     final notesAsync = ref.watch(notesProvider);
     final cyclesAsync = ref.watch(cyclesProvider);
     final profileAsync = ref.watch(profileSettingsProvider);
+    final forecastAsync = ref.watch(upcomingCycleForecastProvider);
     final cycles = cyclesAsync.maybeWhen(
       data: (value) => value,
       orElse: () => const <CycleSummary>[],
@@ -38,6 +41,7 @@ class NotesScreen extends ConsumerWidget {
                 notes: notes,
                 cycles: cycles,
                 fallbackCycleLength: fallbackCycleLength,
+                forecast: forecastAsync.value,
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Text('Could not load notes: $error'),
@@ -54,11 +58,13 @@ class _NotesList extends StatefulWidget {
     required this.notes,
     required this.cycles,
     required this.fallbackCycleLength,
+    required this.forecast,
   });
 
   final List<Note> notes;
   final List<CycleSummary> cycles;
   final int fallbackCycleLength;
+  final CycleForecast? forecast;
 
   @override
   State<_NotesList> createState() => _NotesListState();
@@ -88,6 +94,7 @@ class _NotesListState extends State<_NotesList> {
       notes: widget.notes,
       cycles: widget.cycles,
       fallbackCycleLength: widget.fallbackCycleLength,
+      forecast: widget.forecast,
     );
 
     return Column(
@@ -260,6 +267,7 @@ List<_NoteCycleGroup> _groupNotesByCycle({
   required List<Note> notes,
   required List<CycleSummary> cycles,
   required int fallbackCycleLength,
+  required CycleForecast? forecast,
 }) {
   final groupedEntries = <String, List<_NoteWithCycleContext>>{};
   final groupContexts = <String, CyclePhaseContext>{};
@@ -269,6 +277,7 @@ List<_NoteCycleGroup> _groupNotesByCycle({
       cycles,
       note.date,
       fallbackCycleLength: fallbackCycleLength,
+      forecast: forecast,
     );
     final key = _cycleGroupKey(phaseContext);
 
