@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hera_app/features/aiModelSummerize/widgets/current_cycle_summary_card.dart';
 import 'package:hera_app/features/cycles/widgets/cycle_summary_card.dart';
 import 'package:hera_app/features/home/widgets/month_cycle_dots_ring.dart';
 import 'package:hera_app/shared/widgets/placeholder_feature_screen.dart';
@@ -11,6 +12,7 @@ class HomeScreen extends StatelessWidget {
     return const PlaceholderFeatureScreen(
       cards: [
         MonthCycleDotsRing(),
+        CurrentCycleSummaryCard(),
         CycleSummaryCard(),
       ],
     );

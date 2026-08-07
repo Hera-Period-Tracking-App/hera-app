@@ -14,3 +14,13 @@ ios/Flutter/.last_build_id
 *.g.dart
 *.freezed.dart
 tmp/
+
+# Vendored Flutter plugins: keep source, ignore local/generated native outputs
+vendor/**/.dart_tool/
+vendor/**/.packages
+vendor/**/.flutter-plugins
+vendor/**/.flutter-plugins-dependencies
+vendor/**/.pub/
+vendor/**/build/
+vendor/**/android/.cxx/
+vendor/**/android/local.properties
