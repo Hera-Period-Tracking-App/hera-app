@@ -171,7 +171,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   notes: notes,
                   profileCycleLength: settings.averageCycleLength,
                   profileMenstruationLength: settings.averageMenstruationLength,
-                  forecast: forecastAsync.value,
+                  forecast: null,
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(
