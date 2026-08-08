@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/features/onboarding/models/onboarding_status.dart';
 import 'package:hera_app/features/onboarding/repositories/onboarding_repository.dart';
+import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
 
 final onboardingProvider =
@@ -27,5 +28,6 @@ class OnboardingNotifier extends AsyncNotifier<OnboardingStatus> {
             averageMenstruationLength: averageMenstruationLength,
           ),
     );
+    ref.read(autoSyncProvider).queueSync();
   }
 }

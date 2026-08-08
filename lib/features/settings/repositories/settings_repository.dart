@@ -18,4 +18,12 @@ class SettingsRepository {
   Future<SettingsState> setNotificationsEnabled(bool enabled) {
     return _service.setNotificationsEnabled(enabled);
   }
+
+  Future<SettingsState> setAiSummariesEnabled(bool enabled) {
+    return _service.setAiSummariesEnabled(enabled);
+  }
+
+  Future<SettingsState> setAutoSyncEnabled(bool enabled) {
+    return _service.setAutoSyncEnabled(enabled);
+  }
 }

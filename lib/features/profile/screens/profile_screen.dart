@@ -60,6 +60,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         SectionPlaceholderCard(
+          title: 'Settings',
+          body:
+              'Manage notifications, AI summaries, and other app preferences.',
+          footer: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push(AppRoutePaths.settings),
+              icon: const Icon(Icons.settings),
+              label: const Text('Open settings'),
+            ),
+          ),
+        ),
+        SectionPlaceholderCard(
           title: 'Session',
           body: authState.when(
             data: (session) => session.isAuthenticated
