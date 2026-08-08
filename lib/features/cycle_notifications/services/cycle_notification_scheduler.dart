@@ -15,8 +15,9 @@ class CycleNotificationScheduler {
   const CycleNotificationScheduler(this._notifications);
 
   static const int _cycleCount = 3;
+  static const int _latePeriodReminderDays = 7;
   static const int _baseId = 41000;
-  static const int _idsPerCycle = 10;
+  static const int _idsPerCycle = 20;
   static bool _debugTestScheduled = false;
 
   final NotificationDataSource _notifications;
@@ -77,6 +78,10 @@ class CycleNotificationScheduler {
         title: 'Menstruation may start today',
         body: 'Your predicted period starts today.',
         payload: 'period_start',
+      );
+      await _scheduleLatePeriodReminders(
+        baseId: baseId + 10,
+        predictedPeriodStart: nextPeriod,
       );
       await _scheduleMorningReminder(
         id: baseId + 2,
@@ -173,6 +178,29 @@ class CycleNotificationScheduler {
       body: body,
       payload: payload,
     );
+  }
+
+  Future<void> _scheduleLatePeriodReminders({
+    required int baseId,
+    required DateTime predictedPeriodStart,
+  }) async {
+    for (var daysLate = 1;
+        daysLate <= _latePeriodReminderDays;
+        daysLate++) {
+      await _scheduleMorningReminder(
+        id: baseId + daysLate - 1,
+        date: predictedPeriodStart.add(Duration(days: daysLate)),
+        title: 'Has your period started yet?',
+        body: _latePeriodBody(daysLate),
+        payload: 'period_late_$daysLate',
+      );
+    }
+  }
+
+  String _latePeriodBody(int daysLate) {
+    final dayLabel = daysLate == 1 ? 'day' : 'days';
+    return 'Your period is predicted to be $daysLate $dayLabel late. '
+        'Log it if it has started.';
   }
 
   DateTime _dateOnly(DateTime date) =>
