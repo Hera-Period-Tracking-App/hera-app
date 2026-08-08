@@ -12,4 +12,17 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<SettingsState> build() {
     return ref.read(settingsRepositoryProvider).getSettings();
   }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    final previous = state.asData?.value;
+    if (previous != null) {
+      state = AsyncData(previous.copyWith(notificationsEnabled: enabled));
+    }
+
+    state = await AsyncValue.guard(
+      () => ref
+          .read(settingsRepositoryProvider)
+          .setNotificationsEnabled(enabled),
+    );
+  }
 }

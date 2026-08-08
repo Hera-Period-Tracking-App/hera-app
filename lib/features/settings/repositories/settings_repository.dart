@@ -14,4 +14,8 @@ class SettingsRepository {
   Future<SettingsState> getSettings() {
     return _service.loadSettings();
   }
+
+  Future<SettingsState> setNotificationsEnabled(bool enabled) {
+    return _service.setNotificationsEnabled(enabled);
+  }
 }

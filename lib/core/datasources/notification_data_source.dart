@@ -1,5 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:timezone/data/latest.dart' as timezone_data;
+import 'package:timezone/timezone.dart' as timezone;
 
 final notificationDataSourceProvider = Provider<NotificationDataSource>(
   (ref) => NotificationDataSource(FlutterLocalNotificationsPlugin()),
@@ -9,13 +11,138 @@ class NotificationDataSource {
   NotificationDataSource(this._plugin);
 
   final FlutterLocalNotificationsPlugin _plugin;
+  bool _isInitialized = false;
 
   Future<void> initialize() async {
+    if (_isInitialized) {
+      return;
+    }
+
+    timezone_data.initializeTimeZones();
+
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(),
     );
 
     await _plugin.initialize(settings);
+    _isInitialized = true;
+  }
+
+  Future<bool> requestPermissions() async {
+    await initialize();
+
+    final androidGranted = await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+    final iOSGranted = await _plugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
+
+    return androidGranted ?? iOSGranted ?? true;
+  }
+
+  Future<bool> requestExactAlarmPermission() async {
+    await initialize();
+
+    final androidNotifications = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (androidNotifications == null) {
+      return true;
+    }
+
+    final canScheduleExact =
+        await androidNotifications.canScheduleExactNotifications();
+    if (canScheduleExact ?? true) {
+      return true;
+    }
+
+    return await androidNotifications.requestExactAlarmsPermission() ?? false;
+  }
+
+  Future<void> cancel(int id) async {
+    await initialize();
+    await _plugin.cancel(id);
+  }
+
+  Future<void> cancelMany(Iterable<int> ids) async {
+    await initialize();
+    for (final id in ids) {
+      await _plugin.cancel(id);
+    }
+  }
+
+  Future<void> showNow({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    await initialize();
+
+    await _plugin.show(
+      id,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'cycle_predictions',
+          'Cycle predictions',
+          channelDescription:
+              'Reminders for predicted menstruation, ovulation, and cycle phases.',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: payload,
+    );
+  }
+
+  Future<void> schedule({
+    required int id,
+    required DateTime date,
+    required String title,
+    required String body,
+    bool exact = false,
+    String? payload,
+  }) async {
+    await initialize();
+
+    final scheduledDate = timezone.TZDateTime.from(date, timezone.local);
+    if (!scheduledDate.isAfter(timezone.TZDateTime.now(timezone.local))) {
+      return;
+    }
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'cycle_predictions',
+          'Cycle predictions',
+          channelDescription:
+              'Reminders for predicted menstruation, ovulation, and cycle phases.',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: exact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
+    );
+  }
+
+  Future<List<PendingNotificationRequest>> pendingNotificationRequests() async {
+    await initialize();
+    return _plugin.pendingNotificationRequests();
   }
 }
