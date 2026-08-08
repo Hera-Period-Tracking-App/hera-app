@@ -2,7 +2,7 @@ class AppConstants {
   const AppConstants._();
 
   static const appName = 'Hera';
-  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8080');
   static const secureStorageDataSource = 'secure_storage_service';
   static const onboardingCompletedKey = 'onboarding_completed';
   static const sqlCipherKey = 'sqlcipher_db_key';
