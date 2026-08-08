@@ -1,0 +1,8 @@
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\ios\Cpp\json.hpp
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\ios\Cpp\fllama.hpp
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\ios\Cpp\stb_image.h
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\ios\Cpp\base64.hpp
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\ios\Cpp\clip.h
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\ios\Cpp\llava.h
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\ios\Cpp\fllava.hpp
+C:\Users\Jasna\Desktop\hera\hera-app\vendor\fllama\android\src\main\utils.h

@@ -8,4 +8,5 @@ class AppConstants {
   static const privacyModeKey = 'privacy_mode';
   static const themeStyleKey = 'theme_style';
   static const pinEnabledKey = 'pin_enabled';
+  static const accessTokenKey = 'access_token';
 }

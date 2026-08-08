@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/dev/dev_flags.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/core/theme/app_theme_style.dart';
 import 'package:hera_app/core/theme/theme_style_provider.dart';
 import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart';
@@ -18,11 +19,11 @@ import 'package:hera_app/features/onboarding/screens/last_cycle_start_onboarding
 import 'package:hera_app/features/onboarding/screens/menstruation_length_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/screens/privacy_mode_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/screens/register_onboarding_screen.dart';
-import 'package:hera_app/features/onboarding/screens/theme_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/screens/welcome_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_footer.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_progress_header.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
+import 'package:hera_app/shared/screens/startup_loading_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -37,12 +38,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   int _currentStep = 0;
   PrivacyMode? _selectedPrivacyMode;
-  AppThemeStyle _selectedTheme = AppThemeStyle.dark;
   double _cycleLength = 28;
   double _menstruationLength = 5;
   DateTime _lastCycleStart = DateTime.now().subtract(const Duration(days: 4));
   bool _submitted = false;
   bool _isSaving = false;
+  bool _welcomeAnimationCompleted = false;
+  bool _welcomeAssetsReady = false;
+  bool _welcomeAssetsPreloadStarted = false;
 
   List<OnboardingStep> get _steps {
     return [
@@ -50,7 +53,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const OnboardingStep.privacy(),
       if (_selectedPrivacyMode == PrivacyMode.secureSync)
         const OnboardingStep.register(),
-      const OnboardingStep.theme(),
       const OnboardingStep.cycleLength(),
       const OnboardingStep.menstruationLength(),
       const OnboardingStep.lastCycleStart(),
@@ -58,6 +60,44 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   bool get _isLastStep => _currentStep == _steps.length - 1;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_welcomeAssetsPreloadStarted) {
+      return;
+    }
+
+    _welcomeAssetsPreloadStarted = true;
+    _preloadWelcomeAssets();
+  }
+
+  Future<void> _preloadWelcomeAssets() async {
+    try {
+      await Future.wait([
+        precacheImage(
+          const AssetImage('assets/images/homepage/hera.png'),
+          context,
+        ),
+        precacheImage(
+          const AssetImage('assets/images/homepage/athena.png'),
+          context,
+        ),
+        precacheImage(
+          const AssetImage('assets/images/homepage/persephone.png'),
+          context,
+        ),
+        Future<void>.delayed(const Duration(seconds: 2)),
+      ]);
+    } catch (error) {
+      debugPrint('Onboarding assets could not be preloaded: $error');
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _welcomeAssetsReady = true);
+    }
+  }
 
   @override
   void dispose() {
@@ -72,31 +112,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final loadedStatus = onboardingState.asData?.value;
     final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
     if (!forceShowOnboarding && loadedStatus?.hasCompletedOnboarding == true) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          context.go(AppRoutePaths.calendar);
-        }
-      });
+      return const StartupLoadingScreen();
+    }
+
+    if (!_welcomeAssetsReady) {
+      return const StartupLoadingScreen();
     }
 
     _selectedPrivacyMode ??= loadedStatus?.selectedPrivacyMode;
 
-    final theme = Theme.of(context);
     final step = _steps[_currentStep];
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.surface,
-              theme.scaffoldBackgroundColor,
-              theme.colorScheme.primary.withValues(alpha: 0.12),
-            ],
-          ),
-        ),
+      backgroundColor: AppColors.twilight,
+      body: ColoredBox(
+        color: AppColors.twilight,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -108,18 +138,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   totalSteps: _steps.length,
                   title: step.title,
                   subtitle: step.subtitle,
+                  showStepInfo: step.type != OnboardingStepType.welcome,
                 ),
                 const SizedBox(height: 20),
                 Expanded(child: _buildStep(step.type)),
-                const SizedBox(height: 20),
-                OnboardingFooter(
-                  canGoBack: _currentStep > 0,
-                  isSaving: _isSaving,
-                  isLastStep: _isLastStep,
-                  canContinue: _canUsePrimaryButton(step.type),
-                  onBack: _goBack,
-                  onContinue: _isLastStep ? _finishOnboarding : _goNext,
-                ),
+                if (step.type != OnboardingStepType.welcome ||
+                    _welcomeAnimationCompleted) ...[
+                  const SizedBox(height: 20),
+                  OnboardingFooter(
+                    canGoBack: _currentStep > 0,
+                    isSaving: _isSaving,
+                    isLastStep: _isLastStep,
+                    canContinue: _canUsePrimaryButton(step.type),
+                    animateContinueLabel:
+                        step.type == OnboardingStepType.welcome,
+                    infoText: step.type == OnboardingStepType.privacy
+                        ? 'You can start offline today and switch to secure sync later.'
+                        : null,
+                    onBack: _goBack,
+                    onContinue: _isLastStep ? _finishOnboarding : _goNext,
+                  ),
+                ],
               ],
             ),
           ),
@@ -130,7 +169,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildStep(OnboardingStepType stepType) {
     final screen = switch (stepType) {
-      OnboardingStepType.welcome => const WelcomeOnboardingScreen(),
+      OnboardingStepType.welcome => WelcomeOnboardingScreen(
+          onTypingCompleted: () {
+            if (mounted) {
+              setState(() => _welcomeAnimationCompleted = true);
+            }
+          },
+        ),
       OnboardingStepType.privacy => PrivacyModeOnboardingScreen(
           selectedPrivacyMode: _selectedPrivacyMode,
           onSelected: (mode) => setState(() => _selectedPrivacyMode = mode),
@@ -140,10 +185,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           passwordController: _passwordController,
           submitted: _submitted,
           onChanged: () => setState(() {}),
-        ),
-      OnboardingStepType.theme => ThemeOnboardingScreen(
-          selectedTheme: _selectedTheme,
-          onSelected: (style) => setState(() => _selectedTheme = style),
         ),
       OnboardingStepType.cycleLength => CycleLengthOnboardingScreen(
           cycleLength: _cycleLength,
@@ -207,6 +248,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() {
       _submitted = false;
       _currentStep -= 1;
+      if (_currentStep == 0) {
+        _welcomeAnimationCompleted = false;
+      }
     });
   }
 
@@ -243,7 +287,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
 
     try {
-      await ref.read(themeStyleProvider.notifier).setStyle(_selectedTheme);
+      await ref.read(themeStyleProvider.notifier).setStyle(AppThemeStyle.dark);
       await ref.read(onboardingProvider.notifier).completeOnboarding(
             privacyMode: _selectedPrivacyMode!,
         averageCycleLength: _cycleLength.round(),

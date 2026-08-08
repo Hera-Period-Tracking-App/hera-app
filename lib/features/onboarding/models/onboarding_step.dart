@@ -15,8 +15,8 @@ class OnboardingStep {
   const OnboardingStep.privacy()
       : this._(
           type: OnboardingStepType.privacy,
-          title: 'Choose your privacy mode',
-          subtitle: 'Start offline or create an account for secure sync.',
+          title: '> choose your privacy mode',
+          subtitle: '',
         );
 
   const OnboardingStep.register()
@@ -24,13 +24,6 @@ class OnboardingStep {
           type: OnboardingStepType.register,
           title: 'Create your sync account',
           subtitle: 'Secure sync uses your Gmail and password to prepare backup.',
-        );
-
-  const OnboardingStep.theme()
-      : this._(
-          type: OnboardingStepType.theme,
-          title: 'Pick a theme',
-          subtitle: 'Choose the look Hera should use every day.',
         );
 
   const OnboardingStep.cycleLength()
@@ -63,7 +56,6 @@ enum OnboardingStepType {
   welcome,
   privacy,
   register,
-  theme,
   cycleLength,
   menstruationLength,
   lastCycleStart,

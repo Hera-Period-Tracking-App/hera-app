@@ -12,15 +12,40 @@ class StartupLoadingScreen extends StatelessWidget {
       backgroundColor: _backgroundColor,
       body: SafeArea(
         child: Center(
-          child: SizedBox(
-            width: 42,
-            height: 42,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                theme.colorScheme.onSurface,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'HERA',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 64,
+                  height: 0.9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -3,
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                'Preparing your private space',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.58),
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

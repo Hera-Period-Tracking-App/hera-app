@@ -8,6 +8,8 @@ class OnboardingFooter extends StatelessWidget {
     required this.canContinue,
     required this.onBack,
     required this.onContinue,
+    this.animateContinueLabel = false,
+    this.infoText,
     super.key,
   });
 
@@ -17,30 +19,97 @@ class OnboardingFooter extends StatelessWidget {
   final bool canContinue;
   final VoidCallback onBack;
   final VoidCallback onContinue;
+  final bool animateContinueLabel;
+  final String? infoText;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        if (canGoBack)
-          OutlinedButton(
-            onPressed: isSaving ? null : onBack,
-            child: const Text('Back'),
+        if (infoText != null) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: Colors.white.withValues(alpha: 0.72),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  infoText!,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
           ),
-        if (canGoBack) const SizedBox(width: 12),
-        Expanded(
+          const SizedBox(height: 14),
+        ],
+        Row(
+          children: [
+            if (canGoBack)
+          IconButton(
+            onPressed: isSaving ? null : onBack,
+            style: IconButton.styleFrom(
+              foregroundColor: Colors.white,
+              minimumSize: const Size(54, 54),
+            ),
+            icon: const Icon(Icons.chevron_left_rounded, size: 36),
+          ),
+            if (canGoBack) const SizedBox(width: 12),
+            Expanded(
           child: FilledButton(
             onPressed: canContinue && !isSaving ? onContinue : null,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFFC857),
+              foregroundColor: const Color(0xFF171820),
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.16),
+              disabledForegroundColor: Colors.white.withValues(alpha: 0.42),
+              minimumSize: const Size.fromHeight(54),
+              textStyle: const TextStyle(fontWeight: FontWeight.w800),
+            ),
             child: isSaving
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF171820),
+                    ),
                   )
-                : Text(isLastStep ? 'Start tracking' : 'Continue'),
+                : animateContinueLabel
+                    ? const _TypingButtonLabel(text: "Let's start!")
+                    : Text(isLastStep ? 'Start tracking' : 'Continue'),
           ),
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _TypingButtonLabel extends StatelessWidget {
+  const _TypingButtonLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        final visibleCharacters = (text.length * value).floor();
+        return Text(text.substring(0, visibleCharacters));
+      },
     );
   }
 }

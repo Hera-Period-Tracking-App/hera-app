@@ -4,21 +4,35 @@ class PrivacyChoiceCard extends StatelessWidget {
   const PrivacyChoiceCard({
     super.key,
     required this.title,
+    required this.eyebrow,
     required this.description,
-    required this.icon,
+    required this.supportingText,
     required this.selected,
     required this.accent,
     required this.onTap,
-    this.animatedBadge = false,
+    this.titleFontSize,
+    this.illustrationAsset,
+    this.illustrationAlignment = Alignment.bottomRight,
+    this.illustrationHeight = 160,
+    this.illustrationOffset = Offset.zero,
+    this.contentStartPadding = 0,
+    this.contentEndPadding = 0,
   });
 
   final String title;
+  final String eyebrow;
   final String description;
-  final IconData icon;
+  final String supportingText;
   final bool selected;
   final Color accent;
   final VoidCallback onTap;
-  final bool animatedBadge;
+  final double? titleFontSize;
+  final String? illustrationAsset;
+  final Alignment illustrationAlignment;
+  final double illustrationHeight;
+  final Offset illustrationOffset;
+  final double contentStartPadding;
+  final double contentEndPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -29,116 +43,105 @@ class PrivacyChoiceCard extends StatelessWidget {
       duration: const Duration(milliseconds: 220),
       child: Material(
         color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(28),
           child: Ink(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: theme.cardColor,
+              color: selected
+                  ? accent.withValues(alpha: 0.08)
+                  : theme.cardColor,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
                 color: selected ? accent : accent.withValues(alpha: 0.14),
                 width: selected ? 2 : 1,
               ),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: accent.withValues(alpha: 0.16),
-                        blurRadius: 26,
-                        offset: const Offset(0, 14),
-                      ),
-                    ]
-                  : null,
             ),
-            child: Row(
+            child: Stack(
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: selected ? 0.18 : 0.10),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Icon(icon, color: accent, size: 28),
-                      if (animatedBadge)
-                        const Positioned(
-                          right: 12,
-                          top: 12,
-                          child: _PulseDot(),
+                if (illustrationAsset != null)
+                  IgnorePointer(
+                    child: Align(
+                      alignment: illustrationAlignment,
+                      child: Transform.translate(
+                        offset: illustrationOffset,
+                        child: Image.asset(
+                          illustrationAsset!,
+                          height: illustrationHeight,
+                          fit: BoxFit.contain,
                         ),
-                    ],
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
+                Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    end: contentEndPadding,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: theme.textTheme.titleLarge),
+                      Text(
+                        '> $eyebrow',
+                        style: TextStyle(
+                          color: accent,
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text(description, style: theme.textTheme.bodyMedium),
+                      Text(
+                        title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontSize: titleFontSize,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Padding(
+                        padding: EdgeInsetsDirectional.only(
+                          start: contentStartPadding,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              description,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.45,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              supportingText,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.66),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Icon(
-                  selected
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  color: selected ? accent : theme.colorScheme.outline,
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Icon(
+                    selected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: selected ? accent : theme.colorScheme.outline,
+                    size: 25,
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PulseDot extends StatefulWidget {
-  const _PulseDot();
-
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: Tween<double>(begin: 0.82, end: 1.18).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-      ),
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          shape: BoxShape.circle,
         ),
       ),
     );

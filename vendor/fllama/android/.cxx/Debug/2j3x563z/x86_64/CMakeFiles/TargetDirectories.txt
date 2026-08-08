@@ -1,0 +1,4 @@
+C:/Users/Jasna/Desktop/hera/hera-app/vendor/fllama/android/.cxx/Debug/2j3x563z/x86_64/CMakeFiles/fllama.dir
+C:/Users/Jasna/Desktop/hera/hera-app/vendor/fllama/android/.cxx/Debug/2j3x563z/x86_64/CMakeFiles/fllama_x86_64.dir
+C:/Users/Jasna/Desktop/hera/hera-app/vendor/fllama/android/.cxx/Debug/2j3x563z/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/Jasna/Desktop/hera/hera-app/vendor/fllama/android/.cxx/Debug/2j3x563z/x86_64/CMakeFiles/rebuild_cache.dir
