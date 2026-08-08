@@ -28,6 +28,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
             date: selectedDate,
             content: content,
           );
+      ref.read(autoSyncProvider).queueSync();
 
       if (!mounted) {
         return;
@@ -80,6 +81,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
             cycleLength: cycleLength,
             menstruationLength: menstruationLength,
           );
+      ref.read(autoSyncProvider).queueSync();
 
       if (!mounted) {
         return;

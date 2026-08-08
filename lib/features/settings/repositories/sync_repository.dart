@@ -153,7 +153,6 @@ class SyncRepository {
     await _database.into(_database.appSettings).insertOnConflictUpdate(
       AppSettingsCompanion.insert(
         id: 'default',
-        syncEnabled: const Value(true),
         lastSyncAt: Value(now),
       ),
     );

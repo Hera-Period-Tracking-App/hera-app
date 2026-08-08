@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
+import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 
 class CalendarDateDetailsScreen extends ConsumerWidget {
   const CalendarDateDetailsScreen({
@@ -17,6 +18,7 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
     Note note,
   ) async {
     await ref.read(noteRepositoryProvider).deleteNote(note);
+    ref.read(autoSyncProvider).queueSync();
     if (!context.mounted) {
       return;
     }

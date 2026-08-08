@@ -22,6 +22,7 @@ import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
+import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 
 part 'calendar_screen_actions.dart';
 part 'calendar_screen_content.dart';
