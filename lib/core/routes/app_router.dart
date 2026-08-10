@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/dev/dev_flags.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/auth/screens/auth_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_screen.dart';
@@ -12,10 +13,13 @@ import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart'
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
 import 'package:hera_app/features/settings/screens/settings_screen.dart';
+import 'package:hera_app/shared/models/privacy_mode.dart';
+
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingState = ref.watch(onboardingProvider);
+  final authState = ref.watch(authSessionProvider);
   final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
 
   return GoRouter(
@@ -23,6 +27,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isOnboardingRoute =
           state.matchedLocation == AppRoutePaths.onboarding;
+      final isAuthRoute = state.matchedLocation == AppRoutePaths.auth;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
         return isOnboardingRoute ? null : AppRoutePaths.onboarding;
@@ -39,7 +44,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return isOnboardingRoute ? null : AppRoutePaths.onboarding;
       }
 
-      if (isOnboardingRoute) {
+      final usesSecureSync =
+          onboardingState.asData?.value.selectedPrivacyMode ==
+              PrivacyMode.secureSync;
+      if (!usesSecureSync) {
+        return isOnboardingRoute || isAuthRoute ? AppRoutePaths.home : null;
+      }
+
+      if (authState.isLoading) {
+        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+      }
+
+      final hasValidSession = authState.asData?.value.isAuthenticated ?? false;
+      if (!hasValidSession) {
+        return isAuthRoute ? null : AppRoutePaths.auth;
+      }
+
+      if (isOnboardingRoute || isAuthRoute) {
         return AppRoutePaths.home;
       }
 

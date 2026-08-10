@@ -16,7 +16,7 @@ class OnboardingStep {
       : this._(
           type: OnboardingStepType.privacy,
           title: 'Choose your privacy mode',
-          subtitle: 'Start offline or create an account for secure sync.',
+          subtitle: '',
         );
 
   const OnboardingStep.register()
@@ -26,32 +26,32 @@ class OnboardingStep {
           subtitle: 'Secure sync uses your Gmail and password to prepare backup.',
         );
 
-  const OnboardingStep.theme()
-      : this._(
-          type: OnboardingStepType.theme,
-          title: 'Pick a theme',
-          subtitle: 'Choose the look Hera should use every day.',
-        );
-
   const OnboardingStep.cycleLength()
       : this._(
           type: OnboardingStepType.cycleLength,
-          title: 'Average cycle length',
+          title: "What's your average cycle length?",
           subtitle: 'This helps Hera start with a useful baseline.',
         );
 
   const OnboardingStep.menstruationLength()
       : this._(
           type: OnboardingStepType.menstruationLength,
-          title: 'Average menstruation length',
+          title: "What's your average menstruation length?",
           subtitle: 'Tell Hera how long your period usually lasts.',
         );
 
   const OnboardingStep.lastCycleStart()
       : this._(
           type: OnboardingStepType.lastCycleStart,
-          title: 'Last cycle start',
+          title: 'When did your last cycle start?',
           subtitle: 'Choose the date your most recent cycle began.',
+        );
+
+  const OnboardingStep.login()
+      : this._(
+          type: OnboardingStepType.login,
+          title: 'Log in to your sync account',
+          subtitle: 'Use your existing email address and password to continue.',
         );
 
   final OnboardingStepType type;
@@ -63,8 +63,8 @@ enum OnboardingStepType {
   welcome,
   privacy,
   register,
-  theme,
   cycleLength,
   menstruationLength,
   lastCycleStart,
+  login,
 }

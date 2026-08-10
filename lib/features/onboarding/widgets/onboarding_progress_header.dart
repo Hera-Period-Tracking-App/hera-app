@@ -7,17 +7,17 @@ class OnboardingProgressHeader extends StatelessWidget {
     required this.totalSteps,
     required this.title,
     required this.subtitle,
+    this.showStepInfo = true,
   });
 
   final int currentStep;
   final int totalSteps;
   final String title;
   final String subtitle;
+  final bool showStepInfo;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -32,17 +32,34 @@ class OnboardingProgressHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
                   color: active
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.primary.withValues(alpha: 0.14),
+                      ? const Color(0xFFFFC857)
+                      : Colors.white.withValues(alpha: 0.12),
                 ),
               ),
             );
           }),
         ),
-        const SizedBox(height: 20),
-        Text(title, style: theme.textTheme.headlineMedium),
-        const SizedBox(height: 8),
-        Text(subtitle, style: theme.textTheme.bodyMedium),
+        if (showStepInfo) ...[
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontFamily: title.startsWith('>') ? 'monospace' : null,
+                  fontSize: title.startsWith('>') ? 22 : null,
+                  letterSpacing: title.startsWith('>') ? 0 : null,
+                ),
+          ),
+          if (subtitle.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.68),
+                  ),
+            ),
+          ],
+        ],
       ],
     );
   }
