@@ -8,6 +8,7 @@ abstract class AuthSession with _$AuthSession {
   const factory AuthSession({
     required bool isAuthenticated,
     String? userId,
+    String? email,
     String? deviceLabel,
   }) = _AuthSession;
 

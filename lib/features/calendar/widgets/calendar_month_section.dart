@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hera_app/core/theme/cycle_phase_colors.dart';
+import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 
@@ -9,7 +10,9 @@ class CalendarMonthSection extends StatelessWidget {
     required this.cycles,
     required this.noteDateKeys,
     required this.onDatePressed,
+    required this.fallbackCycleLength,
     this.selectedDate,
+    this.forecast,
     super.key,
   });
 
@@ -17,18 +20,21 @@ class CalendarMonthSection extends StatelessWidget {
   final List<CycleSummary> cycles;
   final Set<String> noteDateKeys;
   final ValueChanged<DateTime> onDatePressed;
+  final int fallbackCycleLength;
   final DateTime? selectedDate;
+  final CycleForecast? forecast;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final phaseColors = theme.extension<CyclePhaseColors>();
-    final menstruationDates =
-        CalendarViewUtils.menstruationDatesForMonth(cycles, month);
-    final ovulationDates =
-        CalendarViewUtils.ovulationDatesForMonth(cycles, month);
-    final fertileDates =
-        CalendarViewUtils.fertileWindowDatesForMonth(cycles, month);
+    final now = DateTime.now();
+    final isCurrentMonth = month.year == now.year && month.month == now.month;
+    final phaseDates = CalendarViewUtils.phaseDatesForMonth(
+      cycles,
+      month,
+      forecast: forecast,
+    );
     final todayKey = CalendarViewUtils.dateKey(DateTime.now());
     final today = DateUtils.dateOnly(DateTime.now());
     final selectedKey =
@@ -38,116 +44,203 @@ class CalendarMonthSection extends StatelessWidget {
     final leadingEmptyCells = firstDayOfMonth.weekday - 1;
     final totalCells = ((leadingEmptyCells + daysInMonth + 6) ~/ 7) * 7;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          CalendarViewUtils.monthLabel(month),
-          style: theme.textTheme.titleLarge,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+      decoration: BoxDecoration(
+        color: isCurrentMonth
+            ? theme.colorScheme.primary.withValues(alpha: 0.08)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isCurrentMonth
+              ? theme.colorScheme.primary.withValues(alpha: 0.18)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.12),
+          width: 1,
         ),
-        const SizedBox(height: CalendarLayout.monthHeaderSpacing),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            crossAxisSpacing: CalendarLayout.dayCellSpacing,
-            mainAxisSpacing: CalendarLayout.dayCellSpacing,
-            mainAxisExtent: CalendarLayout.dayCellExtent,
-          ),
-          itemCount: totalCells,
-          itemBuilder: (context, index) {
-            final dayNumber = index - leadingEmptyCells + 1;
-            if (dayNumber < 1 || dayNumber > daysInMonth) {
-              return const SizedBox.shrink();
-            }
-
-            final date = DateTime(month.year, month.month, dayNumber);
-            final key = CalendarViewUtils.dateKey(date);
-            final isMenstruationDay = menstruationDates.contains(key);
-            final isOvulationDay = ovulationDates.contains(key);
-            final isFertileDay = fertileDates.contains(key);
-            final isToday = key == todayKey;
-            final isFutureDate = date.isAfter(today);
-            final isSelectedDate = selectedKey == key;
-            final hasNote = noteDateKeys.contains(key);
-
-            final cellColor = isMenstruationDay
-                ? Colors.red.withValues(alpha: 0.18)
-                : isOvulationDay
-                    ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-                        .withValues(alpha: 0.28)
-                    : isFertileDay
-                        ? (phaseColors?.ovulation ??
-                                theme.colorScheme.secondary)
-                            .withValues(alpha: 0.14)
-                        : theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.35);
-
-            final dayTextColor = isMenstruationDay
-                ? Colors.red.shade900
-                : isOvulationDay
-                    ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
-                    : null;
-
-            return Opacity(
-              opacity: isFutureDate ? 0.55 : 1,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: isFutureDate ? null : () => onDatePressed(date),
-                  borderRadius: BorderRadius.circular(10),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: cellColor,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isSelectedDate
-                            ? theme.colorScheme.secondary
-                            : (isToday
-                                ? theme.colorScheme.primary
-                                : Colors.transparent),
-                        width: 1.4,
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: Text(
-                            '$dayNumber',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: dayTextColor,
-                              fontWeight:
-                                  isToday ? FontWeight.w700 : FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (hasNote)
-                          Positioned(
-                            top: 6,
-                            right: 6,
-                            child: Container(
-                              width: 7,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: theme.colorScheme.surface,
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+        boxShadow: isCurrentMonth
+            ? [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.04),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  CalendarViewUtils.monthLabel(month),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight:
+                        isCurrentMonth ? FontWeight.w700 : FontWeight.w600,
+                    color: isCurrentMonth
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurface,
                   ),
                 ),
               ),
-            );
-          },
-        ),
-      ],
+              if (isCurrentMonth)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        theme.colorScheme.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Current',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: CalendarLayout.monthHeaderSpacing),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              crossAxisSpacing: CalendarLayout.dayCellSpacing,
+              mainAxisSpacing: CalendarLayout.dayCellSpacing,
+              mainAxisExtent: CalendarLayout.dayCellExtent,
+            ),
+            itemCount: totalCells,
+            itemBuilder: (context, index) {
+              final dayNumber = index - leadingEmptyCells + 1;
+              if (dayNumber < 1 || dayNumber > daysInMonth) {
+                return const SizedBox.shrink();
+              }
+
+              final date = DateTime(month.year, month.month, dayNumber);
+              final key = CalendarViewUtils.dateKey(date);
+              final isActualMenstruationDay =
+                  phaseDates.actualMenstruationDates.contains(key);
+              final isPredictedMenstruationDay =
+                  phaseDates.predictedMenstruationDates.contains(key);
+              final isActualOvulationDay =
+                  phaseDates.actualOvulationDates.contains(key);
+              final isPredictedOvulationDay =
+                  phaseDates.predictedOvulationDates.contains(key);
+              final isActualFertileDay =
+                  phaseDates.actualFertileWindowDates.contains(key);
+              final isPredictedFertileDay =
+                  phaseDates.predictedFertileWindowDates.contains(key);
+              final isPredictedDay = isPredictedMenstruationDay ||
+                  isPredictedOvulationDay ||
+                  isPredictedFertileDay;
+              final isToday = key == todayKey;
+              final isFutureDate = date.isAfter(today);
+              final isSelectedDate = selectedKey == key;
+              final hasNote = noteDateKeys.contains(key);
+
+              final cellColor = isActualMenstruationDay
+                  ? Colors.red.withValues(alpha: 0.18)
+                  : isPredictedMenstruationDay
+                      ? Colors.red.withValues(alpha: 0.09)
+                  : isActualOvulationDay
+                      ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+                          .withValues(alpha: 0.28)
+                      : isPredictedOvulationDay
+                          ? (phaseColors?.ovulation ??
+                                  theme.colorScheme.secondary)
+                              .withValues(alpha: 0.16)
+                      : isActualFertileDay
+                          ? (phaseColors?.ovulation ??
+                                  theme.colorScheme.secondary)
+                              .withValues(alpha: 0.14)
+                          : isPredictedFertileDay
+                              ? (phaseColors?.ovulation ??
+                                      theme.colorScheme.secondary)
+                                  .withValues(alpha: 0.07)
+                          : theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: isCurrentMonth ? 0.42 : 0.35);
+
+              final dayTextColor = isActualMenstruationDay
+                  ? Colors.red.shade900
+                  : isPredictedMenstruationDay
+                      ? Colors.red.shade700
+                  : isActualOvulationDay
+                      ? (phaseColors?.ovulation ?? theme.colorScheme.secondary)
+                      : isPredictedOvulationDay
+                          ? (phaseColors?.ovulation ??
+                                  theme.colorScheme.secondary)
+                              .withValues(alpha: 0.8)
+                      : isPredictedDay
+                          ? theme.colorScheme.onSurfaceVariant
+                          : null;
+
+              return Opacity(
+                opacity: isFutureDate && !isPredictedDay ? 0.55 : 1,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: isFutureDate ? null : () => onDatePressed(date),
+                    borderRadius: BorderRadius.circular(10),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: cellColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelectedDate
+                              ? theme.colorScheme.secondary
+                              : (isToday
+                                  ? theme.colorScheme.primary
+                                  : Colors.transparent),
+                          width: 1.4,
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Text(
+                              '$dayNumber',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: dayTextColor,
+                                fontWeight:
+                                    isToday ? FontWeight.w700 : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (hasNote)
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: theme.colorScheme.surface,
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

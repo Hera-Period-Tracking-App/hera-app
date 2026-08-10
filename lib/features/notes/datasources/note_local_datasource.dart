@@ -65,4 +65,10 @@ class NoteLocalDataSource {
           ),
         );
   }
+
+  Future<int> deleteNoteEntry(String id) {
+    return (_database.delete(_database.noteEntries)
+          ..where((entry) => entry.id.equals(id)))
+        .go();
+  }
 }

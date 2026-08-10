@@ -12,7 +12,9 @@ import 'package:hera_app/features/notes/screens/notes_screen.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
+import 'package:hera_app/features/settings/screens/settings_screen.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
+
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -144,6 +146,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: AppRoutePaths.profile,
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
+              ),
+              GoRoute(
+                path: AppRoutePaths.settings,
+                name: 'settings',
+                builder: (context, state) => const SettingsScreen(),
               ),
             ],
           ),

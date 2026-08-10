@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/features/auth/models/auth_credentials.dart';
 import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/services/auth_service.dart';
 
@@ -13,5 +14,17 @@ class AuthRepository {
 
   Future<AuthSession> getCurrentSession() {
     return _service.getCurrentSession();
+  }
+
+  Future<AuthSession> signup(AuthCredentials credentials) {
+    return _service.signup(credentials);
+  }
+
+  Future<AuthSession> login(AuthCredentials credentials) {
+    return _service.login(credentials);
+  }
+
+  Future<void> logout() {
+    return _service.clearSession();
   }
 }

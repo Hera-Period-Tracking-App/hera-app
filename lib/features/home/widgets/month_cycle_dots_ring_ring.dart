@@ -12,8 +12,8 @@ class _DotsRing extends StatelessWidget {
   final int dotsCount;
   final int currentDay;
   final double dragProgress;
-  final _CyclePhase cyclePhase;
-  final Map<int, _CyclePhase> phasesByDay;
+  final CyclePhase cyclePhase;
+  final Map<int, CyclePhase> phasesByDay;
 
   @override
   Widget build(BuildContext context) {
@@ -71,17 +71,17 @@ class _DotsRing extends StatelessWidget {
     CyclePhaseColors? phaseColors,
     ThemeData theme,
   ) {
-    final phase = phasesByDay[day] ?? _CyclePhase.follicular;
+    final phase = phasesByDay[day] ?? CyclePhase.follicular;
 
     if (phaseColors == null) {
       return theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.38);
     }
 
     return switch (phase) {
-      _CyclePhase.menstruation => phaseColors.menstrual,
-      _CyclePhase.follicular => phaseColors.follicular,
-      _CyclePhase.ovulation => phaseColors.ovulation,
-      _CyclePhase.luteal => phaseColors.luteal,
+      CyclePhase.menstruation => phaseColors.menstrual,
+      CyclePhase.follicular => phaseColors.follicular,
+      CyclePhase.ovulation => phaseColors.ovulation,
+      CyclePhase.luteal => phaseColors.luteal,
     };
   }
 
@@ -126,7 +126,7 @@ class _PhaseCenterImage extends StatelessWidget {
     required this.viewportDiameter,
   });
 
-  final _CyclePhase phase;
+  final CyclePhase phase;
   final double viewportDiameter;
 
   @override
@@ -177,27 +177,27 @@ class _PhaseCenterImage extends StatelessWidget {
     );
   }
 
-  _PhaseImageConfig _configForPhase(_CyclePhase phase) {
+  _PhaseImageConfig _configForPhase(CyclePhase phase) {
     return switch (phase) {
-      _CyclePhase.menstruation => const _PhaseImageConfig(
+      CyclePhase.menstruation => const _PhaseImageConfig(
           assetPath: 'assets/images/homepage/persephone.png',
           zoom: 1.75,
           yOffsetFactor: 0.39,
           xOffsetFactor: 0,
         ),
-      _CyclePhase.follicular => const _PhaseImageConfig(
+      CyclePhase.follicular => const _PhaseImageConfig(
           assetPath: 'assets/images/homepage/artemis.png',
           zoom: 1.5,
           yOffsetFactor: 0.28,
           xOffsetFactor: 0.1,
         ),
-      _CyclePhase.ovulation => const _PhaseImageConfig(
+      CyclePhase.ovulation => const _PhaseImageConfig(
           assetPath: 'assets/images/homepage/aphrodite.png',
           zoom: 1.7,
           yOffsetFactor: 0.48,
           xOffsetFactor: 0,
         ),
-      _CyclePhase.luteal => const _PhaseImageConfig(
+      CyclePhase.luteal => const _PhaseImageConfig(
           assetPath: 'assets/images/homepage/athena.png',
           zoom: 1.7,
           yOffsetFactor: 0.42,

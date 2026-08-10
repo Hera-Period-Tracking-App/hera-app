@@ -3,8 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/core/theme/cycle_phase_colors.dart';
+import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
+import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
+import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
 
@@ -19,6 +22,7 @@ class MonthCycleDotsRing extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cyclesAsync = ref.watch(cyclesProvider);
     final profileSettingsAsync = ref.watch(profileSettingsProvider);
+    final forecastAsync = ref.watch(upcomingCycleForecastProvider);
     final averageCycleLength = profileSettingsAsync.maybeWhen(
       data: (value) => value.averageCycleLength,
       orElse: () => null,
@@ -32,6 +36,7 @@ class MonthCycleDotsRing extends ConsumerWidget {
       data: (cycles) => _MonthCycleDotsRingView(
         cycles: cycles,
         dotsCount: dotsCount,
+        forecast: forecastAsync.value,
       ),
       loading: () => const SectionPlaceholderCard(
         title: 'Cycle month ring',
@@ -49,10 +54,12 @@ class _MonthCycleDotsRingView extends StatefulWidget {
   const _MonthCycleDotsRingView({
     required this.cycles,
     required this.dotsCount,
+    required this.forecast,
   });
 
   final List<CycleSummary> cycles;
   final int dotsCount;
+  final CycleForecast? forecast;
 
   @override
   State<_MonthCycleDotsRingView> createState() => _MonthCycleDotsRingViewState();
@@ -139,16 +146,18 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
       _selectedDate.month,
       _selectedDate.day,
     );
-    final phaseContext = _cyclePhaseContextForDate(
+    final phaseContext = cyclePhaseContextForDate(
       widget.cycles,
       displayDate,
-      widget.dotsCount,
+      fallbackCycleLength: widget.dotsCount,
+      forecast: widget.forecast,
     );
     final cyclePhase = phaseContext.phase;
     final phasesByDay = _phasesByDayInMonth(
       widget.cycles,
       displayDate,
       widget.dotsCount,
+      widget.forecast,
     );
 
     return Padding(
@@ -206,7 +215,7 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _phaseLabelForContext(phaseContext),
+                    cyclePhaseLabel(phaseContext),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 8),

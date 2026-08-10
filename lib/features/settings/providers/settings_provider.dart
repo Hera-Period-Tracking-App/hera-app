@@ -12,4 +12,39 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<SettingsState> build() {
     return ref.read(settingsRepositoryProvider).getSettings();
   }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    final previous = state.asData?.value;
+    if (previous != null) {
+      state = AsyncData(previous.copyWith(notificationsEnabled: enabled));
+    }
+
+    state = await AsyncValue.guard(
+      () => ref
+          .read(settingsRepositoryProvider)
+          .setNotificationsEnabled(enabled),
+    );
+  }
+
+  Future<void> setAiSummariesEnabled(bool enabled) async {
+    final previous = state.asData?.value;
+    if (previous != null) {
+      state = AsyncData(previous.copyWith(aiSummariesEnabled: enabled));
+    }
+
+    state = await AsyncValue.guard(
+      () => ref.read(settingsRepositoryProvider).setAiSummariesEnabled(enabled),
+    );
+  }
+
+  Future<void> setAutoSyncEnabled(bool enabled) async {
+    final previous = state.asData?.value;
+    if (previous != null) {
+      state = AsyncData(previous.copyWith(autoSyncEnabled: enabled));
+    }
+
+    state = await AsyncValue.guard(
+      () => ref.read(settingsRepositoryProvider).setAutoSyncEnabled(enabled),
+    );
+  }
 }

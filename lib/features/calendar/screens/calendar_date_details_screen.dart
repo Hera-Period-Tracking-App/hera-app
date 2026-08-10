@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
+import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 
 class CalendarDateDetailsScreen extends ConsumerWidget {
   const CalendarDateDetailsScreen({
@@ -9,6 +11,23 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
   });
 
   final DateTime date;
+
+  Future<void> _deleteNote(
+    BuildContext context,
+    WidgetRef ref,
+    Note note,
+  ) async {
+    await ref.read(noteRepositoryProvider).deleteNote(note);
+    ref.read(autoSyncProvider).queueSync();
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Note deleted.')),
+    );
+    Navigator.of(context).maybePop();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,7 +67,21 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Note', style: theme.textTheme.titleLarge),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Note',
+                                style: theme.textTheme.titleLarge,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => _deleteNote(context, ref, note),
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: 'Delete note',
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           note.encryptedContent,

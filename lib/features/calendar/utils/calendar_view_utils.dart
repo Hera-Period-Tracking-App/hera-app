@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 
 class CalendarLayout {
@@ -11,10 +12,28 @@ class CalendarLayout {
   static const dayCellSpacing = 6.0;
 }
 
+class CalendarPhaseDates {
+  const CalendarPhaseDates({
+    this.actualMenstruationDates = const <String>{},
+    this.predictedMenstruationDates = const <String>{},
+    this.actualOvulationDates = const <String>{},
+    this.predictedOvulationDates = const <String>{},
+    this.actualFertileWindowDates = const <String>{},
+    this.predictedFertileWindowDates = const <String>{},
+  });
+
+  final Set<String> actualMenstruationDates;
+  final Set<String> predictedMenstruationDates;
+  final Set<String> actualOvulationDates;
+  final Set<String> predictedOvulationDates;
+  final Set<String> actualFertileWindowDates;
+  final Set<String> predictedFertileWindowDates;
+}
+
 class CalendarViewUtils {
   const CalendarViewUtils._();
 
-  static const int _lutealPhaseLength = 13;
+  static const int _predictionHorizonMonths = 18;
 
   static DateTime? earliestCycleMonth(List<CycleSummary> cycles) {
     if (cycles.isEmpty) {
@@ -26,35 +45,93 @@ class CalendarViewUtils {
         .reduce((a, b) => a.isBefore(b) ? a : b);
   }
 
-  static Set<String> menstruationDatesForMonth(
+  static CalendarPhaseDates phaseDatesForMonth(
     List<CycleSummary> cycles,
-    DateTime month,
-  ) {
-    final result = <String>{};
+    DateTime month, {
+    CycleForecast? forecast,
+  }) {
+    final actualMenstruationDates = <String>{};
+    final predictedMenstruationDates = <String>{};
+    final actualOvulationDates = <String>{};
+    final predictedOvulationDates = <String>{};
+    final actualFertileWindowDates = <String>{};
+    final predictedFertileWindowDates = <String>{};
     final monthStart = DateTime(month.year, month.month, 1);
     final monthEnd = DateTime(month.year, month.month + 1, 0);
+    final sortedCycles = [...cycles]
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
 
-    for (final cycle in cycles) {
-      final length = cycle.menstruationLength;
-      if (length == null || length <= 0) {
+    for (final cycle in sortedCycles) {
+      final cycleLength = cycle.cycleLength;
+      if (cycleLength == null || cycleLength <= 0) {
         continue;
       }
 
-      final start = DateTime(
+      final cycleStart = DateTime(
         cycle.startDate.year,
         cycle.startDate.month,
         cycle.startDate.day,
       );
-      for (var i = 0; i < length; i++) {
-        final date = start.add(Duration(days: i));
-        if (date.isBefore(monthStart) || date.isAfter(monthEnd)) {
-          continue;
-        }
-        result.add(dateKey(date));
+      final menstruationLength = (cycle.menstruationLength ?? 0) > 0
+          ? cycle.menstruationLength!
+          : 5;
+      _addPhaseDatesForCycle(
+        cycleStart: cycleStart,
+        cycleLength: cycleLength,
+        menstruationLength: menstruationLength,
+        ovulationDayNumber: cycleLength - 12,
+        monthStart: monthStart,
+        monthEnd: monthEnd,
+        menstruationDates: actualMenstruationDates,
+        ovulationDates: actualOvulationDates,
+        fertileWindowDates: actualFertileWindowDates,
+      );
+    }
+
+    if (forecast != null && sortedCycles.isNotEmpty) {
+      final latestCycle = sortedCycles.last;
+      final latestCycleStart = DateTime(
+        latestCycle.startDate.year,
+        latestCycle.startDate.month,
+        latestCycle.startDate.day,
+      );
+      final firstPredictedCycleStart = latestCycleStart.add(
+        Duration(days: forecast.cycleLength),
+      );
+      final predictionHorizonEnd = DateTime(
+        firstPredictedCycleStart.year,
+        firstPredictedCycleStart.month + _predictionHorizonMonths,
+        firstPredictedCycleStart.day,
+      );
+      var predictedCycleStart = firstPredictedCycleStart;
+
+      while (predictedCycleStart.isBefore(predictionHorizonEnd)) {
+        _addPhaseDatesForCycle(
+          cycleStart: predictedCycleStart,
+          cycleLength: forecast.cycleLength,
+          menstruationLength: forecast.menstruationLength,
+          ovulationDayNumber: forecast.ovulationDay,
+          monthStart: monthStart,
+          monthEnd: monthEnd,
+          menstruationDates: predictedMenstruationDates,
+          ovulationDates: predictedOvulationDates,
+          fertileWindowDates: predictedFertileWindowDates,
+        );
+
+        predictedCycleStart = predictedCycleStart.add(
+          Duration(days: forecast.cycleLength),
+        );
       }
     }
 
-    return result;
+    return CalendarPhaseDates(
+      actualMenstruationDates: actualMenstruationDates,
+      predictedMenstruationDates: predictedMenstruationDates,
+      actualOvulationDates: actualOvulationDates,
+      predictedOvulationDates: predictedOvulationDates,
+      actualFertileWindowDates: actualFertileWindowDates,
+      predictedFertileWindowDates: predictedFertileWindowDates,
+    );
   }
 
   static Set<String> cycleStartDatesForMonth(
@@ -71,74 +148,6 @@ class CalendarViewUtils {
       );
       if (date.year == month.year && date.month == month.month) {
         result.add(dateKey(date));
-      }
-    }
-
-    return result;
-  }
-
-  static Set<String> ovulationDatesForMonth(
-    List<CycleSummary> cycles,
-    DateTime month,
-  ) {
-    final result = <String>{};
-    final monthStart = DateTime(month.year, month.month, 1);
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
-
-    for (final cycle in cycles) {
-      final cycleLength = cycle.cycleLength;
-      if (cycleLength == null || cycleLength <= 0) {
-        continue;
-      }
-
-      final start = DateTime(
-        cycle.startDate.year,
-        cycle.startDate.month,
-        cycle.startDate.day,
-      );
-      final ovulationDay = start.add(
-        Duration(days: cycleLength - _lutealPhaseLength),
-      );
-
-      if (ovulationDay.isBefore(monthStart) || ovulationDay.isAfter(monthEnd)) {
-        continue;
-      }
-      result.add(dateKey(ovulationDay));
-    }
-
-    return result;
-  }
-
-  static Set<String> fertileWindowDatesForMonth(
-    List<CycleSummary> cycles,
-    DateTime month,
-  ) {
-    final result = <String>{};
-    final monthStart = DateTime(month.year, month.month, 1);
-    final monthEnd = DateTime(month.year, month.month + 1, 0);
-
-    for (final cycle in cycles) {
-      final cycleLength = cycle.cycleLength;
-      if (cycleLength == null || cycleLength <= 0) {
-        continue;
-      }
-
-      final start = DateTime(
-        cycle.startDate.year,
-        cycle.startDate.month,
-        cycle.startDate.day,
-      );
-      final ovulationDay = start.add(
-        Duration(days: cycleLength - _lutealPhaseLength),
-      );
-      final fertileStart = ovulationDay.subtract(const Duration(days: 5));
-
-      for (var i = 0; i < 5; i++) {
-        final fertileDate = fertileStart.add(Duration(days: i));
-        if (fertileDate.isBefore(monthStart) || fertileDate.isAfter(monthEnd)) {
-          continue;
-        }
-        result.add(dateKey(fertileDate));
       }
     }
 
@@ -182,5 +191,41 @@ class CalendarViewUtils {
         CalendarLayout.monthHeaderSpacing +
         gridHeight +
         CalendarLayout.monthBottomSpacing;
+  }
+
+  static void _addPhaseDatesForCycle({
+    required DateTime cycleStart,
+    required int cycleLength,
+    required int menstruationLength,
+    required int ovulationDayNumber,
+    required DateTime monthStart,
+    required DateTime monthEnd,
+    required Set<String> menstruationDates,
+    required Set<String> ovulationDates,
+    required Set<String> fertileWindowDates,
+  }) {
+    final safeCycleLength = cycleLength.clamp(15, 90);
+    final safeMenstruationLength = menstruationLength.clamp(1, safeCycleLength);
+    final safeOvulationDay = ovulationDayNumber.clamp(1, safeCycleLength);
+    final ovulationDate = cycleStart.add(Duration(days: safeOvulationDay - 1));
+    final fertileStart = ovulationDate.subtract(const Duration(days: 5));
+
+    for (var i = 0; i < safeMenstruationLength; i++) {
+      final date = cycleStart.add(Duration(days: i));
+      if (!date.isBefore(monthStart) && !date.isAfter(monthEnd)) {
+        menstruationDates.add(dateKey(date));
+      }
+    }
+
+    if (!ovulationDate.isBefore(monthStart) && !ovulationDate.isAfter(monthEnd)) {
+      ovulationDates.add(dateKey(ovulationDate));
+    }
+
+    for (var i = 0; i < 6; i++) {
+      final date = fertileStart.add(Duration(days: i));
+      if (!date.isBefore(monthStart) && !date.isAfter(monthEnd)) {
+        fertileWindowDates.add(dateKey(date));
+      }
+    }
   }
 }

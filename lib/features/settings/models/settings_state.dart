@@ -11,6 +11,8 @@ abstract class SettingsState with _$SettingsState {
     required bool biometricsEnabled,
     required bool pinEnabled,
     required bool notificationsEnabled,
+    required bool aiSummariesEnabled,
+    required bool autoSyncEnabled,
   }) = _SettingsState;
 
   factory SettingsState.fromJson(Map<String, dynamic> json) => _$SettingsStateFromJson(json);

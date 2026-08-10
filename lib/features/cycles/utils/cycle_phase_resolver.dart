@@ -1,4 +1,5 @@
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
+import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 
 enum CyclePhase { menstruation, follicular, ovulation, luteal }
 
@@ -34,6 +35,7 @@ CyclePhaseContext cyclePhaseContextForDate(
   List<CycleSummary> cycles,
   DateTime selectedDate, {
   int fallbackCycleLength = defaultCycleLength,
+  CycleForecast? forecast,
 }) {
   final selected = DateTime(
     selectedDate.year,
@@ -58,6 +60,12 @@ CyclePhaseContext cyclePhaseContextForDate(
 
   final sortedCycles = [...cycles]
     ..sort((a, b) => a.startDate.compareTo(b.startDate));
+  final latestCycle = sortedCycles.last;
+  final latestCycleStart = DateTime(
+    latestCycle.startDate.year,
+    latestCycle.startDate.month,
+    latestCycle.startDate.day,
+  );
 
   CycleSummary anchorCycle = sortedCycles.first;
   for (final cycle in sortedCycles) {
@@ -78,18 +86,26 @@ CyclePhaseContext cyclePhaseContextForDate(
     anchorCycle.startDate.day,
   );
 
-  final cycleLength = (anchorCycle.cycleLength != null &&
-          anchorCycle.cycleLength! > 0)
-      ? anchorCycle.cycleLength!
-      : (fallbackCycleLength > 0 ? fallbackCycleLength : defaultCycleLength);
+  final useForecastForLatestCycle =
+      forecast != null && !selected.isBefore(latestCycleStart);
+  final cycleLength = useForecastForLatestCycle
+      ? forecast.cycleLength
+      : (anchorCycle.cycleLength != null && anchorCycle.cycleLength! > 0)
+          ? anchorCycle.cycleLength!
+          : (fallbackCycleLength > 0 ? fallbackCycleLength : defaultCycleLength);
 
-  final menstruationLength = (anchorCycle.menstruationLength != null &&
-          anchorCycle.menstruationLength! > 0)
-      ? anchorCycle.menstruationLength!
-      : defaultMenstruationLength;
+  final menstruationLength = useForecastForLatestCycle
+      ? forecast.menstruationLength
+      : (anchorCycle.menstruationLength != null &&
+              anchorCycle.menstruationLength! > 0)
+          ? anchorCycle.menstruationLength!
+          : defaultMenstruationLength;
 
   final safeMenstruationLength =
       menstruationLength.clamp(1, cycleLength).toInt();
+  final ovulationDayNumber = useForecastForLatestCycle
+      ? forecast.ovulationDay.clamp(1, cycleLength).toInt()
+      : (cycleLength - lutealPhaseLength + 1).clamp(1, cycleLength).toInt();
 
   final dayDelta = selected.difference(anchorStart).inDays;
   final cycleOffset = dayDelta >= 0
@@ -104,6 +120,7 @@ CyclePhaseContext cyclePhaseContextForDate(
     startDate: effectiveStart,
     cycleLength: cycleLength,
     menstruationLength: safeMenstruationLength,
+    ovulationDayNumber: ovulationDayNumber,
     dayOfCycle: dayOfCycle,
   );
 }
@@ -126,12 +143,13 @@ CyclePhaseContext _phaseForDate({
   required DateTime startDate,
   required int cycleLength,
   required int menstruationLength,
+  required int ovulationDayNumber,
   required int dayOfCycle,
 }) {
   final predictedNextPeriod = startDate.add(Duration(days: cycleLength));
   final cycleEnd = predictedNextPeriod.subtract(const Duration(days: 1));
-  final ovulationDay = predictedNextPeriod.subtract(
-    const Duration(days: lutealPhaseLength),
+  final ovulationDay = startDate.add(
+    Duration(days: ovulationDayNumber - 1),
   );
   final fertileWindowStart = ovulationDay.subtract(const Duration(days: 5));
   final fertileWindowEnd = ovulationDay;
