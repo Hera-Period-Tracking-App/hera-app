@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/dev/dev_flags.dart';
@@ -16,6 +17,7 @@ import 'package:hera_app/features/onboarding/models/onboarding_step.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/cycle_length_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/screens/last_cycle_start_onboarding_screen.dart';
+import 'package:hera_app/features/onboarding/screens/login_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/screens/menstruation_length_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/screens/privacy_mode_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/screens/register_onboarding_screen.dart';
@@ -46,6 +48,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _welcomeAnimationCompleted = false;
   bool _welcomeAssetsReady = false;
   bool _welcomeAssetsPreloadStarted = false;
+  bool _isLoginFlow = false;
 
   List<OnboardingStep> get _steps {
     return [
@@ -53,9 +56,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       const OnboardingStep.privacy(),
       if (_selectedPrivacyMode == PrivacyMode.secureSync)
         const OnboardingStep.register(),
-      const OnboardingStep.cycleLength(),
-      const OnboardingStep.menstruationLength(),
-      const OnboardingStep.lastCycleStart(),
+      if (_isLoginFlow)
+        const OnboardingStep.login()
+      else ...[
+        const OnboardingStep.cycleLength(),
+        const OnboardingStep.menstruationLength(),
+        const OnboardingStep.lastCycleStart(),
+      ],
     ];
   }
 
@@ -122,46 +129,112 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _selectedPrivacyMode ??= loadedStatus?.selectedPrivacyMode;
 
     final step = _steps[_currentStep];
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final isRegisterStep = step.type == OnboardingStepType.register;
+    final isAccountStep = isRegisterStep || step.type == OnboardingStepType.login;
+    final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.twilight,
-      body: ColoredBox(
-        color: AppColors.twilight,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                OnboardingProgressHeader(
+    final systemBarColor = isAccountStep ? theme.cardColor : AppColors.twilight;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: systemBarColor,
+        systemNavigationBarDividerColor: systemBarColor,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: systemBarColor,
+        body: ColoredBox(
+          color: AppColors.twilight,
+          child: SafeArea(
+            bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                child: OnboardingProgressHeader(
                   currentStep: _currentStep,
                   totalSteps: _steps.length,
                   title: step.title,
                   subtitle: step.subtitle,
                   showStepInfo: step.type != OnboardingStepType.welcome,
                 ),
-                const SizedBox(height: 20),
-                Expanded(child: _buildStep(step.type)),
-                if (step.type != OnboardingStepType.welcome ||
-                    _welcomeAnimationCompleted) ...[
-                  const SizedBox(height: 20),
-                  OnboardingFooter(
+              ),
+              SizedBox(height: isAccountStep ? 36 : 20),
+              Expanded(
+                child: ColoredBox(
+                  color: Colors.transparent,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isAccountStep ||
+                              step.type == OnboardingStepType.welcome
+                          ? 0
+                          : 20,
+                    ),
+                    child: _buildStep(step.type),
+                  ),
+                ),
+              ),
+              if ((step.type != OnboardingStepType.welcome ||
+                      _welcomeAnimationCompleted) &&
+                  !isKeyboardVisible)
+                ColoredBox(
+                  color: isAccountStep ? theme.cardColor : Colors.transparent,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      20,
+                      20,
+                      20 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: OnboardingFooter(
                     canGoBack: _currentStep > 0,
                     isSaving: _isSaving,
                     isLastStep: _isLastStep,
                     canContinue: _canUsePrimaryButton(step.type),
-                    animateContinueLabel:
-                        step.type == OnboardingStepType.welcome,
-                    infoText: step.type == OnboardingStepType.privacy
-                        ? 'You can start offline today and switch to secure sync later.'
+                    animateContinueLabel: true,
+                    continueLabelAnimationKey: _currentStep,
+                    infoText: switch (step.type) {
+                      OnboardingStepType.privacy =>
+                        'You can start offline today and switch to secure sync later.',
+                      OnboardingStepType.cycleLength =>
+                        'You can change your cycle length anytime. Hera will refine its predictions based on your previous cycles.',
+                      OnboardingStepType.menstruationLength =>
+                        'You can change your menstruation length anytime as you learn what is typical for you.',
+                      OnboardingStepType.lastCycleStart =>
+                        'You can always change your cycle start date later.',
+                      _ => null,
+                    },
+                    secondaryAction: isRegisterStep
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Already have an account?',
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isLoginFlow = true;
+                                    _currentStep = _steps.length - 1;
+                                    _submitted = false;
+                                  });
+                                },
+                                child: const Text('Log in'),
+                              ),
+                            ],
+                          )
                         : null,
                     onBack: _goBack,
-                    onContinue: _isLastStep ? _finishOnboarding : _goNext,
+                      onContinue: _isLastStep ? _finishOnboarding : _goNext,
+                    ),
                   ),
-                ],
-              ],
-            ),
+                ),
+            ],
           ),
+        ),
         ),
       ),
     );
@@ -197,6 +270,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       OnboardingStepType.lastCycleStart => LastCycleStartOnboardingScreen(
           lastCycleStart: _lastCycleStart,
           onChanged: (date) => setState(() => _lastCycleStart = date),
+        ),
+      OnboardingStepType.login => LoginOnboardingScreen(
+          emailController: _emailController,
+          passwordController: _passwordController,
+          submitted: _submitted,
+          onChanged: () => setState(() {}),
         ),
     };
 
@@ -247,7 +326,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _goBack() {
     setState(() {
       _submitted = false;
-      _currentStep -= 1;
+      if (_isLoginFlow) {
+        _isLoginFlow = false;
+        // Registration is always the third screen in the secure-sync flow.
+        _currentStep = 2;
+      } else {
+        _currentStep -= 1;
+      }
       if (_currentStep == 0) {
         _welcomeAnimationCompleted = false;
       }
@@ -256,6 +341,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _finishOnboarding() async {
     if (_selectedPrivacyMode == null) {
+      return;
+    }
+
+    if (_steps[_currentStep].type == OnboardingStepType.login &&
+        !_isValidSyncAccount()) {
+      setState(() => _submitted = true);
       return;
     }
 
@@ -320,8 +411,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   bool _isValidSyncAccount() {
-    final email = _emailController.text.trim().toLowerCase();
-    return RegExp(r'^[^@\s]+@gmail\.com$').hasMatch(email) &&
+    final email = _emailController.text.trim();
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email) &&
         _passwordController.text.trim().length >= 8;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 
 class RegisterOnboardingScreen extends StatelessWidget {
   const RegisterOnboardingScreen({
@@ -17,48 +18,97 @@ class RegisterOnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final emailInvalid = submitted && !_isValidGmail(emailController.text);
+    final emailInvalid = submitted && !_isValidEmail(emailController.text);
     final passwordInvalid = submitted && passwordController.text.trim().length < 8;
 
-    return ListView(
+    return CustomScrollView(
       physics: const BouncingScrollPhysics(),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Text('Set up secure sync', style: theme.textTheme.headlineMedium),
-              const SizedBox(height: 10),
-              Text(
-                'Use a Gmail address and a password with at least 8 characters.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Gmail address',
-                  hintText: 'you@gmail.com',
-                  errorText: emailInvalid ? 'Enter a valid Gmail address' : null,
+              Column(
+                children: [
+                  const ColoredBox(
+                    color: AppColors.twilight,
+                    child: SizedBox(height: 180),
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(36),
+                        ),
+                      ),
+                      child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Set up secure sync',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.18,
+                  ),
                 ),
-                onChanged: (_) => onChanged(),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  hintText: 'Minimum 8 characters',
-                  errorText: passwordInvalid ? 'Password is too short' : null,
+                const SizedBox(height: 14),
+                Text(
+                  'Use an email address and a password with at least 8 characters.',
+                  style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
                 ),
-                onChanged: (_) => onChanged(),
+                const SizedBox(height: 34),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel(label: 'EMAIL ADDRESS'),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: _inputDecoration(
+                        context,
+                        hint: 'you@example.com',
+                        errorText: emailInvalid
+                            ? 'Enter a valid email address'
+                            : null,
+                      ),
+                      onChanged: (_) => onChanged(),
+                    ),
+                    const SizedBox(height: 16),
+                    const _FieldLabel(label: 'PASSWORD'),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: _inputDecoration(
+                        context,
+                        hint: 'At least 8 characters',
+                        errorText: passwordInvalid ? 'Password is too short' : null,
+                      ),
+                      onChanged: (_) => onChanged(),
+                    ),
+                  ],
+                ),
+              ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                top: -35,
+                right: 20,
+                child: IgnorePointer(
+                  child: Image.asset(
+                    'assets/images/homepage/artemis-signup.png',
+                    height: 250,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
             ],
           ),
@@ -67,7 +117,64 @@ class RegisterOnboardingScreen extends StatelessWidget {
     );
   }
 
-  bool _isValidGmail(String value) {
-    return RegExp(r'^[^@\s]+@gmail\.com$').hasMatch(value.trim().toLowerCase());
+  InputDecoration _inputDecoration(
+    BuildContext context, {
+    required String hint,
+    String? errorText,
+  }) {
+    final theme = Theme.of(context);
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    );
+
+    return InputDecoration(
+      hintText: hint,
+      errorText: errorText,
+      // Reserve this line from the start, so validation never shifts either
+      // field or changes the form's layout.
+      helperText: ' ',
+      helperStyle: const TextStyle(fontSize: 12, height: 1.2, color: Colors.transparent),
+      errorStyle: TextStyle(
+        fontSize: 12,
+        height: 1.2,
+        color: theme.colorScheme.error,
+      ),
+      filled: true,
+      fillColor: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      enabledBorder: border,
+      errorBorder: border,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+      ),
+    );
+  }
+
+  bool _isValidEmail(String value) {
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value.trim());
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.1,
+          ),
+    );
   }
 }

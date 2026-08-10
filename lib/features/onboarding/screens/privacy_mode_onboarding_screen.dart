@@ -18,7 +18,7 @@ class PrivacyModeOnboardingScreen extends StatelessWidget {
       children: [
         Expanded(
           child: PrivacyChoiceCard(
-            title: 'Local only',
+            title: 'Local Only',
             titleFontSize: 30,
             eyebrow: 'OFFLINE MODE',
             description:
@@ -37,7 +37,7 @@ class PrivacyModeOnboardingScreen extends StatelessWidget {
         const SizedBox(height: 14),
         Expanded(
           child: PrivacyChoiceCard(
-            title: 'Secure sync',
+            title: 'Secure Space',
             titleFontSize: 30,
             eyebrow: 'ENCRYPTED BACKUP',
             description:

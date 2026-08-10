@@ -9,7 +9,9 @@ class OnboardingFooter extends StatelessWidget {
     required this.onBack,
     required this.onContinue,
     this.animateContinueLabel = false,
+    this.continueLabelAnimationKey,
     this.infoText,
+    this.secondaryAction,
     super.key,
   });
 
@@ -20,13 +22,19 @@ class OnboardingFooter extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onContinue;
   final bool animateContinueLabel;
+  final Object? continueLabelAnimationKey;
   final String? infoText;
+  final Widget? secondaryAction;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (secondaryAction != null) ...[
+          secondaryAction!,
+          const SizedBox(height: 8),
+        ],
         if (infoText != null) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +92,12 @@ class OnboardingFooter extends StatelessWidget {
                     ),
                   )
                 : animateContinueLabel
-                    ? const _TypingButtonLabel(text: "Let's start!")
+                    ? KeyedSubtree(
+                        key: ValueKey(continueLabelAnimationKey),
+                        child: _TypingButtonLabel(
+                          text: isLastStep ? 'Start tracking' : 'Continue',
+                        ),
+                      )
                     : Text(isLastStep ? 'Start tracking' : 'Continue'),
           ),
             ),

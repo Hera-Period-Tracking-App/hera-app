@@ -12,11 +12,11 @@ class WelcomeOnboardingScreen extends StatefulWidget {
 
 class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
     with SingleTickerProviderStateMixin {
-  static const _welcomeText = '> welcome to';
+  static const _welcomeText = '>  welcome to';
   static const _heraText = 'HERA';
   static const _subtitleText =
-      '> your secure period tracking app\n> no subscriptions\n> no ads and tracking\n> yours and yours only';
-  static const _underlinedOwnershipText = 'yours only';
+      '>  no subscriptions\n>  no ads and tracking\n>  your secure period tracking app';
+  static const _underlinedOwnershipText = 'secure';
   late final AnimationController _typingController;
 
   @override
@@ -73,55 +73,15 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
         final subtitleCharacters =
             (subtitleProgress * _subtitleText.length).floor();
         final typedSubtitle = _subtitleText.substring(0, subtitleCharacters);
-        final ownershipStart = _subtitleText.lastIndexOf(_underlinedOwnershipText);
-        final regularText = typedSubtitle.substring(
-          0,
-          typedSubtitle.length.clamp(0, ownershipStart).toInt(),
-        );
-        final ownershipText = typedSubtitle.length > ownershipStart
-            ? typedSubtitle.substring(ownershipStart)
-            : '';
-        const secureText = 'secure';
-        final secureStart = regularText.indexOf(secureText);
-        final secureEnd = secureStart == -1
-            ? regularText.length
-            : (secureStart + secureText.length)
-                .clamp(0, regularText.length)
-                .toInt();
-
-        return Text.rich(
-          TextSpan(
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.72),
-              fontFamily: 'monospace',
-              fontSize: 16,
-              height: 1.75,
-            ),
-            children: [
-              TextSpan(
-                text: regularText.substring(
-                  0,
-                  secureStart == -1 ? regularText.length : secureStart,
-                ),
-              ),
-              if (secureStart != -1)
-                TextSpan(
-                  text: regularText.substring(secureStart, secureEnd),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              if (secureStart != -1)
-                TextSpan(text: regularText.substring(secureEnd)),
-              TextSpan(
-                text: ownershipText,
-                style: const TextStyle(
-                  decoration: TextDecoration.underline,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+        return Text(
+          typedSubtitle,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Colors.white.withValues(alpha: 0.72),
+            height: 1.75,
+            fontWeight: FontWeight.w500,
+            // Keeps the familiar app typeface, with a subtle terminal-like
+            // rhythm instead of switching to a literal monospace font.
+            letterSpacing: 0.45,
           ),
         );
       },
@@ -142,7 +102,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
             children: [
               Positioned(
                 top: 0,
-                left: 0,
+                left: 20,
                 child: AnimatedBuilder(
                   animation: _typingController,
                   builder: (context, child) {
@@ -166,11 +126,10 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
               children: [
                 Text(
                   typedWelcome,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.white,
-                    fontFamily: 'monospace',
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.55,
                   ),
                 ),
                 Align(
@@ -181,12 +140,12 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                     children: [
                       Text(
                         typedHera,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           color: Colors.white,
                           fontSize: 88,
                           height: 0.9,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -4,
+                          letterSpacing: -2.5,
                         ),
                       ),
                     ],
@@ -250,7 +209,7 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                 ),
               ),
               Positioned(
-                left: 0,
+                left: 20,
                 right: 128,
                 top: 520,
                 child: _buildAnimatedSubtitle(),
@@ -292,7 +251,6 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
               TextSpan(
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.72),
-                  fontFamily: 'monospace',
                   fontSize: 16,
                   height: 1.75,
                 ),
