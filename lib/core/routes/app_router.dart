@@ -101,6 +101,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       state.uri.queryParameters['startNewCycle'] == 'true';
                   final addNote =
                       state.uri.queryParameters['addNote'] == 'true';
+                  final editCurrentCycle =
+                      state.uri.queryParameters['editCurrentCycle'] == 'true';
                   final focusTodayToken = int.tryParse(
                       state.uri.queryParameters['focusToday'] ?? '');
                   final focusAddNoteToken = int.tryParse(
@@ -111,6 +113,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return CalendarScreen(
                     isStartNewCycleFlow: startNewCycle,
                     isAddNoteFlow: addNote,
+                    isEditCurrentCycleFlow: editCurrentCycle,
                     focusTodayToken: focusTodayToken,
                     focusAddNoteToken: focusAddNoteToken,
                     focusDate: focusDate,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
 class CalendarDateDetailsScreen extends ConsumerWidget {
   const CalendarDateDetailsScreen({
@@ -33,6 +34,10 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final normalizedDate = DateTime(date.year, date.month, date.day);
+    final notesEnabled = ref.watch(settingsProvider).maybeWhen(
+          data: (settings) => settings.notesEnabled,
+          orElse: () => true,
+        );
     final noteAsync = ref.watch(_noteForDateProvider(normalizedDate));
 
     return Scaffold(
@@ -47,6 +52,17 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
+            if (!notesEnabled)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    'Notes are disabled in Settings.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+              )
+            else
             noteAsync.when(
               data: (note) {
                 if (note == null) {

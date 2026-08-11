@@ -23,6 +23,7 @@ class SettingsService {
       biometricsEnabled: false,
       pinEnabled: false,
       notificationsEnabled: appSettings.notificationsEnabled,
+      notesEnabled: userSettings.notesEnabled,
       aiSummariesEnabled: userSettings.aiEnabled,
       autoSyncEnabled: appSettings.syncEnabled,
     );
@@ -63,6 +64,22 @@ class SettingsService {
         .write(
       UserSettingsCompanion(
         aiEnabled: Value(enabled),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+
+    return loadSettings();
+  }
+
+  Future<SettingsState> setNotesEnabled(bool enabled) async {
+    final database = _ref.read(appDatabaseProvider);
+    final userSettings = await _readOrCreateUserSettings();
+
+    await (database.update(database.userSettings)
+          ..where((row) => row.id.equals(userSettings.id)))
+        .write(
+      UserSettingsCompanion(
+        notesEnabled: Value(enabled),
         updatedAt: Value(DateTime.now()),
       ),
     );

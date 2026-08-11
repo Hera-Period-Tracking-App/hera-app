@@ -72,11 +72,63 @@ class CycleRepository {
     );
   }
 
+  Future<void> updateCycle({
+    required String id,
+    required DateTime startDate,
+    required int cycleLength,
+    required int menstruationLength,
+  }) async {
+    final startDateOnly = DateTime(startDate.year, startDate.month, startDate.day);
+    final effectiveCycleLength = await _resolveEffectiveCycleLength(
+      startDate: startDateOnly,
+      providedCycleLength: cycleLength,
+      excludeCycleId: id,
+    );
+
+    _validateCycle(
+      startDate: startDateOnly,
+      cycleLength: effectiveCycleLength,
+      menstruationLength: menstruationLength,
+    );
+
+    final hasDuplicate = await _dataSource.hasCycleWithStartDate(
+      startDateOnly,
+      excludeCycleId: id,
+    );
+    if (hasDuplicate) {
+      throw DuplicateCycleException(
+        'A cycle with this start date already exists.',
+      );
+    }
+
+    final hasOverlap = await _dataSource.hasOverlappingCycle(
+      startDate: startDateOnly,
+      cycleLength: effectiveCycleLength,
+      excludeCycleId: id,
+    );
+    if (hasOverlap) {
+      throw OverlappingCycleException(
+        'The updated cycle overlaps with an existing cycle.',
+      );
+    }
+
+    return _dataSource.updateCycleEntry(
+      id: id,
+      startDate: startDateOnly,
+      cycleLength: effectiveCycleLength,
+      menstruationLength: menstruationLength,
+    );
+  }
+
   Future<int> _resolveEffectiveCycleLength({
     required DateTime startDate,
     required int providedCycleLength,
+    String? excludeCycleId,
   }) async {
-    final nextCycleStart = await _dataSource.nextCycleStartAfter(startDate);
+    final nextCycleStart = await _dataSource.nextCycleStartAfter(
+      startDate,
+      excludeCycleId: excludeCycleId,
+    );
     if (nextCycleStart == null) {
       return providedCycleLength;
     }

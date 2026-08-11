@@ -23,6 +23,10 @@ class SettingsRepository {
     return _service.setAiSummariesEnabled(enabled);
   }
 
+  Future<SettingsState> setNotesEnabled(bool enabled) {
+    return _service.setNotesEnabled(enabled);
+  }
+
   Future<SettingsState> setAutoSyncEnabled(bool enabled) {
     return _service.setAutoSyncEnabled(enabled);
   }

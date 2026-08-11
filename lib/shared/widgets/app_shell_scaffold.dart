@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/cycle_phase_colors.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
-class AppShellScaffold extends StatelessWidget {
+class AppShellScaffold extends ConsumerWidget {
   const AppShellScaffold({
     required this.navigationShell,
     super.key,
@@ -12,15 +14,19 @@ class AppShellScaffold extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final phaseColors = Theme.of(context).extension<CyclePhaseColors>();
+    final notesEnabled = ref.watch(settingsProvider).maybeWhen(
+          data: (settings) => settings.notesEnabled,
+          orElse: () => true,
+        );
 
     return Scaffold(
       body: navigationShell,
       extendBody: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddMenu(context),
+        onPressed: () => _showAddMenu(context, notesEnabled: notesEnabled),
         backgroundColor: phaseColors?.luteal,
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
@@ -61,10 +67,12 @@ class AppShellScaffold extends StatelessWidget {
                   activeIcon: Icons.edit_note,
                   label: 'Notes',
                   isSelected: navigationShell.currentIndex == 2,
-                  onTap: () => navigationShell.goBranch(
-                    2,
-                    initialLocation: 2 == navigationShell.currentIndex,
-                  ),
+                  onTap: notesEnabled
+                      ? () => navigationShell.goBranch(
+                            2,
+                            initialLocation: 2 == navigationShell.currentIndex,
+                          )
+                      : null,
                 ),
                 _ShellTabButton(
                   icon: Icons.person_outline,
@@ -84,7 +92,10 @@ class AppShellScaffold extends StatelessWidget {
     );
   }
 
-  void _showAddMenu(BuildContext context) {
+  void _showAddMenu(
+    BuildContext context, {
+    required bool notesEnabled,
+  }) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -108,18 +119,21 @@ class AppShellScaffold extends StatelessWidget {
                     );
                   },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.note_add_outlined),
-                  title: const Text('Add note'),
-                  subtitle: const Text('Pick a date and write a private note.'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    final focusAddNote = DateTime.now().millisecondsSinceEpoch;
-                    context.go(
-                      '${AppRoutePaths.calendar}?addNote=true&focusAddNote=$focusAddNote',
-                    );
-                  },
-                ),
+                if (notesEnabled)
+                  ListTile(
+                    leading: const Icon(Icons.note_add_outlined),
+                    title: const Text('Add note'),
+                    subtitle:
+                        const Text('Pick a date and write a private note.'),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      final focusAddNote =
+                          DateTime.now().millisecondsSinceEpoch;
+                      context.go(
+                        '${AppRoutePaths.calendar}?addNote=true&focusAddNote=$focusAddNote',
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -142,7 +156,7 @@ class _ShellTabButton extends StatelessWidget {
   final IconData activeIcon;
   final String label;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -159,13 +173,21 @@ class _ShellTabButton extends StatelessWidget {
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected ? selectedColor : unselectedColor,
+              color: onTap == null
+                  ? theme.disabledColor
+                  : isSelected
+                      ? selectedColor
+                      : unselectedColor,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: isSelected ? selectedColor : unselectedColor,
+                color: onTap == null
+                    ? theme.disabledColor
+                    : isSelected
+                        ? selectedColor
+                        : unselectedColor,
               ),
             ),
           ],

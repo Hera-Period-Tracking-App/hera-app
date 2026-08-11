@@ -18,7 +18,10 @@ class CycleLocalDataSource {
         .watch();
   }
 
-  Future<bool> hasCycleWithStartDate(DateTime startDate) async {
+  Future<bool> hasCycleWithStartDate(
+    DateTime startDate, {
+    String? excludeCycleId,
+  }) async {
     final dayStart = DateTime(startDate.year, startDate.month, startDate.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
 
@@ -26,18 +29,30 @@ class CycleLocalDataSource {
           ..where(
             (entry) =>
                 entry.startDateLocal.isBiggerOrEqualValue(dayStart) &
-                entry.startDateLocal.isSmallerThanValue(dayEnd),
+                entry.startDateLocal.isSmallerThanValue(dayEnd) &
+                (excludeCycleId == null
+                    ? const Constant(true)
+                    : entry.id.equals(excludeCycleId).not()),
           ))
         .getSingleOrNull();
 
     return existing != null;
   }
 
-  Future<DateTime?> nextCycleStartAfter(DateTime startDate) async {
+  Future<DateTime?> nextCycleStartAfter(
+    DateTime startDate, {
+    String? excludeCycleId,
+  }) async {
     final dayStart = DateTime(startDate.year, startDate.month, startDate.day);
 
     final next = await (_database.select(_database.cycleEntries)
-          ..where((entry) => entry.startDateLocal.isBiggerThanValue(dayStart))
+          ..where(
+            (entry) =>
+                entry.startDateLocal.isBiggerThanValue(dayStart) &
+                (excludeCycleId == null
+                    ? const Constant(true)
+                    : entry.id.equals(excludeCycleId).not()),
+          )
           ..orderBy([(entry) => OrderingTerm.asc(entry.startDateLocal)]))
         .get();
 
@@ -47,6 +62,7 @@ class CycleLocalDataSource {
   Future<bool> hasOverlappingCycle({
     required DateTime startDate,
     required int cycleLength,
+    String? excludeCycleId,
   }) async {
     final newStart = DateTime(startDate.year, startDate.month, startDate.day);
     final newEnd = newStart.add(Duration(days: cycleLength - 1));
@@ -54,6 +70,10 @@ class CycleLocalDataSource {
     final allCycles = await _database.select(_database.cycleEntries).get();
 
     for (final cycle in allCycles) {
+      if (cycle.id == excludeCycleId) {
+        continue;
+      }
+
       final existingStart = DateTime(
         cycle.startDateLocal.year,
         cycle.startDateLocal.month,
@@ -88,5 +108,26 @@ class CycleLocalDataSource {
             updatedAt: DateTime.now(),
           ),
         );
+  }
+
+  Future<void> updateCycleEntry({
+    required String id,
+    required DateTime startDate,
+    required int cycleLength,
+    required int menstruationLength,
+  }) {
+    final startDateOnly = DateTime(startDate.year, startDate.month, startDate.day);
+
+    return (_database.update(_database.cycleEntries)
+          ..where((entry) => entry.id.equals(id)))
+        .write(
+      CycleEntriesCompanion(
+        startDate: Value(startDateOnly),
+        startDateLocal: Value(startDateOnly),
+        cycleLength: Value(cycleLength),
+        menstruationLength: Value(menstruationLength),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 }

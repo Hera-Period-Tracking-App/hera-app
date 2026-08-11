@@ -9,6 +9,7 @@ import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/notes/widgets/notes_security_card.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
 class NotesScreen extends ConsumerWidget {
   const NotesScreen({super.key});
@@ -19,6 +20,10 @@ class NotesScreen extends ConsumerWidget {
     final cyclesAsync = ref.watch(cyclesProvider);
     final profileAsync = ref.watch(profileSettingsProvider);
     final forecastAsync = ref.watch(upcomingCycleForecastProvider);
+    final notesEnabled = ref.watch(settingsProvider).maybeWhen(
+          data: (settings) => settings.notesEnabled,
+          orElse: () => true,
+        );
     final cycles = cyclesAsync.maybeWhen(
       data: (value) => value,
       orElse: () => const <CycleSummary>[],
@@ -36,7 +41,15 @@ class NotesScreen extends ConsumerWidget {
           children: [
             const NotesSecurityCard(),
             const SizedBox(height: 16),
-            notesAsync.when(
+            if (!notesEnabled)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('Notes are disabled in Settings.'),
+                ),
+              )
+            else
+              notesAsync.when(
               data: (notes) => _NotesList(
                 notes: notes,
                 cycles: cycles,
