@@ -14,6 +14,7 @@ class AppRoutePaths {
   static const symptoms = '/symptoms';
   static const notes = '/notes';
   static const profile = '/profile';
+  static const editAccount = '/profile/account/edit';
   static const settings = '/profile/settings';
 
   static String calendarDateDetailsFor(DateTime date) {
