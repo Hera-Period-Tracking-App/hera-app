@@ -19,7 +19,14 @@ class BiometricAuthDataSource {
   }
 
   Future<bool> canUseBiometrics() async {
-    return await canCheckBiometrics() && await isDeviceSupported();
+    if (!await isDeviceSupported()) {
+      return false;
+    }
+    if (!await canCheckBiometrics()) {
+      return false;
+    }
+    final biometrics = await _localAuth.getAvailableBiometrics();
+    return biometrics.isNotEmpty;
   }
 
   Future<bool> authenticate() {
