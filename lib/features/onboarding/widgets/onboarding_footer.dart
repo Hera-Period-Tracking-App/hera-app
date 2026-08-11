@@ -10,6 +10,7 @@ class OnboardingFooter extends StatelessWidget {
     required this.onContinue,
     this.animateContinueLabel = false,
     this.continueLabelAnimationKey,
+    this.continueLabel,
     this.infoText,
     this.secondaryAction,
     super.key,
@@ -23,11 +24,14 @@ class OnboardingFooter extends StatelessWidget {
   final VoidCallback onContinue;
   final bool animateContinueLabel;
   final Object? continueLabelAnimationKey;
+  final String? continueLabel;
   final String? infoText;
   final Widget? secondaryAction;
 
   @override
   Widget build(BuildContext context) {
+    final label = continueLabel ?? (isLastStep ? 'Start tracking' : 'Continue');
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -95,10 +99,10 @@ class OnboardingFooter extends StatelessWidget {
                     ? KeyedSubtree(
                         key: ValueKey(continueLabelAnimationKey),
                         child: _TypingButtonLabel(
-                          text: isLastStep ? 'Start tracking' : 'Continue',
+                          text: label,
                         ),
                       )
-                    : Text(isLastStep ? 'Start tracking' : 'Continue'),
+                    : Text(label),
           ),
             ),
           ],

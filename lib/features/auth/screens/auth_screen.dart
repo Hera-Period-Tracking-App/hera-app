@@ -3,11 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
-import 'package:hera_app/features/auth/widgets/auth_status_card.dart';
-import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
+import 'package:hera_app/features/onboarding/screens/login_onboarding_screen.dart';
+import 'package:hera_app/features/onboarding/screens/register_onboarding_screen.dart';
+import 'package:hera_app/shared/screens/startup_loading_screen.dart';
+
+enum AuthScreenMode { login, signup }
 
 class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({
+    super.key,
+    required this.mode,
+  });
+
+  final AuthScreenMode mode;
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -16,7 +24,9 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _submitted = false;
+  String? _accountErrorMessage;
 
   @override
   void initState() {
@@ -37,6 +47,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -46,120 +57,71 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final authState = ref.watch(authSessionProvider);
     final notifier = ref.read(authSessionProvider.notifier);
     final isBusy = authState.isLoading;
-    final isAuthenticated =
-        authState.asData?.value.isAuthenticated ?? false;
-    final emailInvalid = _submitted && !_isValidEmail(_emailController.text);
-    final passwordInvalid = _submitted && _passwordController.text.trim().length < 8;
+    final isSignup = widget.mode == AuthScreenMode.signup;
+    final title = isSignup ? 'Create account' : 'Log in';
+    final primaryLabel = isSignup ? 'Sign up' : 'Log in';
+    final alternateLabel =
+        isSignup ? 'Already have an account? Log in' : 'Need an account? Sign up';
+
+    if (isBusy) {
+      return const StartupLoadingScreen();
+    }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Authentication')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        physics: const BouncingScrollPhysics(),
+      appBar: AppBar(title: Text(title)),
+      backgroundColor: theme.cardColor,
+      body: Column(
         children: [
-          const AuthStatusCard(),
-          const SizedBox(height: 16),
-          SectionPlaceholderCard(
-            title: 'Secure Storage',
-            body: 'Bearer token, session metadata, device ID, and sync cursor stay in Flutter Secure Storage.',
+          Expanded(
+            child: isSignup
+                ? RegisterOnboardingScreen(
+                  emailController: _emailController,
+                  passwordController: _passwordController,
+                  confirmPasswordController: _confirmPasswordController,
+                  submitted: _submitted,
+                  errorMessage: _accountErrorMessage,
+                  onChanged: _clearAccountError,
+                  )
+                : LoginOnboardingScreen(
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                    submitted: _submitted,
+                    errorMessage: _accountErrorMessage,
+                    onChanged: _clearAccountError,
+                  ),
           ),
-          const SizedBox(height: 16),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 220),
-            crossFadeState: isAuthenticated
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            firstChild: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(28),
-              ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Connect to your API', style: theme.textTheme.headlineMedium),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Set `--dart-define=API_BASE_URL=https://your-api-host` and use the form below for `/api/auth/signup` and `/api/auth/login`.',
-                    style: theme.textTheme.bodyMedium,
+                  FilledButton(
+                    onPressed: isBusy
+                        ? null
+                        : () => _submit(
+                              isSignup
+                                  ? () => notifier.signup(
+                                        email: _emailController.text,
+                                        password: _passwordController.text,
+                                      )
+                                  : () => notifier.login(
+                                        email: _emailController.text,
+                                        password: _passwordController.text,
+                                      ),
+                            ),
+                    child: Text(isBusy ? 'Please wait...' : primaryLabel),
                   ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      hintText: 'you@example.com',
-                      errorText: emailInvalid ? 'Enter a valid email address' : null,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    autofillHints: const [AutofillHints.password],
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      hintText: 'Minimum 8 characters',
-                      errorText: passwordInvalid ? 'Password is too short' : null,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  if (authState.hasError)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        authState.error.toString(),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      FilledButton(
-                        onPressed: isBusy ? null : () => _submit(() => notifier.signup(
-                              email: _emailController.text,
-                              password: _passwordController.text,
-                            )),
-                        child: const Text('Sign up'),
-                      ),
-                      OutlinedButton(
-                        onPressed: isBusy ? null : () => _submit(() => notifier.login(
-                              email: _emailController.text,
-                              password: _passwordController.text,
-                            )),
-                        child: const Text('Log in'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            secondChild: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Connected', style: theme.textTheme.headlineMedium),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Authentication succeeded. The login form is hidden until you sign out.',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 20),
                   TextButton(
-                    onPressed: isBusy ? null : notifier.logout,
-                    child: const Text('Log out'),
+                    onPressed: isBusy
+                        ? null
+                        : () => context.pushReplacement(
+                              isSignup
+                                  ? AppRoutePaths.authLogin
+                                  : AppRoutePaths.authSignup,
+                            ),
+                    child: Text(alternateLabel),
                   ),
                 ],
               ),
@@ -176,11 +138,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
 
     if (!_isValidEmail(_emailController.text) ||
-        _passwordController.text.trim().length < 8) {
+        _passwordController.text.trim().length < 8 ||
+        (widget.mode == AuthScreenMode.signup &&
+            _confirmPasswordController.text != _passwordController.text)) {
+      setState(() {
+        _accountErrorMessage =
+            'Please enter a valid email, a password with at least 8 characters, and matching confirmation password.';
+      });
       return;
     }
 
+    setState(() => _accountErrorMessage = null);
     await action();
+
+    final authState = ref.read(authSessionProvider);
+    if (authState.hasError && mounted) {
+      setState(() {
+        _accountErrorMessage = widget.mode == AuthScreenMode.signup
+            ? 'There was an error creating your account. Please try again.'
+            : 'Could not log in. Please check your credentials.';
+      });
+    }
+  }
+
+  void _clearAccountError() {
+    setState(() => _accountErrorMessage = null);
   }
 
   bool _isValidEmail(String value) {

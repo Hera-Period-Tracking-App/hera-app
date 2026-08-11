@@ -29,7 +29,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isOnboardingRoute =
           state.matchedLocation == AppRoutePaths.onboarding;
-      final isAuthRoute = state.matchedLocation == AppRoutePaths.auth;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
         return isOnboardingRoute ? null : AppRoutePaths.onboarding;
@@ -50,19 +49,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           onboardingState.asData?.value.selectedPrivacyMode ==
               PrivacyMode.secureSync;
       if (!usesSecureSync) {
-        return isOnboardingRoute || isAuthRoute ? AppRoutePaths.home : null;
+        return isOnboardingRoute ? AppRoutePaths.home : null;
       }
 
       if (authState.isLoading) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return null;
       }
 
       final hasValidSession = authState.asData?.value.isAuthenticated ?? false;
       if (!hasValidSession) {
-        return isAuthRoute ? null : AppRoutePaths.auth;
+        return isOnboardingRoute ? AppRoutePaths.home : null;
       }
 
-      if (isOnboardingRoute || isAuthRoute) {
+      if (isOnboardingRoute) {
         return AppRoutePaths.home;
       }
 
@@ -77,7 +76,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutePaths.auth,
         name: 'auth',
-        builder: (context, state) => const AuthScreen(),
+        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.login),
+      ),
+      GoRoute(
+        path: AppRoutePaths.authLogin,
+        name: 'auth-login',
+        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.login),
+      ),
+      GoRoute(
+        path: AppRoutePaths.authSignup,
+        name: 'auth-signup',
+        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.signup),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
