@@ -21,10 +21,13 @@ import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
 
 part 'calendar_screen_actions.dart';
 part 'calendar_screen_content.dart';
 part 'calendar_screen_scroll.dart';
+
+double? _lastCalendarScrollOffset;
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({
@@ -34,6 +37,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
     this.focusTodayToken,
     this.focusAddNoteToken,
     this.focusDate,
+    this.editScrollOffset,
     super.key,
   });
 
@@ -43,6 +47,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
   final int? focusTodayToken;
   final int? focusAddNoteToken;
   final DateTime? focusDate;
+  final double? editScrollOffset;
 
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
@@ -52,9 +57,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const int _monthsBeforeEarliestCycle = 6;
   static const int _monthsAfterCurrent = 24;
 
-  final ScrollController _monthScrollController = ScrollController();
+  late final ScrollController _monthScrollController;
   final Map<String, CalendarPhaseDates> _phaseDatesByMonth = {};
   String? _phaseDatesCacheVersion;
+  bool _isCenteringMonth = false;
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
   DateTime? _selectedDate;
@@ -62,19 +68,34 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   String? _editedCycleId;
   int? _editedMenstruationLength;
   bool _isSavingCycle = false;
+  bool _isLegendVisible = true;
 
   @override
   void initState() {
     super.initState();
-
-    if (widget.isEditCurrentCycleFlow && widget.focusDate != null) {
-      _selectedDate = DateUtils.dateOnly(widget.focusDate!);
+    final restoredEditScrollOffset =
+        widget.editScrollOffset ?? _lastCalendarScrollOffset;
+    _monthScrollController = ScrollController(
+      initialScrollOffset: widget.isEditCurrentCycleFlow
+          ? restoredEditScrollOffset ?? 0.0
+          : 0.0,
+    );
+    _monthScrollController.addListener(() {
+      if (_monthScrollController.hasClients) {
+        _lastCalendarScrollOffset = _monthScrollController.offset;
+      }
+    });
+    if (widget.isEditCurrentCycleFlow && restoredEditScrollOffset != null) {
+      _positionedAtCurrentMonth = true;
     }
+    _updateShellNavigationVisibility();
+
   }
 
   @override
   void didUpdateWidget(covariant CalendarScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _updateShellNavigationVisibility();
 
     final enteringStartCycleFlow =
         !oldWidget.isStartNewCycleFlow && widget.isStartNewCycleFlow;
@@ -98,23 +119,32 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final focusDateChanged =
         oldWidget.focusDate != widget.focusDate && widget.focusDate != null;
 
-    if (enteringStartCycleFlow ||
+    // Editing should keep the month the user was already viewing.  Only the
+    // selected cycle date is needed for the edit form; it must not reposition
+    // the calendar underneath it.
+    if (enteringEditCurrentCycleFlow) {
+      _editedCycleId = null;
+      _editedMenstruationLength = null;
+    }
+
+    final shouldRecenter =
+        enteringStartCycleFlow ||
         enteringAddNoteFlow ||
-        enteringEditCurrentCycleFlow ||
         focusTokenChanged ||
         addNoteFocusTokenChanged ||
-        focusDateChanged) {
+        (focusDateChanged && !enteringEditCurrentCycleFlow);
+
+    if (shouldRecenter) {
       _positionedAtCurrentMonth = false;
       _forceRecenterOnBuild = true;
+      _isCenteringMonth = focusTokenChanged || exitingFlow;
       if (focusDateChanged) {
         _pendingFocusDate = widget.focusDate;
       }
-      if (enteringEditCurrentCycleFlow && widget.focusDate != null) {
-        _selectedDate = DateUtils.dateOnly(widget.focusDate!);
-      } else if (!exitingFlow) {
+      if (!exitingFlow) {
         _selectedDate = null;
       }
-      if (enteringEditCurrentCycleFlow || exitingFlow) {
+      if (exitingFlow) {
         _editedCycleId = null;
         _editedMenstruationLength = null;
       }
@@ -123,8 +153,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   void dispose() {
+    ref.read(shellNavigationVisibleProvider.notifier).setVisible(true);
     _monthScrollController.dispose();
     super.dispose();
+  }
+
+  void _updateShellNavigationVisibility() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref
+            .read(shellNavigationVisibleProvider.notifier)
+            .setVisible(!widget.isEditCurrentCycleFlow);
+      }
+    });
   }
 
   @override
@@ -150,36 +191,62 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Calendar'),
         actions: [
-          if (isFlowActive)
+          if (isFlowActive && !widget.isEditCurrentCycleFlow)
             TextButton(
               onPressed: isBusy ? null : _cancelCalendarFlow,
               child: const Text('Cancel'),
             )
-          else
+          else ...[
             cyclesAsync.maybeWhen(
               data: (cycles) {
                 if (cycles.isEmpty) {
                   return const SizedBox.shrink();
                 }
 
-                final currentCycle = cycles.first;
                 return IconButton(
                   tooltip: 'Edit current cycle start date',
                   icon: const Icon(Icons.edit_calendar),
-                  onPressed: () => context.go(
-                    '${AppRoutePaths.calendar}?editCurrentCycle=true&focusDate=${_formatRouteDate(currentCycle.startDate)}',
-                  ),
+                  onPressed: () {
+                    final scrollOffset = _monthScrollController.hasClients
+                        ? _monthScrollController.offset
+                        : _lastCalendarScrollOffset;
+                    final scrollQuery = scrollOffset == null
+                        ? ''
+                        : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
+                    context.go(
+                      '${AppRoutePaths.calendar}?editCurrentCycle=true$scrollQuery',
+                    );
+                  },
                 );
               },
               orElse: () => const SizedBox.shrink(),
             ),
+            IconButton(
+              tooltip: _isLegendVisible
+                  ? 'Hide calendar legend'
+                  : 'Show calendar legend',
+              icon: Icon(
+                _isLegendVisible
+                    ? Icons.info_rounded
+                    : Icons.info_outline_rounded,
+              ),
+              onPressed: () {
+                setState(() => _isLegendVisible = !_isLegendVisible);
+              },
+            ),
+          ],
         ],
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.only(
+            top: widget.isEditCurrentCycleFlow ? 0 : 16,
+            bottom: 16,
+          ),
           child: cyclesAsync.when(
             data: (cycles) {
               if (widget.isAddNoteFlow && !notesEnabled) {

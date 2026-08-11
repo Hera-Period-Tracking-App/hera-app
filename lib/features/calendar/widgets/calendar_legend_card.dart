@@ -34,16 +34,16 @@ class CalendarLegendCard extends StatelessWidget {
             children: [
           
               CalendarLegendItem(
-                color: Colors.red.withValues(alpha: 0.18),
+                color: Colors.red,
                 label: 'Menstruation',
               ),
 
               const SizedBox(height: 10),
 
               CalendarLegendItem(
-                color: (phaseColors?.ovulation ??
+                color: (phaseColors?.follicular ??
                         theme.colorScheme.secondary)
-                    .withValues(alpha: 0.14),
+                    .withValues(alpha: 0.85),
                 label: 'Fertile',
               ),
 
@@ -52,7 +52,7 @@ class CalendarLegendCard extends StatelessWidget {
               CalendarLegendItem(
                 color: (phaseColors?.ovulation ??
                         theme.colorScheme.secondary)
-                    .withValues(alpha: 0.28),
+                    .withValues(alpha: 0.85),
                 label: 'Ovulation',
               ),
 

@@ -90,7 +90,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          return AppShellScaffold(navigationShell: navigationShell);
+          return AppShellScaffold(
+            navigationShell: navigationShell,
+            hideNavigation:
+                state.uri.queryParameters['editCurrentCycle'] == 'true',
+          );
         },
         branches: [
           StatefulShellBranch(
@@ -121,6 +125,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   final focusDate = _parseCalendarRouteDate(
                     state.uri.queryParameters['focusDate'],
                   );
+                  final editScrollOffset = double.tryParse(
+                    state.uri.queryParameters['editScrollOffset'] ?? '',
+                  );
                   return CalendarScreen(
                     isStartNewCycleFlow: startNewCycle,
                     isAddNoteFlow: addNote,
@@ -128,6 +135,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     focusTodayToken: focusTodayToken,
                     focusAddNoteToken: focusAddNoteToken,
                     focusDate: focusDate,
+                    editScrollOffset: editScrollOffset,
                   );
                 },
               ),
@@ -140,30 +148,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   if (date == null) {
                     return const MaterialPage(child: CalendarScreen());
                   }
-                  return CustomTransitionPage<void>(
+                  return NoTransitionPage<void>(
                     key: state.pageKey,
                     child: CalendarDateDetailsScreen(date: date),
-                    transitionDuration: const Duration(milliseconds: 380),
-                    reverseTransitionDuration:
-                        const Duration(milliseconds: 280),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      final curvedAnimation = CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                        reverseCurve: Curves.easeInCubic,
-                      );
-                      return FadeTransition(
-                        opacity: curvedAnimation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.16),
-                            end: Offset.zero,
-                          ).animate(curvedAnimation),
-                          child: child,
-                        ),
-                      );
-                    },
                   );
                 },
               ),

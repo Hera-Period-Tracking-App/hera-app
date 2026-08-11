@@ -10,7 +10,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
     required int? profileMenstruationLength,
     required CycleForecast? forecast,
   }) {
-    const double legendOverlayHeight = 108;
+    final legendOverlayHeight = _isLegendVisible ? 108.0 : 0.0;
     final now = DateTime.now();
     final nowMonth = DateTime(now.year, now.month);
     final earliestCycleMonth =
@@ -67,9 +67,6 @@ extension _CalendarScreenContent on _CalendarScreenState {
             )
             .toList(growable: false)
         : cycles;
-    final editedMenstruationLength =
-        _editedMenstruationLength ?? editedCycle?.menstruationLength;
-
     _precachePhaseDates(
       cycles: editedCycles,
       forecast: forecast,
@@ -87,32 +84,50 @@ extension _CalendarScreenContent on _CalendarScreenState {
     return Column(
       children: [
         if (isFlowActive) ...[
-          Text(
-            widget.isEditCurrentCycleFlow
-                ? 'Tap period days to edit your current period.'
-                : widget.isStartNewCycleFlow
-                ? 'Select a start date for your new cycle.'
-                : 'Select a date for your note.',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.isEditCurrentCycleFlow
-                ? 'Tap the day before or after your period to add one day. Tap the first or last period day to remove one day.'
-                : widget.isStartNewCycleFlow
-                ? 'Future dates are disabled. Existing cycle rules are applied when saving.'
-                : 'Each date can have one note.',
-            style: theme.textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
+          if (widget.isEditCurrentCycleFlow)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 16,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Tap on days you want your period to be added or removed.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Text(
+              widget.isStartNewCycleFlow
+                  ? 'Select a start date for your new cycle.'
+                  : 'Select a date for your note.',
+              style: theme.textTheme.titleMedium,
+            ),
+          if (!widget.isEditCurrentCycleFlow) ...[
+            const SizedBox(height: 8),
+            Text(
+              widget.isStartNewCycleFlow
+                  ? 'Future dates are disabled. Existing cycle rules are applied when saving.'
+                  : 'Each date can have one note.',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
           const SizedBox(height: 12),
-          if (_selectedDate != null)
+          if (_selectedDate != null && !widget.isEditCurrentCycleFlow)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                widget.isEditCurrentCycleFlow
-                    ? 'Editing period: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}${editedMenstruationLength == null ? '' : ' - $editedMenstruationLength days'}'
-                    : 'Selected: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                'Selected: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -133,9 +148,10 @@ extension _CalendarScreenContent on _CalendarScreenState {
           child: Stack(
             children: [
               ListView.builder(
+                key: const PageStorageKey<String>('calendar-month-list'),
                 controller: _monthScrollController,
                 physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: legendOverlayHeight + 8),
+                padding: EdgeInsets.only(bottom: legendOverlayHeight + 8),
                 cacheExtent: 300,
                 itemCount: monthCount,
                 itemBuilder: (context, index) {
@@ -150,7 +166,9 @@ extension _CalendarScreenContent on _CalendarScreenState {
                         forecast: forecast,
                       ),
                       noteDateKeys: noteDateKeys,
-                      selectedDate: isFlowActive ? _selectedDate : null,
+                      selectedDate: widget.isStartNewCycleFlow
+                          ? _selectedDate
+                          : null,
                       onDatePressed: (date) {
                         if (widget.isEditCurrentCycleFlow) {
                           _toggleCurrentPeriodDay(
@@ -177,54 +195,68 @@ extension _CalendarScreenContent on _CalendarScreenState {
                   );
                 },
               ),
-              const Positioned(
-                left: 0,
-                bottom: 0,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: CalendarLegendCard(),
+              if (_isLegendVisible)
+                const Positioned(
+                  left: 16,
+                  bottom: 0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: CalendarLegendCard(),
+                  ),
                 ),
-              ),
+              if (_isCenteringMonth)
+                Positioned.fill(
+                  child: ColoredBox(color: theme.scaffoldBackgroundColor),
+                ),
             ],
           ),
         ),
         if (isCycleDateFlow) ...[
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isSavingCycle ? null : _cancelStartNewCycle,
-                  child: const Text('Cancel'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSavingCycle ? null : _cancelStartNewCycle,
+                    child: const Text('Cancel'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: _isSavingCycle
-                      ? null
-                      : widget.isEditCurrentCycleFlow
-                          ? () => _updateCurrentCycle(cycles: cycles)
-                          : () => _startNewCycle(
-                                cycles: cycles,
-                                profileCycleLength: profileCycleLength,
-                                profileMenstruationLength:
-                                    profileMenstruationLength,
-                              ),
-                  child: _isSavingCycle
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          widget.isEditCurrentCycleFlow
-                              ? 'Save changes'
-                              : 'Start new cycle',
-                        ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    style: widget.isEditCurrentCycleFlow
+                        ? FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFC857),
+                            foregroundColor: const Color(0xFF171820),
+                          )
+                        : null,
+                    onPressed: _isSavingCycle
+                        ? null
+                        : widget.isEditCurrentCycleFlow
+                            ? () => _updateCurrentCycle(cycles: cycles)
+                            : () => _startNewCycle(
+                                  cycles: cycles,
+                                  profileCycleLength: profileCycleLength,
+                                  profileMenstruationLength:
+                                      profileMenstruationLength,
+                                ),
+                    child: _isSavingCycle
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            widget.isEditCurrentCycleFlow
+                                ? 'Save changes'
+                                : 'Start new cycle',
+                          ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ],

@@ -206,48 +206,70 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'Day ${phaseContext.dayOfCycle} of ${phaseContext.cycleLength}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
+                  SizedBox(
+                    height: 48,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Text(
+                          'Day ${phaseContext.dayOfCycle} of ${phaseContext.cycleLength}',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (!_isOnToday)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Material(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                              shape: const CircleBorder(),
+                              child: IconButton(
+                                tooltip: 'Back to today',
+                                onPressed: _resetToToday,
+                                icon: Icon(
+                                  Icons.replay,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    cyclePhaseLabel(phaseContext),
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _nextEventCountdownLabel(phaseContext),
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: Text(
+                          cyclePhaseLabel(phaseContext),
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Icon(Icons.arrow_right_alt_rounded, size: 24),
+                      ),
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: Text(
+                          _nextEventCountdownLabel(phaseContext),
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              if (!_isOnToday)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8, bottom: 8),
-                    child: Material(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      shape: const CircleBorder(),
-                      elevation: 2,
-                      child: IconButton(
-                        tooltip: 'Back to today',
-                        onPressed: _resetToToday,
-                        icon: Icon(
-                          Icons.replay,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

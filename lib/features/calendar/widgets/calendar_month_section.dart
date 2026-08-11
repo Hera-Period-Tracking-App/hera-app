@@ -35,35 +35,34 @@ class CalendarMonthSection extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  CalendarViewUtils.monthLabel(month),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight:
-                        isCurrentMonth ? FontWeight.w700 : FontWeight.w600,
-                    color: isCurrentMonth
-                        ? theme.colorScheme.onSurface
-                        : theme.colorScheme.onSurface,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    CalendarViewUtils.monthLabel(month),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight:
+                          isCurrentMonth ? FontWeight.w700 : FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ),
-              ),
-              if (isCurrentMonth)
-                Text(
-                  'CURRENT',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1,
+                if (isCurrentMonth)
+                  Text(
+                    'CURRENT',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: CalendarLayout.monthHeaderSpacing),
           GridView.builder(
@@ -104,11 +103,11 @@ class CalendarMonthSection extends StatelessWidget {
               final phaseColor = isActualMenstruationDay ||
                       isPredictedMenstruationDay
                   ? Colors.red
-                  : isActualOvulationDay ||
-                          isPredictedOvulationDay ||
-                          isActualFertileDay ||
-                          isPredictedFertileDay
+                  : isActualOvulationDay || isPredictedOvulationDay
                       ? phaseColors?.ovulation ?? theme.colorScheme.secondary
+                      : isActualFertileDay || isPredictedFertileDay
+                          ? phaseColors?.follicular ??
+                              theme.colorScheme.secondary
                       : null;
               final isPredictedPhase = isPredictedMenstruationDay ||
                   isPredictedOvulationDay ||
@@ -190,7 +189,6 @@ class CalendarMonthSection extends StatelessWidget {
             },
           ),
         ],
-        ),
       ),
     );
   }
