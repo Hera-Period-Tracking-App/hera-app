@@ -10,56 +10,6 @@ extension _CalendarScreenActions on _CalendarScreenState {
     context.go(AppRoutePaths.calendar);
   }
 
-  Future<void> _saveNote() async {
-    final notesEnabled = ref.read(settingsProvider).maybeWhen(
-          data: (settings) => settings.notesEnabled,
-          orElse: () => true,
-        );
-    if (!notesEnabled) {
-      _showMessage('Notes are disabled in Settings.');
-      return;
-    }
-
-    final selectedDate = _selectedDate;
-    final content = _noteController.text.trim();
-    if (selectedDate == null) {
-      _showMessage('Please select a date first.');
-      return;
-    }
-    if (content.isEmpty) {
-      _showMessage('Write a note before saving.');
-      return;
-    }
-
-    _setSavingNote(true);
-    try {
-      await ref.read(noteRepositoryProvider).addNote(
-            date: selectedDate,
-            content: content,
-          );
-      ref.read(autoSyncProvider).queueSync();
-
-      if (!mounted) {
-        return;
-      }
-
-      _showMessage('Note saved.');
-      _noteController.clear();
-      _focusDateAfterFlow(selectedDate);
-      context.go(
-        '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(selectedDate)}',
-      );
-    } on DuplicateNoteDateException catch (error) {
-      _showMessage(error.message);
-    } catch (error) {
-      _showMessage('Could not save note: $error');
-    } finally {
-      if (mounted) {
-        _setSavingNote(false);
-      }
-    }
-  }
-
   Future<void> _startNewCycle({
     required List<CycleSummary> cycles,
     required int? profileCycleLength,

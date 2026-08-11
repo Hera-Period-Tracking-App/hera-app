@@ -38,8 +38,6 @@ extension _CalendarScreenContent on _CalendarScreenState {
       firstMonth.year,
       firstMonth.month + safeFocusedMonthIndex,
     );
-    final hasExistingNoteForSelectedDate = _selectedDate != null &&
-        notes.any((note) => DateUtils.isSameDay(note.date, _selectedDate));
     final noteDateKeys = notesEnabled
         ? notes.map((note) => CalendarViewUtils.dateKey(note.date)).toSet()
         : const <String>{};
@@ -152,6 +150,10 @@ extension _CalendarScreenContent on _CalendarScreenState {
                           );
                           return;
                         }
+                        if (widget.isAddNoteFlow) {
+                          context.push(AppRoutePaths.calendarAddNoteFor(date));
+                          return;
+                        }
                         if (isFlowActive) {
                           _setSelectedDate(DateUtils.dateOnly(date));
                           return;
@@ -211,48 +213,6 @@ extension _CalendarScreenContent on _CalendarScreenState {
                               ? 'Save changes'
                               : 'Start new cycle',
                         ),
-                ),
-              ),
-            ],
-          ),
-        ],
-        if (widget.isAddNoteFlow) ...[
-          const SizedBox(height: 12),
-          TextField(
-            controller: _noteController,
-            minLines: 3,
-            maxLines: 6,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              hintText: 'Write a private note...',
-              errorText: hasExistingNoteForSelectedDate
-                  ? 'A note already exists for this date.'
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isSavingNote ? null : _cancelCalendarFlow,
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: _isSavingNote || hasExistingNoteForSelectedDate
-                      ? null
-                      : _saveNote,
-                  child: _isSavingNote
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save note'),
                 ),
               ),
             ],

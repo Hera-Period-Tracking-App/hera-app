@@ -5,9 +5,11 @@ import 'package:hera_app/core/dev/dev_flags.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/auth/screens/auth_screen.dart';
+import 'package:hera_app/features/calendar/screens/add_note_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_screen.dart';
 import 'package:hera_app/features/home/screens/home_screen.dart';
+import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/screens/notes_screen.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
@@ -130,6 +132,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     return const CalendarScreen();
                   }
                   return CalendarDateDetailsScreen(date: date);
+                },
+              ),
+              GoRoute(
+                path: AppRoutePaths.calendarAddNote,
+                name: 'calendar-add-note',
+                builder: (context, state) {
+                  final dateParam = state.pathParameters['date'];
+                  final date = _parseCalendarRouteDate(dateParam);
+                  if (date == null) {
+                    return const CalendarScreen();
+                  }
+                  return AddNoteScreen(
+                    date: date,
+                    note: state.extra is Note ? state.extra as Note : null,
+                  );
                 },
               ),
             ],

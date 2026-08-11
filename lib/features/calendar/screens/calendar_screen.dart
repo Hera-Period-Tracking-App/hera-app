@@ -17,10 +17,8 @@ import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
 import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
-import 'package:hera_app/features/notes/exceptions/duplicate_note_date_exception.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
-import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
@@ -56,7 +54,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const int _monthsAfterCurrent = 24;
 
   final ScrollController _monthScrollController = ScrollController();
-  final TextEditingController _noteController = TextEditingController();
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
   DateTime? _selectedDate;
@@ -64,7 +61,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   String? _editedCycleId;
   int? _editedMenstruationLength;
   bool _isSavingCycle = false;
-  bool _isSavingNote = false;
 
   @override
   void initState() {
@@ -121,14 +117,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         _editedCycleId = null;
         _editedMenstruationLength = null;
       }
-      _noteController.clear();
     }
   }
 
   @override
   void dispose() {
     _monthScrollController.dispose();
-    _noteController.dispose();
     super.dispose();
   }
 
@@ -151,7 +145,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final isFlowActive = widget.isStartNewCycleFlow ||
         widget.isAddNoteFlow ||
         widget.isEditCurrentCycleFlow;
-    final isBusy = _isSavingCycle || _isSavingNote;
+    final isBusy = _isSavingCycle;
 
     return Scaffold(
       appBar: AppBar(
@@ -272,7 +266,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _editedCycleId = null;
       _editedMenstruationLength = null;
     });
-    _noteController.clear();
   }
 
   void _setEditedCycle({
@@ -285,10 +278,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _selectedDate = DateUtils.dateOnly(startDate);
       _editedMenstruationLength = menstruationLength;
     });
-  }
-
-  void _setSavingNote(bool value) {
-    setState(() => _isSavingNote = value);
   }
 
   void _setSavingCycle(bool value) {
