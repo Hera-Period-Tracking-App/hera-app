@@ -247,9 +247,11 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                       Flexible(
                         fit: FlexFit.loose,
                         child: Text(
-                          cyclePhaseLabel(phaseContext),
+                          cyclePhaseLabel(phaseContext).toUpperCase(),
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyLarge,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       const Padding(
@@ -259,9 +261,9 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                       Flexible(
                         fit: FlexFit.loose,
                         child: Text(
-                          _nextEventCountdownLabel(phaseContext),
+                          _nextEventCountdownLabel(phaseContext).toUpperCase(),
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
                         ),

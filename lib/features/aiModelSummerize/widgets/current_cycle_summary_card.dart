@@ -46,16 +46,29 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+          Container(
+            width: 2,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Text(
-              '> ${summary.title}',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontFamily: 'monospace',
+              summary.title.toUpperCase(),
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.1,
               ),
             ),
             const SizedBox(height: 10),
@@ -78,7 +91,10 @@ class _SummaryCard extends StatelessWidget {
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
-            ],
+              ],
+              ],
+            ),
+          ),
           ],
         ),
       ),
