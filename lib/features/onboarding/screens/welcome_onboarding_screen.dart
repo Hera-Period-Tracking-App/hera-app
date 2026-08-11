@@ -169,7 +169,8 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen>
                       offset: const Offset(38, 0),
                       child: Transform(
                         alignment: Alignment.center,
-                        transform: Matrix4.identity()..scale(-1.0, 1.0),
+                        transform: Matrix4.identity()
+                          ..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
                         child: Image.asset(
                           'assets/images/homepage/hera.png',
                           height: 355,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
@@ -33,6 +35,28 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged: (enabled) => ref
                       .read(settingsProvider.notifier)
                       .setNotificationsEnabled(enabled),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: SwitchListTile(
+                  secondary: const Icon(Icons.lock_outline),
+                  title: const Text('App lock'),
+                  subtitle: Text(
+                    value.biometricsEnabled
+                        ? 'Unlock Hera with biometrics, with PIN as backup.'
+                        : value.pinEnabled
+                            ? 'Unlock Hera with your PIN.'
+                            : 'Require biometrics or a backup PIN when opening the app.',
+                  ),
+                  value: value.pinEnabled,
+                  onChanged: (enabled) async {
+                    if (!enabled) {
+                      context.push(AppRoutePaths.appLockDisable);
+                      return;
+                    }
+                    context.push(AppRoutePaths.appLockSetup);
+                  },
                 ),
               ),
               const SizedBox(height: 12),

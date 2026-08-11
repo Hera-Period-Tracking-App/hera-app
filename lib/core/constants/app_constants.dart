@@ -14,7 +14,10 @@ class AppConstants {
   static const syncWrappedMasterKey = 'sync_wrapped_master_key';
   static const privacyModeKey = 'privacy_mode';
   static const themeStyleKey = 'theme_style';
+  static const appLockEnabledKey = 'app_lock_enabled';
+  static const biometricsEnabledKey = 'biometrics_enabled';
   static const pinEnabledKey = 'pin_enabled';
+  static const appLockPinKey = 'app_lock_pin';
   static const authAccessTokenKey = 'auth_access_token';
   static const authSessionKey = 'auth_session';
   static const authDeviceIdKey = 'auth_device_id';

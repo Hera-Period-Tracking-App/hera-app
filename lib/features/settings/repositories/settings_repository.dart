@@ -30,4 +30,16 @@ class SettingsRepository {
   Future<SettingsState> setAutoSyncEnabled(bool enabled) {
     return _service.setAutoSyncEnabled(enabled);
   }
+
+  Future<SettingsState> setAppLock({
+    required bool enabled,
+    required bool biometricsEnabled,
+    String? pin,
+  }) {
+    return _service.setAppLock(
+      enabled: enabled,
+      biometricsEnabled: biometricsEnabled,
+      pin: pin,
+    );
+  }
 }

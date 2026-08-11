@@ -16,6 +16,8 @@ class AppRoutePaths {
   static const profile = '/profile';
   static const editAccount = '/profile/account/edit';
   static const settings = '/profile/settings';
+  static const appLockSetup = '/profile/settings/app-lock';
+  static const appLockDisable = '/profile/settings/app-lock/disable';
 
   static String calendarDateDetailsFor(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);

@@ -14,6 +14,8 @@ import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart'
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
 import 'package:hera_app/features/profile/screens/edit_account_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
+import 'package:hera_app/features/settings/screens/app_lock_disable_screen.dart';
+import 'package:hera_app/features/settings/screens/app_lock_setup_screen.dart';
 import 'package:hera_app/features/settings/screens/settings_screen.dart';
 
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
@@ -178,6 +180,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: AppRoutePaths.settings,
                 name: 'settings',
                 builder: (context, state) => const SettingsScreen(),
+              ),
+              GoRoute(
+                path: AppRoutePaths.appLockSetup,
+                name: 'app-lock-setup',
+                builder: (context, state) => const AppLockSetupScreen(),
+              ),
+              GoRoute(
+                path: AppRoutePaths.appLockDisable,
+                name: 'app-lock-disable',
+                builder: (context, state) => const AppLockDisableScreen(),
               ),
             ],
           ),

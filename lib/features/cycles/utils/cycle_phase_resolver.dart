@@ -1,5 +1,5 @@
-import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
+import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 
 enum CyclePhase { menstruation, follicular, ovulation, luteal }
 
