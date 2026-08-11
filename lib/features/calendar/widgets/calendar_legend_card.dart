@@ -33,7 +33,7 @@ class CalendarLegendCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
           
-              CalendarLegendItem(
+              const CalendarLegendItem(
                 color: Colors.red,
                 label: 'Menstruation',
               ),

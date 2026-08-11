@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
@@ -349,6 +350,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   void _setSavingCycle(bool value) {
     setState(() => _isSavingCycle = value);
+  }
+
+  void _markCurrentMonthPositioned() {
+    setState(() {
+      _positionedAtCurrentMonth = true;
+      _forceRecenterOnBuild = false;
+      _pendingFocusDate = null;
+      _isCenteringMonth = false;
+    });
   }
 
   void _focusDateAfterFlow(DateTime date) {

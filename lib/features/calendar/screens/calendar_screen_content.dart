@@ -152,7 +152,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
                 controller: _monthScrollController,
                 physics: const ClampingScrollPhysics(),
                 padding: EdgeInsets.only(bottom: legendOverlayHeight + 8),
-                cacheExtent: 300,
+                scrollCacheExtent: const ScrollCacheExtent.pixels(300),
                 itemCount: monthCount,
                 itemBuilder: (context, index) {
                   final month = DateTime(firstMonth.year, firstMonth.month + index);
