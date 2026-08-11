@@ -17,5 +17,6 @@ class AppConstants {
   static const authSessionKey = 'auth_session';
   static const authDeviceIdKey = 'auth_device_id';
   static const deletedNoteTombstonesKey = 'deleted_note_tombstones';
+  static const customSymptomsKey = 'custom_symptoms';
   static const syncCursorKey = 'sync_cursor';
 }

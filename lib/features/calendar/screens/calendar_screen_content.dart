@@ -5,6 +5,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
     ThemeData theme,
     List<CycleSummary> cycles, {
     required List<Note> notes,
+    required bool notesEnabled,
     required int? profileCycleLength,
     required int? profileMenstruationLength,
     required CycleForecast? forecast,
@@ -37,11 +38,37 @@ extension _CalendarScreenContent on _CalendarScreenState {
       firstMonth.year,
       firstMonth.month + safeFocusedMonthIndex,
     );
-    final hasExistingNoteForSelectedDate = _selectedDate != null &&
-        notes.any((note) => DateUtils.isSameDay(note.date, _selectedDate));
-    final noteDateKeys =
-        notes.map((note) => CalendarViewUtils.dateKey(note.date)).toSet();
-    final isFlowActive = widget.isStartNewCycleFlow || widget.isAddNoteFlow;
+    final noteDateKeys = notesEnabled
+        ? notes.map((note) => CalendarViewUtils.dateKey(note.date)).toSet()
+        : const <String>{};
+    final isFlowActive = widget.isStartNewCycleFlow ||
+        widget.isAddNoteFlow ||
+        widget.isEditCurrentCycleFlow;
+    final isCycleDateFlow =
+        widget.isStartNewCycleFlow || widget.isEditCurrentCycleFlow;
+    final editedCycle = _editedCycleId == null
+        ? null
+        : cycles.cast<CycleSummary?>().firstWhere(
+              (cycle) => cycle?.id == _editedCycleId,
+              orElse: () => null,
+            );
+    final editedCycles = widget.isEditCurrentCycleFlow && editedCycle != null
+        ? cycles
+            .map(
+              (cycle) => cycle.id == editedCycle.id
+                  ? CycleSummary(
+                      id: cycle.id,
+                      startDate: _selectedDate ?? cycle.startDate,
+                      cycleLength: cycle.cycleLength,
+                      menstruationLength:
+                          _editedMenstruationLength ?? cycle.menstruationLength,
+                    )
+                  : cycle,
+            )
+            .toList(growable: false)
+        : cycles;
+    final editedMenstruationLength =
+        _editedMenstruationLength ?? editedCycle?.menstruationLength;
 
     _ensureCurrentMonthInitialPosition(
       firstMonth: firstMonth,
@@ -54,14 +81,18 @@ extension _CalendarScreenContent on _CalendarScreenState {
       children: [
         if (isFlowActive) ...[
           Text(
-            widget.isStartNewCycleFlow
+            widget.isEditCurrentCycleFlow
+                ? 'Tap period days to edit your current period.'
+                : widget.isStartNewCycleFlow
                 ? 'Select a start date for your new cycle.'
                 : 'Select a date for your note.',
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            widget.isStartNewCycleFlow
+            widget.isEditCurrentCycleFlow
+                ? 'Tap the day before or after your period to add one day. Tap the first or last period day to remove one day.'
+                : widget.isStartNewCycleFlow
                 ? 'Future dates are disabled. Existing cycle rules are applied when saving.'
                 : 'Each date can have one note.',
             style: theme.textTheme.bodySmall,
@@ -72,7 +103,9 @@ extension _CalendarScreenContent on _CalendarScreenState {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Selected: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                widget.isEditCurrentCycleFlow
+                    ? 'Editing period: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}${editedMenstruationLength == null ? '' : ' - $editedMenstruationLength days'}'
+                    : 'Selected: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -103,18 +136,33 @@ extension _CalendarScreenContent on _CalendarScreenState {
                     padding: const EdgeInsets.only(bottom: 24),
                     child: CalendarMonthSection(
                       month: month,
-                      cycles: cycles,
+                      cycles: editedCycles,
                       fallbackCycleLength:
                           profileCycleLength ?? defaultCycleLength,
                       forecast: forecast,
                       noteDateKeys: noteDateKeys,
                       selectedDate: isFlowActive ? _selectedDate : null,
                       onDatePressed: (date) {
+                        if (widget.isEditCurrentCycleFlow) {
+                          _toggleCurrentPeriodDay(
+                            cycles: cycles,
+                            date: date,
+                          );
+                          return;
+                        }
+                        if (widget.isAddNoteFlow) {
+                          context.push(AppRoutePaths.calendarAddNoteFor(date));
+                          return;
+                        }
                         if (isFlowActive) {
                           _setSelectedDate(DateUtils.dateOnly(date));
                           return;
                         }
-                        context.push(AppRoutePaths.calendarDateDetailsFor(date));
+                        if (notesEnabled) {
+                          context.push(
+                            AppRoutePaths.calendarDateDetailsFor(date),
+                          );
+                        }
                       },
                     ),
                   );
@@ -131,7 +179,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
             ],
           ),
         ),
-        if (widget.isStartNewCycleFlow) ...[
+        if (isCycleDateFlow) ...[
           const SizedBox(height: 12),
           Row(
             children: [
@@ -146,61 +194,25 @@ extension _CalendarScreenContent on _CalendarScreenState {
                 child: FilledButton(
                   onPressed: _isSavingCycle
                       ? null
-                      : () => _startNewCycle(
-                            cycles: cycles,
-                            profileCycleLength: profileCycleLength,
-                            profileMenstruationLength:
-                                profileMenstruationLength,
-                          ),
+                      : widget.isEditCurrentCycleFlow
+                          ? () => _updateCurrentCycle(cycles: cycles)
+                          : () => _startNewCycle(
+                                cycles: cycles,
+                                profileCycleLength: profileCycleLength,
+                                profileMenstruationLength:
+                                    profileMenstruationLength,
+                              ),
                   child: _isSavingCycle
                       ? const SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Start new cycle'),
-                ),
-              ),
-            ],
-          ),
-        ],
-        if (widget.isAddNoteFlow) ...[
-          const SizedBox(height: 12),
-          TextField(
-            controller: _noteController,
-            minLines: 3,
-            maxLines: 6,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              hintText: 'Write a private note...',
-              errorText: hasExistingNoteForSelectedDate
-                  ? 'A note already exists for this date.'
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _isSavingNote ? null : _cancelCalendarFlow,
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: _isSavingNote || hasExistingNoteForSelectedDate
-                      ? null
-                      : _saveNote,
-                  child: _isSavingNote
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save note'),
+                      : Text(
+                          widget.isEditCurrentCycleFlow
+                              ? 'Save changes'
+                              : 'Start new cycle',
+                        ),
                 ),
               ),
             ],

@@ -73,26 +73,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         SectionPlaceholderCard(
-          title: 'Session',
+          title: 'Account',
           body: authState.when(
-            data: (session) => session.isAuthenticated
-                ? 'You are signed in. Sign out to remove the stored session from secure storage.'
-                : 'You are currently signed out.',
-            loading: () => 'Checking session status...',
-            error: (error, stackTrace) => 'Could not load session status.',
+            data: (session) {
+              if (!session.isAuthenticated) {
+                return 'You are not signed in. Create an account or log in to use secure sync.';
+              }
+
+              final email = session.email?.trim();
+              if (email == null || email.isEmpty) {
+                return 'You are signed in.';
+              }
+              return 'You are signed in as $email.';
+            },
+            loading: () => 'Checking account status...',
+            error: (error, stackTrace) => 'Could not load account status.',
           ),
           footer: Align(
             alignment: Alignment.centerLeft,
-            child: FilledButton(
-              onPressed: authState.isLoading
-                  ? null
-                  : () async {
-                      await ref.read(authSessionProvider.notifier).logout();
-                      if (context.mounted) {
-                        context.go(AppRoutePaths.auth);
-                      }
-                    },
-              child: const Text('Sign out'),
+            child: authState.when(
+              data: (session) => session.isAuthenticated
+                  ? FilledButton.icon(
+                      onPressed: () async {
+                        await ref.read(authSessionProvider.notifier).logout();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Signed out.')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sign out'),
+                    )
+                  : Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () =>
+                              context.push(AppRoutePaths.authSignup),
+                          icon: const Icon(Icons.person_add),
+                          label: const Text('Create account'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              context.push(AppRoutePaths.authLogin),
+                          icon: const Icon(Icons.login),
+                          label: const Text('Log in'),
+                        ),
+                      ],
+                    ),
+              loading: () => const FilledButton(
+                onPressed: null,
+                child: Text('Checking...'),
+              ),
+              error: (error, stackTrace) => OutlinedButton.icon(
+                onPressed: () => ref.invalidate(authSessionProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try again'),
+              ),
             ),
           ),
         ),

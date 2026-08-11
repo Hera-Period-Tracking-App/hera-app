@@ -37,6 +37,17 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     );
   }
 
+  Future<void> setNotesEnabled(bool enabled) async {
+    final previous = state.asData?.value;
+    if (previous != null) {
+      state = AsyncData(previous.copyWith(notesEnabled: enabled));
+    }
+
+    state = await AsyncValue.guard(
+      () => ref.read(settingsRepositoryProvider).setNotesEnabled(enabled),
+    );
+  }
+
   Future<void> setAutoSyncEnabled(bool enabled) async {
     final previous = state.asData?.value;
     if (previous != null) {

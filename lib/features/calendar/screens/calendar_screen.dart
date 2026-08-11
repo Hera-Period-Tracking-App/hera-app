@@ -17,12 +17,11 @@ import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
 import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
-import 'package:hera_app/features/notes/exceptions/duplicate_note_date_exception.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
-import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
 part 'calendar_screen_actions.dart';
 part 'calendar_screen_content.dart';
@@ -32,6 +31,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({
     this.isStartNewCycleFlow = false,
     this.isAddNoteFlow = false,
+    this.isEditCurrentCycleFlow = false,
     this.focusTodayToken,
     this.focusAddNoteToken,
     this.focusDate,
@@ -40,6 +40,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
 
   final bool isStartNewCycleFlow;
   final bool isAddNoteFlow;
+  final bool isEditCurrentCycleFlow;
   final int? focusTodayToken;
   final int? focusAddNoteToken;
   final DateTime? focusDate;
@@ -53,13 +54,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const int _monthsAfterCurrent = 24;
 
   final ScrollController _monthScrollController = ScrollController();
-  final TextEditingController _noteController = TextEditingController();
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
   DateTime? _selectedDate;
   DateTime? _pendingFocusDate;
+  String? _editedCycleId;
+  int? _editedMenstruationLength;
   bool _isSavingCycle = false;
-  bool _isSavingNote = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.isEditCurrentCycleFlow && widget.focusDate != null) {
+      _selectedDate = DateUtils.dateOnly(widget.focusDate!);
+    }
+  }
 
   @override
   void didUpdateWidget(covariant CalendarScreen oldWidget) {
@@ -69,10 +79,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         !oldWidget.isStartNewCycleFlow && widget.isStartNewCycleFlow;
     final enteringAddNoteFlow =
         !oldWidget.isAddNoteFlow && widget.isAddNoteFlow;
+    final enteringEditCurrentCycleFlow =
+        !oldWidget.isEditCurrentCycleFlow && widget.isEditCurrentCycleFlow;
     final exitingFlow =
-        (oldWidget.isStartNewCycleFlow || oldWidget.isAddNoteFlow) &&
+        (oldWidget.isStartNewCycleFlow ||
+                oldWidget.isAddNoteFlow ||
+                oldWidget.isEditCurrentCycleFlow) &&
             !widget.isStartNewCycleFlow &&
-            !widget.isAddNoteFlow;
+            !widget.isAddNoteFlow &&
+            !widget.isEditCurrentCycleFlow;
     final focusTokenChanged =
         oldWidget.focusTodayToken != widget.focusTodayToken &&
             widget.focusTodayToken != null;
@@ -84,6 +99,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     if (enteringStartCycleFlow ||
         enteringAddNoteFlow ||
+        enteringEditCurrentCycleFlow ||
         focusTokenChanged ||
         addNoteFocusTokenChanged ||
         focusDateChanged) {
@@ -92,17 +108,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       if (focusDateChanged) {
         _pendingFocusDate = widget.focusDate;
       }
-      if (!exitingFlow) {
+      if (enteringEditCurrentCycleFlow && widget.focusDate != null) {
+        _selectedDate = DateUtils.dateOnly(widget.focusDate!);
+      } else if (!exitingFlow) {
         _selectedDate = null;
       }
-      _noteController.clear();
+      if (enteringEditCurrentCycleFlow || exitingFlow) {
+        _editedCycleId = null;
+        _editedMenstruationLength = null;
+      }
     }
   }
 
   @override
   void dispose() {
     _monthScrollController.dispose();
-    _noteController.dispose();
     super.dispose();
   }
 
@@ -111,14 +131,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final cyclesAsync = ref.watch(cyclesProvider);
     final profileAsync = ref.watch(profileSettingsProvider);
     final notesAsync = ref.watch(notesProvider);
+    final settingsAsync = ref.watch(settingsProvider);
+    final notesEnabled = settingsAsync.maybeWhen(
+      data: (settings) => settings.notesEnabled,
+      orElse: () => true,
+    );
     final forecastAsync = ref.watch(upcomingCycleForecastProvider);
     final notes = notesAsync.maybeWhen(
-      data: (value) => value,
+      data: (value) => notesEnabled ? value : const <Note>[],
       orElse: () => const <Note>[],
     );
     final theme = Theme.of(context);
-    final isFlowActive = widget.isStartNewCycleFlow || widget.isAddNoteFlow;
-    final isBusy = _isSavingCycle || _isSavingNote;
+    final isFlowActive = widget.isStartNewCycleFlow ||
+        widget.isAddNoteFlow ||
+        widget.isEditCurrentCycleFlow;
+    final isBusy = _isSavingCycle;
 
     return Scaffold(
       appBar: AppBar(
@@ -128,6 +155,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             TextButton(
               onPressed: isBusy ? null : _cancelCalendarFlow,
               child: const Text('Cancel'),
+            )
+          else
+            cyclesAsync.maybeWhen(
+              data: (cycles) {
+                if (cycles.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                final currentCycle = cycles.first;
+                return IconButton(
+                  tooltip: 'Edit current cycle start date',
+                  icon: const Icon(Icons.edit_calendar),
+                  onPressed: () => context.go(
+                    '${AppRoutePaths.calendar}?editCurrentCycle=true&focusDate=${_formatRouteDate(currentCycle.startDate)}',
+                  ),
+                );
+              },
+              orElse: () => const SizedBox.shrink(),
             ),
         ],
       ),
@@ -136,12 +181,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           padding: const EdgeInsets.all(16),
           child: cyclesAsync.when(
             data: (cycles) {
+              if (widget.isAddNoteFlow && !notesEnabled) {
+                return const Center(
+                  child: Text('Notes are disabled in Settings.'),
+                );
+              }
+
               if (widget.isAddNoteFlow) {
                 return notesAsync.when(
                   data: (notes) => _buildCalendarContent(
                     theme,
                     cycles,
-                    notes: notes,
+                    notes: notesEnabled ? notes : const <Note>[],
+                    notesEnabled: notesEnabled,
                     profileCycleLength: null,
                     profileMenstruationLength: null,
                     forecast: forecastAsync.value,
@@ -154,11 +206,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 );
               }
 
+              if (widget.isEditCurrentCycleFlow) {
+                return _buildCalendarContent(
+                  theme,
+                  cycles,
+                  notes: notes,
+                  notesEnabled: notesEnabled,
+                  profileCycleLength: null,
+                  profileMenstruationLength: null,
+                  forecast: null,
+                );
+              }
+
               if (!widget.isStartNewCycleFlow) {
                 return _buildCalendarContent(
                   theme,
                   cycles,
                   notes: notes,
+                  notesEnabled: notesEnabled,
                   profileCycleLength: null,
                   profileMenstruationLength: null,
                   forecast: forecastAsync.value,
@@ -170,6 +235,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   theme,
                   cycles,
                   notes: notes,
+                  notesEnabled: notesEnabled,
                   profileCycleLength: settings.averageCycleLength,
                   profileMenstruationLength: settings.averageMenstruationLength,
                   forecast: null,
@@ -195,12 +261,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   void _clearCalendarFlowState() {
-    setState(() => _selectedDate = null);
-    _noteController.clear();
+    setState(() {
+      _selectedDate = null;
+      _editedCycleId = null;
+      _editedMenstruationLength = null;
+    });
   }
 
-  void _setSavingNote(bool value) {
-    setState(() => _isSavingNote = value);
+  void _setEditedCycle({
+    required String cycleId,
+    required DateTime startDate,
+    required int menstruationLength,
+  }) {
+    setState(() {
+      _editedCycleId = cycleId;
+      _selectedDate = DateUtils.dateOnly(startDate);
+      _editedMenstruationLength = menstruationLength;
+    });
   }
 
   void _setSavingCycle(bool value) {

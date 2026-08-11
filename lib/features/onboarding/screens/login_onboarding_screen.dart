@@ -8,12 +8,14 @@ class LoginOnboardingScreen extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.submitted,
+    this.errorMessage,
     required this.onChanged,
   });
 
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final bool submitted;
+  final String? errorMessage;
   final VoidCallback onChanged;
 
   @override
@@ -22,6 +24,7 @@ class LoginOnboardingScreen extends StatelessWidget {
       emailController: emailController,
       passwordController: passwordController,
       submitted: submitted,
+      errorMessage: errorMessage,
       onChanged: onChanged,
     );
   }

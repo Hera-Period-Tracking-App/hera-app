@@ -91,6 +91,22 @@ class NoteRepository {
     await _saveDeletedNoteTombstones(tombstones);
   }
 
+  Future<void> updateNote({
+    required Note note,
+    required String content,
+  }) async {
+    final trimmedContent = content.trim();
+    if (trimmedContent.isEmpty) {
+      throw ArgumentError('Note content cannot be empty.');
+    }
+
+    final encryptedContent = await _encryptionService.encrypt(trimmedContent);
+    return _dataSource.updateNoteEntry(
+      id: note.id,
+      encryptedContent: encryptedContent,
+    );
+  }
+
   Future<List<DeletedNoteTombstone>> loadDeletedNoteTombstones() async {
     final raw = await _secureStorage.read(AppConstants.deletedNoteTombstonesKey);
     if (raw == null || raw.isEmpty) {

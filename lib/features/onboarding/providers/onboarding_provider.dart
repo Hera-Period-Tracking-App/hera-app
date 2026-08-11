@@ -20,7 +20,6 @@ class OnboardingNotifier extends AsyncNotifier<OnboardingStatus> {
     required int averageCycleLength,
     required int averageMenstruationLength,
   }) async {
-    state = const AsyncLoading();
     state = AsyncData(
       await ref.read(onboardingRepositoryProvider).saveSetup(
             privacyMode: privacyMode,

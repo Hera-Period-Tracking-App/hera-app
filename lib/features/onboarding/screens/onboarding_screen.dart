@@ -7,6 +7,10 @@ import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/core/theme/app_theme_style.dart';
 import 'package:hera_app/core/theme/theme_style_provider.dart';
+import 'package:hera_app/features/auth/models/auth_credentials.dart';
+import 'package:hera_app/features/auth/models/auth_session.dart';
+import 'package:hera_app/features/auth/providers/auth_provider.dart';
+import 'package:hera_app/features/auth/repositories/auth_repository.dart';
 import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/duplicate_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/future_cycle_exception.dart';
@@ -24,6 +28,7 @@ import 'package:hera_app/features/onboarding/screens/register_onboarding_screen.
 import 'package:hera_app/features/onboarding/screens/welcome_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_footer.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_progress_header.dart';
+import 'package:hera_app/features/settings/repositories/sync_repository.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
 import 'package:hera_app/shared/screens/startup_loading_screen.dart';
 
@@ -37,6 +42,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   int _currentStep = 0;
   PrivacyMode? _selectedPrivacyMode;
@@ -49,6 +56,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _welcomeAssetsReady = false;
   bool _welcomeAssetsPreloadStarted = false;
   bool _isLoginFlow = false;
+  String? _accountErrorMessage;
+  AuthSession? _onboardingAuthSession;
 
   List<OnboardingStep> get _steps {
     return [
@@ -110,6 +119,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -123,6 +133,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
 
     if (!_welcomeAssetsReady) {
+      return const StartupLoadingScreen();
+    }
+
+    if (_isSaving) {
       return const StartupLoadingScreen();
     }
 
@@ -195,6 +209,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     canContinue: _canUsePrimaryButton(step.type),
                     animateContinueLabel: true,
                     continueLabelAnimationKey: _currentStep,
+                    continueLabel: switch (step.type) {
+                      OnboardingStepType.register => 'Sign up',
+                      OnboardingStepType.login => 'Log in',
+                      _ => null,
+                    },
                     infoText: switch (step.type) {
                       OnboardingStepType.privacy =>
                         'You can start offline today and switch to secure sync later.',
@@ -228,7 +247,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           )
                         : null,
                     onBack: _goBack,
-                      onContinue: _isLastStep ? _finishOnboarding : _goNext,
+                      onContinue:
+                          _isLastStep ? _finishOnboarding : () => _goNext(),
                     ),
                   ),
                 ),
@@ -256,8 +276,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       OnboardingStepType.register => RegisterOnboardingScreen(
           emailController: _emailController,
           passwordController: _passwordController,
+          confirmPasswordController: _confirmPasswordController,
           submitted: _submitted,
-          onChanged: () => setState(() {}),
+          errorMessage: _accountErrorMessage,
+          onChanged: () => setState(() => _accountErrorMessage = null),
         ),
       OnboardingStepType.cycleLength => CycleLengthOnboardingScreen(
           cycleLength: _cycleLength,
@@ -275,7 +297,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           emailController: _emailController,
           passwordController: _passwordController,
           submitted: _submitted,
-          onChanged: () => setState(() {}),
+          errorMessage: _accountErrorMessage,
+          onChanged: () => setState(() => _accountErrorMessage = null),
         ),
     };
 
@@ -309,16 +332,55 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     };
   }
 
-  void _goNext() {
+  Future<void> _goNext() async {
     final stepType = _steps[_currentStep].type;
 
     if (stepType == OnboardingStepType.register && !_isValidSyncAccount()) {
-      setState(() => _submitted = true);
+      setState(() {
+        _submitted = true;
+        _accountErrorMessage =
+            'There was an error creating your account. Please check your email, password, and confirmation password.';
+      });
       return;
+    }
+
+    if (stepType == OnboardingStepType.register) {
+      setState(() {
+        _submitted = true;
+        _isSaving = true;
+        _accountErrorMessage = null;
+      });
+
+      try {
+        final session = await ref.read(authRepositoryProvider).signup(
+              AuthCredentials(
+                email: _emailController.text.trim(),
+                password: _passwordController.text,
+              ),
+            );
+        if (!session.isAuthenticated) {
+          _showAccountError(
+            'There was an error creating your account. Please try again.',
+          );
+          return;
+        }
+        _onboardingAuthSession = session;
+      } catch (error) {
+        debugPrint('Onboarding signup failed: $error');
+        _showAccountError(
+          'There was an error creating your account. Please try again.',
+        );
+        return;
+      } finally {
+        if (mounted) {
+          setState(() => _isSaving = false);
+        }
+      }
     }
 
     setState(() {
       _submitted = false;
+      _accountErrorMessage = null;
       _currentStep += 1;
     });
   }
@@ -326,6 +388,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _goBack() {
     setState(() {
       _submitted = false;
+      _accountErrorMessage = null;
       if (_isLoginFlow) {
         _isLoginFlow = false;
         // Registration is always the third screen in the secure-sync flow.
@@ -344,37 +407,67 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return;
     }
 
-    if (_steps[_currentStep].type == OnboardingStepType.login &&
-        !_isValidSyncAccount()) {
-      setState(() => _submitted = true);
+    final isLoginStep = _steps[_currentStep].type == OnboardingStepType.login;
+
+    if (isLoginStep && !_isValidSyncAccount()) {
+      setState(() {
+        _submitted = true;
+        _accountErrorMessage =
+            'Could not log in. Please check your email and password.';
+      });
       return;
     }
 
     setState(() {
       _submitted = true;
       _isSaving = true;
+      _accountErrorMessage = null;
     });
 
-    try {
-      await ref.read(cycleRepositoryProvider).addCycle(
-            startDate: _lastCycleStart,
-            cycleLength: _cycleLength.round(),
-            menstruationLength: _menstruationLength.round(),
-          );
-    } on FutureCycleException catch (error) {
-      _showSaveError(error.message);
-    } on CycleLengthException catch (error) {
-      _showSaveError(error.message);
-    } on MenstruationLengthException catch (error) {
-      _showSaveError(error.message);
-    } on DuplicateCycleException catch (error) {
-      _showSaveError(error.message);
-    } on OverlappingCycleException catch (error) {
-      _showSaveError(error.message);
-    } catch (error) {
-      debugPrint('Onboarding save failed: $error');
-      _showSaveError('Could not save your cycle right now. Please try again.');
-      return;
+    if (isLoginStep) {
+      try {
+        final session = await ref.read(authRepositoryProvider).login(
+              AuthCredentials(
+                email: _emailController.text.trim(),
+                password: _passwordController.text,
+              ),
+            );
+        if (!session.isAuthenticated) {
+          _showAccountError('Could not log in. Please check your credentials.');
+          return;
+        }
+        _onboardingAuthSession = session;
+      } catch (error) {
+        debugPrint('Onboarding login failed: $error');
+        _showAccountError('Could not log in. Please check your credentials.');
+        return;
+      }
+    }
+
+    if (!isLoginStep) {
+      try {
+        await ref.read(cycleRepositoryProvider).addCycle(
+              startDate: _lastCycleStart,
+              cycleLength: _cycleLength.round(),
+              menstruationLength: _menstruationLength.round(),
+            );
+      } on FutureCycleException catch (error) {
+        _showSaveError(error.message);
+      } on CycleLengthException catch (error) {
+        _showSaveError(error.message);
+      } on MenstruationLengthException catch (error) {
+        _showSaveError(error.message);
+      } on DuplicateCycleException catch (error) {
+        _showSaveError(error.message);
+      } on OverlappingCycleException catch (error) {
+        _showSaveError(error.message);
+      } catch (error) {
+        debugPrint('Onboarding save failed: $error');
+        _showSaveError(
+          'Could not save your cycle right now. Please try again.',
+        );
+        return;
+      }
     }
 
     try {
@@ -384,6 +477,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         averageCycleLength: _cycleLength.round(),
         averageMenstruationLength: _menstruationLength.round(),
           );
+      if (isLoginStep) {
+        await _syncAfterLogin();
+      }
     } catch (error) {
       debugPrint('Onboarding completion failed: $error');
       _showSaveError(
@@ -398,6 +494,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     setState(() => _isSaving = false);
     context.go(AppRoutePaths.home);
+    final onboardingAuthSession = _onboardingAuthSession;
+    if (onboardingAuthSession != null) {
+      ref.read(authSessionProvider.notifier).setSession(onboardingAuthSession);
+    }
+  }
+
+  Future<void> _syncAfterLogin() async {
+    try {
+      await ref.read(syncRepositoryProvider).syncNow();
+    } catch (error) {
+      debugPrint('Onboarding login sync failed: $error');
+    }
   }
 
   void _showSaveError(String message) {
@@ -405,6 +513,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return;
     }
 
+    setState(() => _isSaving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _showAccountError(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = false;
+      _accountErrorMessage = message;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
@@ -413,6 +536,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _isValidSyncAccount() {
     final email = _emailController.text.trim();
     return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email) &&
-        _passwordController.text.trim().length >= 8;
+        _passwordController.text.trim().length >= 8 &&
+        (!_isCreatingAccount() ||
+            _confirmPasswordController.text == _passwordController.text);
+  }
+
+  bool _isCreatingAccount() {
+    return _steps[_currentStep].type == OnboardingStepType.register;
   }
 }

@@ -5,9 +5,11 @@ import 'package:hera_app/core/dev/dev_flags.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/auth/screens/auth_screen.dart';
+import 'package:hera_app/features/calendar/screens/add_note_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_screen.dart';
 import 'package:hera_app/features/home/screens/home_screen.dart';
+import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/screens/notes_screen.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
@@ -27,7 +29,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isOnboardingRoute =
           state.matchedLocation == AppRoutePaths.onboarding;
-      final isAuthRoute = state.matchedLocation == AppRoutePaths.auth;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
         return isOnboardingRoute ? null : AppRoutePaths.onboarding;
@@ -48,19 +49,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           onboardingState.asData?.value.selectedPrivacyMode ==
               PrivacyMode.secureSync;
       if (!usesSecureSync) {
-        return isOnboardingRoute || isAuthRoute ? AppRoutePaths.home : null;
+        return isOnboardingRoute ? AppRoutePaths.home : null;
       }
 
       if (authState.isLoading) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return null;
       }
 
       final hasValidSession = authState.asData?.value.isAuthenticated ?? false;
       if (!hasValidSession) {
-        return isAuthRoute ? null : AppRoutePaths.auth;
+        return isOnboardingRoute ? AppRoutePaths.home : null;
       }
 
-      if (isOnboardingRoute || isAuthRoute) {
+      if (isOnboardingRoute) {
         return AppRoutePaths.home;
       }
 
@@ -75,7 +76,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutePaths.auth,
         name: 'auth',
-        builder: (context, state) => const AuthScreen(),
+        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.login),
+      ),
+      GoRoute(
+        path: AppRoutePaths.authLogin,
+        name: 'auth-login',
+        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.login),
+      ),
+      GoRoute(
+        path: AppRoutePaths.authSignup,
+        name: 'auth-signup',
+        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.signup),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -101,6 +112,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       state.uri.queryParameters['startNewCycle'] == 'true';
                   final addNote =
                       state.uri.queryParameters['addNote'] == 'true';
+                  final editCurrentCycle =
+                      state.uri.queryParameters['editCurrentCycle'] == 'true';
                   final focusTodayToken = int.tryParse(
                       state.uri.queryParameters['focusToday'] ?? '');
                   final focusAddNoteToken = int.tryParse(
@@ -111,6 +124,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return CalendarScreen(
                     isStartNewCycleFlow: startNewCycle,
                     isAddNoteFlow: addNote,
+                    isEditCurrentCycleFlow: editCurrentCycle,
                     focusTodayToken: focusTodayToken,
                     focusAddNoteToken: focusAddNoteToken,
                     focusDate: focusDate,
@@ -127,6 +141,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     return const CalendarScreen();
                   }
                   return CalendarDateDetailsScreen(date: date);
+                },
+              ),
+              GoRoute(
+                path: AppRoutePaths.calendarAddNote,
+                name: 'calendar-add-note',
+                builder: (context, state) {
+                  final dateParam = state.pathParameters['date'];
+                  final date = _parseCalendarRouteDate(dateParam);
+                  if (date == null) {
+                    return const CalendarScreen();
+                  }
+                  return AddNoteScreen(
+                    date: date,
+                    note: state.extra is Note ? state.extra as Note : null,
+                  );
                 },
               ),
             ],

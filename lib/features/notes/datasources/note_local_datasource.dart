@@ -71,4 +71,18 @@ class NoteLocalDataSource {
           ..where((entry) => entry.id.equals(id)))
         .go();
   }
+
+  Future<void> updateNoteEntry({
+    required String id,
+    required String encryptedContent,
+  }) {
+    return (_database.update(_database.noteEntries)
+          ..where((entry) => entry.id.equals(id)))
+        .write(
+      NoteEntriesCompanion(
+        encryptedContent: Value(encryptedContent),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
 }

@@ -49,4 +49,8 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     await ref.read(authRepositoryProvider).logout();
     state = const AsyncData(AuthSession(isAuthenticated: false));
   }
+
+  void setSession(AuthSession session) {
+    state = AsyncData(session);
+  }
 }

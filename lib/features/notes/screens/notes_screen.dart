@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
@@ -7,8 +9,11 @@ import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
+import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/notes/widgets/notes_security_card.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
+import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
 class NotesScreen extends ConsumerWidget {
   const NotesScreen({super.key});
@@ -19,6 +24,10 @@ class NotesScreen extends ConsumerWidget {
     final cyclesAsync = ref.watch(cyclesProvider);
     final profileAsync = ref.watch(profileSettingsProvider);
     final forecastAsync = ref.watch(upcomingCycleForecastProvider);
+    final notesEnabled = ref.watch(settingsProvider).maybeWhen(
+          data: (settings) => settings.notesEnabled,
+          orElse: () => true,
+        );
     final cycles = cyclesAsync.maybeWhen(
       data: (value) => value,
       orElse: () => const <CycleSummary>[],
@@ -36,7 +45,15 @@ class NotesScreen extends ConsumerWidget {
           children: [
             const NotesSecurityCard(),
             const SizedBox(height: 16),
-            notesAsync.when(
+            if (!notesEnabled)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('Notes are disabled in Settings.'),
+                ),
+              )
+            else
+              notesAsync.when(
               data: (notes) => _NotesList(
                 notes: notes,
                 cycles: cycles,
@@ -216,15 +233,30 @@ class _NoteRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _buildNoteTitleFromContext(
-              date: entry.note.date,
-              phaseContext: entry.phaseContext,
-            ),
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _buildNoteTitleFromContext(
+                    date: entry.note.date,
+                    phaseContext: entry.phaseContext,
+                  ),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => context.push(
+                  AppRoutePaths.calendarAddNoteFor(entry.note.date),
+                  extra: entry.note,
+                ),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit note',
+              ),
+              _DeleteNoteButton(note: entry.note),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -235,6 +267,59 @@ class _NoteRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DeleteNoteButton extends ConsumerWidget {
+  const _DeleteNoteButton({required this.note});
+
+  final Note note;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      onPressed: () => _deleteNote(context, ref),
+      icon: const Icon(Icons.delete_outline),
+      tooltip: 'Delete note',
+    );
+  }
+
+  Future<void> _deleteNote(BuildContext context, WidgetRef ref) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete note?'),
+          content: const Text(
+            'This note will be permanently deleted from this device.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    await ref.read(noteRepositoryProvider).deleteNote(note);
+    ref.read(autoSyncProvider).queueSync();
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Note deleted.')),
     );
   }
 }

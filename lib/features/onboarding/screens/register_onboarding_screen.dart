@@ -6,13 +6,17 @@ class RegisterOnboardingScreen extends StatelessWidget {
     super.key,
     required this.emailController,
     required this.passwordController,
+    this.confirmPasswordController,
     required this.submitted,
+    this.errorMessage,
     required this.onChanged,
   });
 
   final TextEditingController emailController;
   final TextEditingController passwordController;
+  final TextEditingController? confirmPasswordController;
   final bool submitted;
+  final String? errorMessage;
   final VoidCallback onChanged;
 
   @override
@@ -20,6 +24,9 @@ class RegisterOnboardingScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final emailInvalid = submitted && !_isValidEmail(emailController.text);
     final passwordInvalid = submitted && passwordController.text.trim().length < 8;
+    final confirmPasswordInvalid = submitted &&
+        confirmPasswordController != null &&
+        confirmPasswordController!.text != passwordController.text;
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -60,6 +67,24 @@ class RegisterOnboardingScreen extends StatelessWidget {
                   'Use an email address and a password with at least 8 characters.',
                   style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
                 ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.error.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      errorMessage!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 34),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,6 +116,23 @@ class RegisterOnboardingScreen extends StatelessWidget {
                       ),
                       onChanged: (_) => onChanged(),
                     ),
+                    if (confirmPasswordController != null) ...[
+                      const SizedBox(height: 16),
+                      const _FieldLabel(label: 'CONFIRM PASSWORD'),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: confirmPasswordController,
+                        obscureText: true,
+                        decoration: _inputDecoration(
+                          context,
+                          hint: 'Write it again',
+                          errorText: confirmPasswordInvalid
+                              ? 'Passwords do not match'
+                              : null,
+                        ),
+                        onChanged: (_) => onChanged(),
+                      ),
+                    ],
                   ],
                 ),
               ],

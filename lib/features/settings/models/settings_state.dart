@@ -11,6 +11,7 @@ abstract class SettingsState with _$SettingsState {
     required bool biometricsEnabled,
     required bool pinEnabled,
     required bool notificationsEnabled,
+    required bool notesEnabled,
     required bool aiSummariesEnabled,
     required bool autoSyncEnabled,
   }) = _SettingsState;

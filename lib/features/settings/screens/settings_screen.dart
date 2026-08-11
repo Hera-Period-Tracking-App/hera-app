@@ -38,6 +38,20 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Card(
                 child: SwitchListTile(
+                  secondary: const Icon(Icons.edit_note_outlined),
+                  title: const Text('Notes'),
+                  subtitle: const Text(
+                    'Show saved notes and allow adding new notes from the app.',
+                  ),
+                  value: value.notesEnabled,
+                  onChanged: (enabled) => ref
+                      .read(settingsProvider.notifier)
+                      .setNotesEnabled(enabled),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: SwitchListTile(
                   secondary: const Icon(Icons.auto_awesome),
                   title: const Text('AI summaries'),
                   subtitle: const Text(
