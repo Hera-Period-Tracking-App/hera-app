@@ -128,6 +128,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final onboardingState = ref.watch(onboardingProvider);
     final loadedStatus = onboardingState.asData?.value;
     final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
+    if (onboardingState.isLoading) {
+      return const StartupLoadingScreen();
+    }
+
     if (!forceShowOnboarding && loadedStatus?.hasCompletedOnboarding == true) {
       return const StartupLoadingScreen();
     }
@@ -175,7 +179,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   showStepInfo: step.type != OnboardingStepType.welcome,
                 ),
               ),
-              SizedBox(height: isAccountStep ? 36 : 20),
+              SizedBox(height: isAccountStep ? 36 : 16),
               Expanded(
                 child: ColoredBox(
                   color: Colors.transparent,
@@ -492,12 +496,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return;
     }
 
-    setState(() => _isSaving = false);
-    context.go(AppRoutePaths.home);
     final onboardingAuthSession = _onboardingAuthSession;
     if (onboardingAuthSession != null) {
       ref.read(authSessionProvider.notifier).setSession(onboardingAuthSession);
     }
+    setState(() => _isSaving = false);
+    context.go(AppRoutePaths.home);
   }
 
   Future<void> _syncAfterLogin() async {

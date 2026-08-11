@@ -10,7 +10,6 @@ import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
-import 'package:hera_app/features/notes/widgets/notes_security_card.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
@@ -43,8 +42,6 @@ class NotesScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            const NotesSecurityCard(),
-            const SizedBox(height: 16),
             if (!notesEnabled)
               const Card(
                 child: Padding(

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/dev/dev_flags.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
-import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/auth/screens/auth_screen.dart';
 import 'package:hera_app/features/calendar/screens/add_note_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
@@ -13,15 +12,16 @@ import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/screens/notes_screen.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
+import 'package:hera_app/features/profile/screens/edit_account_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
+import 'package:hera_app/features/settings/screens/app_lock_disable_screen.dart';
+import 'package:hera_app/features/settings/screens/app_lock_setup_screen.dart';
 import 'package:hera_app/features/settings/screens/settings_screen.dart';
-import 'package:hera_app/shared/models/privacy_mode.dart';
 
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingState = ref.watch(onboardingProvider);
-  final authState = ref.watch(authSessionProvider);
   final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
 
   return GoRouter(
@@ -43,22 +43,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (!hasCompletedOnboarding) {
         return isOnboardingRoute ? null : AppRoutePaths.onboarding;
-      }
-
-      final usesSecureSync =
-          onboardingState.asData?.value.selectedPrivacyMode ==
-              PrivacyMode.secureSync;
-      if (!usesSecureSync) {
-        return isOnboardingRoute ? AppRoutePaths.home : null;
-      }
-
-      if (authState.isLoading) {
-        return null;
-      }
-
-      final hasValidSession = authState.asData?.value.isAuthenticated ?? false;
-      if (!hasValidSession) {
-        return isOnboardingRoute ? AppRoutePaths.home : null;
       }
 
       if (isOnboardingRoute) {
@@ -90,7 +74,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          return AppShellScaffold(navigationShell: navigationShell);
+          return AppShellScaffold(
+            navigationShell: navigationShell,
+            hideNavigation:
+                state.uri.queryParameters['editCurrentCycle'] == 'true',
+          );
         },
         branches: [
           StatefulShellBranch(
@@ -121,6 +109,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   final focusDate = _parseCalendarRouteDate(
                     state.uri.queryParameters['focusDate'],
                   );
+                  final editScrollOffset = double.tryParse(
+                    state.uri.queryParameters['editScrollOffset'] ?? '',
+                  );
                   return CalendarScreen(
                     isStartNewCycleFlow: startNewCycle,
                     isAddNoteFlow: addNote,
@@ -128,19 +119,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     focusTodayToken: focusTodayToken,
                     focusAddNoteToken: focusAddNoteToken,
                     focusDate: focusDate,
+                    editScrollOffset: editScrollOffset,
                   );
                 },
               ),
               GoRoute(
                 path: AppRoutePaths.calendarDateDetails,
                 name: 'calendar-date-details',
-                builder: (context, state) {
+                pageBuilder: (context, state) {
                   final dateParam = state.pathParameters['date'];
                   final date = _parseCalendarRouteDate(dateParam);
                   if (date == null) {
-                    return const CalendarScreen();
+                    return const MaterialPage(child: CalendarScreen());
                   }
-                  return CalendarDateDetailsScreen(date: date);
+                  return NoTransitionPage<void>(
+                    key: state.pageKey,
+                    child: CalendarDateDetailsScreen(date: date),
+                  );
                 },
               ),
               GoRoute(
@@ -177,9 +172,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const ProfileScreen(),
               ),
               GoRoute(
+                path: AppRoutePaths.editAccount,
+                name: 'edit-account',
+                builder: (context, state) => const EditAccountScreen(),
+              ),
+              GoRoute(
                 path: AppRoutePaths.settings,
                 name: 'settings',
                 builder: (context, state) => const SettingsScreen(),
+              ),
+              GoRoute(
+                path: AppRoutePaths.appLockSetup,
+                name: 'app-lock-setup',
+                builder: (context, state) => const AppLockSetupScreen(),
+              ),
+              GoRoute(
+                path: AppRoutePaths.appLockDisable,
+                name: 'app-lock-disable',
+                builder: (context, state) => const AppLockDisableScreen(),
               ),
             ],
           ),

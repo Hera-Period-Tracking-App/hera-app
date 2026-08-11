@@ -2,9 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycle_notifications/services/cycle_notification_scheduler.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
+import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
 final cycleNotificationSyncProvider = FutureProvider<void>((ref) async {
+  final onboardingStatus = await ref.watch(onboardingProvider.future);
+  if (!onboardingStatus.hasCompletedOnboarding) {
+    return;
+  }
+
   final settings = await ref.watch(settingsProvider.future);
   final scheduler = ref.watch(cycleNotificationSchedulerProvider);
 

@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide Column;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/core/constants/app_constants.dart';
 import 'package:hera_app/core/database/app_database.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
@@ -177,7 +178,7 @@ class SyncRepository {
       userSettings: await Future.wait(
         userSettings.map((row) => _toEncryptedRecord(
               id: row.id,
-              payload: row.toJson(),
+              payload: _userSettingsPayloadForSync(row),
               updatedAt: (row.updatedAt ?? row.createdAt).toUtc(),
               originDeviceId: deviceId,
             )),
@@ -194,7 +195,7 @@ class SyncRepository {
         [
           ...notes.map((row) => _toEncryptedRecord(
                 id: row.id,
-                payload: row.toJson(),
+                payload: _notePayloadForSync(row),
                 updatedAt: row.updatedAt.toUtc(),
                 originDeviceId: deviceId,
               )),
@@ -225,17 +226,30 @@ class SyncRepository {
 
   Future<EncryptedSyncRecord> _toEncryptedRecord({
     required String id,
-    required Map<String, dynamic> payload,
+    required FutureOr<Map<String, dynamic>> payload,
     required DateTime updatedAt,
     required String originDeviceId,
   }) async {
+    final resolvedPayload = await payload;
     return EncryptedSyncRecord(
       id: id,
-      ciphertext: await _encryptionService.encrypt(_encodeJson(payload)),
+      ciphertext: await _encryptionService.encrypt(_encodeJson(resolvedPayload)),
       updatedAtUtc: updatedAt,
       isDeleted: false,
       originDeviceId: originDeviceId,
     );
+  }
+
+  Future<Map<String, dynamic>> _notePayloadForSync(NoteEntry row) async {
+    final json = row.toJson();
+    json['encryptedContent'] = await _decryptNestedContent(row.encryptedContent);
+    return json;
+  }
+
+  Map<String, dynamic> _userSettingsPayloadForSync(UserSetting row) {
+    final json = row.toJson();
+    json.remove('biometricEnabled');
+    return json;
   }
 
   Future<int> _applyDownloadResult(SyncDownloadResult result) async {
@@ -280,7 +294,11 @@ class SyncRepository {
     }
 
     final json = await _decodeRecord(record);
-    final row = UserSetting.fromJson(json).copyWith(
+    final localBiometricEnabled = existing?.biometricEnabled ?? false;
+    final row = UserSetting.fromJson({
+      ...json,
+      'biometricEnabled': localBiometricEnabled,
+    }).copyWith(
       updatedAt: Value(record.updatedAtUtc),
     );
     await _database.into(_database.userSettings).insertOnConflictUpdate(row);
@@ -321,14 +339,69 @@ class SyncRepository {
     final existing = await (_database.select(_database.noteEntries)
           ..where((row) => row.id.equals(id)))
         .getSingleOrNull();
-    if (existing != null && !record.updatedAtUtc.isAfter(existing.updatedAt.toUtc())) {
-      return 0;
+    if (existing != null &&
+        !record.updatedAtUtc.isAfter(existing.updatedAt.toUtc())) {
+      if (!_looksEncrypted(existing.encryptedContent) ||
+          await _canDecryptNestedContent(existing.encryptedContent)) {
+        return 0;
+      }
     }
 
-    final json = await _decodeRecord(record);
-    final row = NoteEntry.fromJson(json).copyWith(updatedAt: record.updatedAtUtc);
+    Map<String, dynamic> json;
+    try {
+      json = await _decodeRecord(record);
+    } catch (error) {
+      // A single note encrypted with an unavailable old key should not block
+      // the rest of sync from applying.
+      return 0;
+    }
+    final row = await _normalizeSyncedNoteEntry(
+      NoteEntry.fromJson(json).copyWith(updatedAt: record.updatedAtUtc),
+    );
     await _database.into(_database.noteEntries).insertOnConflictUpdate(row);
     return 1;
+  }
+
+  Future<NoteEntry> _normalizeSyncedNoteEntry(NoteEntry row) async {
+    final clearText = await _decryptNestedContent(row.encryptedContent);
+    return row.copyWith(
+      encryptedContent: await _encryptionService.encrypt(clearText),
+    );
+  }
+
+  Future<String> _decryptNestedContent(String value) async {
+    var content = value;
+    for (var i = 0; i < 3; i += 1) {
+      if (!_looksEncrypted(content)) {
+        return content;
+      }
+      final decrypted = await _encryptionService.decrypt(content);
+      if (decrypted == content) {
+        return decrypted;
+      }
+      content = decrypted;
+    }
+    return content;
+  }
+
+  Future<bool> _canDecryptNestedContent(String value) async {
+    try {
+      await _decryptNestedContent(value);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _looksEncrypted(String value) {
+    try {
+      final decoded = jsonDecode(value);
+      return decoded is Map<String, dynamic> &&
+          decoded['alg'] == 'A256GCM' &&
+          decoded['ciphertext'] is String;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<int> _applyAppSetting(EncryptedSyncRecord record) async {

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
+import 'package:hera_app/features/auth/repositories/auth_repository.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/repositories/sync_repository.dart';
 import 'package:hera_app/shared/widgets/placeholder_feature_screen.dart';
@@ -21,7 +23,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(profileSettingsProvider);
-    final authState = ref.watch(authSessionProvider);
+    final authState = ref.watch(profileAuthSessionProvider);
     final session = authState.asData?.value;
     final isSignedIn = session?.isAuthenticated ?? false;
 
@@ -93,17 +95,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             alignment: Alignment.centerLeft,
             child: authState.when(
               data: (session) => session.isAuthenticated
-                  ? FilledButton.icon(
-                      onPressed: () async {
-                        await ref.read(authSessionProvider.notifier).logout();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Signed out.')),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Sign out'),
+                  ? Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              context.push(AppRoutePaths.editAccount),
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Edit account'),
+                        ),
+                        FilledButton.icon(
+                          onPressed: () async {
+                            await ref
+                                .read(authSessionProvider.notifier)
+                                .logout();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Signed out.')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Sign out'),
+                        ),
+                      ],
                     )
                   : Wrap(
                       spacing: 12,
@@ -200,4 +216,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     }
   }
+
 }
+
+final profileAuthSessionProvider = FutureProvider.autoDispose<AuthSession>((
+  ref,
+) async {
+  final authSession = ref.watch(authSessionProvider).asData?.value;
+  if (authSession?.isAuthenticated == true) {
+    return authSession!;
+  }
+  return ref.read(authRepositoryProvider).getCurrentSession();
+});

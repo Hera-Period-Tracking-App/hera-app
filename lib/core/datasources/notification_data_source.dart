@@ -1,16 +1,22 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/constants/app_constants.dart';
+import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:timezone/data/latest.dart' as timezone_data;
 import 'package:timezone/timezone.dart' as timezone;
 
 final notificationDataSourceProvider = Provider<NotificationDataSource>(
-  (ref) => NotificationDataSource(FlutterLocalNotificationsPlugin()),
+  (ref) => NotificationDataSource(
+    FlutterLocalNotificationsPlugin(),
+    ref.watch(secureStorageDataSourceProvider),
+  ),
 );
 
 class NotificationDataSource {
-  NotificationDataSource(this._plugin);
+  NotificationDataSource(this._plugin, this._storage);
 
   final FlutterLocalNotificationsPlugin _plugin;
+  final SecureStorageDataSource _storage;
   bool _isInitialized = false;
 
   Future<void> initialize() async {
@@ -31,6 +37,20 @@ class NotificationDataSource {
 
   Future<bool> requestPermissions() async {
     await initialize();
+
+    final hasPrompted =
+        await _storage.read(AppConstants.notificationPermissionPromptedKey) ==
+            'true';
+    if (hasPrompted) {
+      return true;
+    }
+
+    // Remember the attempt before opening the system dialog. This prevents a
+    // dismissal or denial from prompting again on every app launch.
+    await _storage.write(
+      AppConstants.notificationPermissionPromptedKey,
+      'true',
+    );
 
     final androidGranted = await _plugin
         .resolvePlatformSpecificImplementation<

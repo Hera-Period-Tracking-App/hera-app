@@ -40,7 +40,7 @@ class RegisterOnboardingScreen extends StatelessWidget {
                 children: [
                   const ColoredBox(
                     color: AppColors.twilight,
-                    child: SizedBox(height: 180),
+                    child: SizedBox(height: 230),
                   ),
                   Expanded(
                     child: Container(
@@ -142,7 +142,7 @@ class RegisterOnboardingScreen extends StatelessWidget {
                 ],
               ),
               Positioned(
-                top: -35,
+                top: 15,
                 right: 20,
                 child: IgnorePointer(
                   child: Image.asset(

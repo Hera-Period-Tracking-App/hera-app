@@ -8,8 +8,8 @@ class CalendarLayout {
   static const monthTitleHeight = 32.0;
   static const monthHeaderSpacing = 12.0;
   static const monthBottomSpacing = 24.0;
-  static const dayCellExtent = 50.0;
-  static const dayCellSpacing = 6.0;
+  static const dayCellExtent = 42.0;
+  static const dayCellSpacing = 4.0;
 }
 
 class CalendarPhaseDates {
@@ -181,7 +181,7 @@ class CalendarViewUtils {
   static double estimateMonthSectionHeight(DateTime month) {
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
     final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
-    final leadingEmptyCells = firstDayOfMonth.weekday - 1;
+    final leadingEmptyCells = firstDayOfMonth.weekday % 7;
     final totalCells = ((leadingEmptyCells + daysInMonth + 6) ~/ 7) * 7;
     final rowCount = (totalCells / 7).round();
     final gridHeight = (rowCount * CalendarLayout.dayCellExtent) +

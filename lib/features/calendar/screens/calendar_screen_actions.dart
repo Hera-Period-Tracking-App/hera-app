@@ -7,7 +7,8 @@ extension _CalendarScreenActions on _CalendarScreenState {
 
   void _cancelCalendarFlow() {
     _clearCalendarFlowState();
-    context.go(AppRoutePaths.calendar);
+    final focusToday = DateTime.now().millisecondsSinceEpoch;
+    context.go('${AppRoutePaths.calendar}?focusToday=$focusToday');
   }
 
   Future<void> _startNewCycle({
@@ -73,23 +74,19 @@ extension _CalendarScreenActions on _CalendarScreenState {
   Future<void> _updateCurrentCycle({
     required List<CycleSummary> cycles,
   }) async {
-    final selectedDate = _selectedDate;
-    if (selectedDate == null) {
-      _showMessage('Please select a start date first.');
-      return;
-    }
-
     final currentCycle = _editedCycleId == null
         ? (cycles.isNotEmpty ? cycles.first : null)
         : cycles.cast<CycleSummary?>().firstWhere(
               (cycle) => cycle?.id == _editedCycleId,
               orElse: () => null,
             );
+    final selectedDate = _selectedDate ?? currentCycle?.startDate;
     final cycleLength = currentCycle?.cycleLength;
     final menstruationLength =
         _editedMenstruationLength ?? currentCycle?.menstruationLength;
 
     if (currentCycle == null ||
+        selectedDate == null ||
         cycleLength == null ||
         menstruationLength == null) {
       _showMessage('No current cycle is available to edit.');
@@ -110,11 +107,12 @@ extension _CalendarScreenActions on _CalendarScreenState {
         return;
       }
 
-      _showMessage('Current cycle updated.');
-      _focusDateAfterFlow(selectedDate);
-      context.go(
-        '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(selectedDate)}',
-      );
+      _showCycleUpdatedFeedback();
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+      if (!mounted) {
+        return;
+      }
+      context.go(AppRoutePaths.calendar);
     } on FutureCycleException catch (error) {
       _showMessage(error.message);
     } on CycleLengthException catch (error) {
@@ -285,5 +283,33 @@ extension _CalendarScreenActions on _CalendarScreenState {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  void _showCycleUpdatedFeedback() {
+    final theme = Theme.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(milliseconds: 900),
+          backgroundColor: theme.cardColor,
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFFFFC857),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Cycle updated!',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
   }
 }
