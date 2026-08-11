@@ -178,7 +178,7 @@ class SyncRepository {
       userSettings: await Future.wait(
         userSettings.map((row) => _toEncryptedRecord(
               id: row.id,
-              payload: row.toJson(),
+              payload: _userSettingsPayloadForSync(row),
               updatedAt: (row.updatedAt ?? row.createdAt).toUtc(),
               originDeviceId: deviceId,
             )),
@@ -246,6 +246,12 @@ class SyncRepository {
     return json;
   }
 
+  Map<String, dynamic> _userSettingsPayloadForSync(UserSetting row) {
+    final json = row.toJson();
+    json.remove('biometricEnabled');
+    return json;
+  }
+
   Future<int> _applyDownloadResult(SyncDownloadResult result) async {
     var applied = 0;
 
@@ -288,7 +294,11 @@ class SyncRepository {
     }
 
     final json = await _decodeRecord(record);
-    final row = UserSetting.fromJson(json).copyWith(
+    final localBiometricEnabled = existing?.biometricEnabled ?? false;
+    final row = UserSetting.fromJson({
+      ...json,
+      'biometricEnabled': localBiometricEnabled,
+    }).copyWith(
       updatedAt: Value(record.updatedAtUtc),
     );
     await _database.into(_database.userSettings).insertOnConflictUpdate(row);

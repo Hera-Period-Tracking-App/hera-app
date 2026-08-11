@@ -13,4 +13,22 @@ class BiometricAuthDataSource {
   Future<bool> canCheckBiometrics() {
     return _localAuth.canCheckBiometrics;
   }
+
+  Future<bool> isDeviceSupported() {
+    return _localAuth.isDeviceSupported();
+  }
+
+  Future<bool> canUseBiometrics() async {
+    return await canCheckBiometrics() && await isDeviceSupported();
+  }
+
+  Future<bool> authenticate() {
+    return _localAuth.authenticate(
+      localizedReason: 'Unlock Hera',
+      options: const AuthenticationOptions(
+        biometricOnly: true,
+        stickyAuth: true,
+      ),
+    );
+  }
 }

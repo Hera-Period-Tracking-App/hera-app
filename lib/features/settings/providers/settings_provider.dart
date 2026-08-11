@@ -58,4 +58,28 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
       () => ref.read(settingsRepositoryProvider).setAutoSyncEnabled(enabled),
     );
   }
+
+  Future<void> setAppLock({
+    required bool enabled,
+    required bool biometricsEnabled,
+    String? pin,
+  }) async {
+    final previous = state.asData?.value;
+    if (previous != null) {
+      state = AsyncData(
+        previous.copyWith(
+          biometricsEnabled: enabled && biometricsEnabled,
+          pinEnabled: enabled,
+        ),
+      );
+    }
+
+    state = await AsyncValue.guard(
+      () => ref.read(settingsRepositoryProvider).setAppLock(
+            enabled: enabled,
+            biometricsEnabled: biometricsEnabled,
+            pin: pin,
+          ),
+    );
+  }
 }

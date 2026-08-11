@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/constants/app_constants.dart';
 import 'package:hera_app/core/database/app_database.dart';
+import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:hera_app/core/services/privacy_mode_manager.dart';
 import 'package:hera_app/features/settings/models/settings_state.dart';
 
@@ -20,8 +22,9 @@ class SettingsService {
 
     return SettingsState(
       privacyMode: privacyMode,
-      biometricsEnabled: false,
-      pinEnabled: false,
+      biometricsEnabled:
+          await _readBool(AppConstants.biometricsEnabledKey),
+      pinEnabled: await _readBool(AppConstants.pinEnabledKey),
       notificationsEnabled: appSettings.notificationsEnabled,
       notesEnabled: userSettings.notesEnabled,
       aiSummariesEnabled: userSettings.aiEnabled,
@@ -85,6 +88,42 @@ class SettingsService {
     );
 
     return loadSettings();
+  }
+
+  Future<SettingsState> setAppLock({
+    required bool enabled,
+    required bool biometricsEnabled,
+    String? pin,
+  }) async {
+    final secureStorage = _ref.read(secureStorageDataSourceProvider);
+
+    if (!enabled) {
+      await secureStorage.delete(AppConstants.appLockEnabledKey);
+      await secureStorage.delete(AppConstants.biometricsEnabledKey);
+      await secureStorage.delete(AppConstants.pinEnabledKey);
+      await secureStorage.delete(AppConstants.appLockPinKey);
+      return loadSettings();
+    }
+
+    final normalizedPin = pin?.trim();
+    if (normalizedPin == null || normalizedPin.length < 4) {
+      throw ArgumentError('Set a PIN with at least 4 digits.');
+    }
+
+    await secureStorage.write(AppConstants.appLockEnabledKey, 'true');
+    await secureStorage.write(
+      AppConstants.biometricsEnabledKey,
+      biometricsEnabled ? 'true' : 'false',
+    );
+    await secureStorage.write(AppConstants.pinEnabledKey, 'true');
+    await secureStorage.write(AppConstants.appLockPinKey, normalizedPin);
+
+    return loadSettings();
+  }
+
+  Future<bool> _readBool(String key) async {
+    return (await _ref.read(secureStorageDataSourceProvider).read(key)) ==
+        'true';
   }
 
   Future<AppSetting> _readOrCreateAppSettings() async {

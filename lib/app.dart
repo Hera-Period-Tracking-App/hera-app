@@ -5,7 +5,9 @@ import 'package:hera_app/core/theme/app_theme.dart';
 import 'package:hera_app/core/theme/app_theme_style.dart';
 import 'package:hera_app/core/theme/theme_style_provider.dart';
 import 'package:hera_app/features/cycle_notifications/providers/cycle_notification_sync_provider.dart';
+import 'package:hera_app/features/settings/providers/app_lock_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
+import 'package:hera_app/features/settings/screens/app_unlock_screen.dart';
 import 'package:hera_app/shared/providers/app_startup_provider.dart';
 import 'package:hera_app/shared/screens/startup_loading_screen.dart';
 
@@ -35,6 +37,9 @@ class _HeraAppState extends ConsumerState<HeraApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(autoSyncProvider).syncIfStale();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      ref.read(appLockProvider.notifier).lock();
     }
   }
 
@@ -43,6 +48,7 @@ class _HeraAppState extends ConsumerState<HeraApp>
     final themeStyle =
         ref.watch(themeStyleProvider).asData?.value ?? AppThemeStyle.dark;
     final startupReady = ref.watch(appStartupReadyProvider);
+    final appLock = ref.watch(appLockProvider);
     ref.watch(cycleNotificationSyncProvider);
     ref.watch(autoSyncProvider);
 
@@ -56,6 +62,19 @@ class _HeraAppState extends ConsumerState<HeraApp>
     }
 
     final router = ref.watch(appRouterProvider);
+    final shouldLock = appLock.maybeWhen(
+      data: (value) => value.enabled && value.locked,
+      orElse: () => false,
+    );
+
+    if (shouldLock) {
+      return MaterialApp(
+        title: 'Hera',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.build(themeStyle),
+        home: const AppUnlockScreen(),
+      );
+    }
 
     return MaterialApp.router(
       title: 'Hera',
