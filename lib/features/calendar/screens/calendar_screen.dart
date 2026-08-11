@@ -5,7 +5,6 @@ import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_legend_card.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_month_section.dart';
-import 'package:hera_app/features/calendar/widgets/slow_scroll_physics.dart';
 import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart';
@@ -54,6 +53,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const int _monthsAfterCurrent = 24;
 
   final ScrollController _monthScrollController = ScrollController();
+  final Map<String, CalendarPhaseDates> _phaseDatesByMonth = {};
+  String? _phaseDatesCacheVersion;
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
   DateTime? _selectedDate;
@@ -288,6 +289,65 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     _pendingFocusDate = DateUtils.dateOnly(date);
     _positionedAtCurrentMonth = false;
     _forceRecenterOnBuild = true;
+  }
+
+  CalendarPhaseDates _phaseDatesForMonth({
+    required List<CycleSummary> cycles,
+    required DateTime month,
+    required CycleForecast? forecast,
+  }) {
+    _preparePhaseDatesCache(cycles: cycles, forecast: forecast);
+
+    final monthKey = '${month.year}-${month.month}';
+    return _phaseDatesByMonth.putIfAbsent(
+      monthKey,
+      () => CalendarViewUtils.phaseDatesForMonth(
+        cycles,
+        month,
+        forecast: forecast,
+      ),
+    );
+  }
+
+  void _precachePhaseDates({
+    required List<CycleSummary> cycles,
+    required CycleForecast? forecast,
+    required DateTime firstMonth,
+    required int monthCount,
+  }) {
+    _preparePhaseDatesCache(cycles: cycles, forecast: forecast);
+
+    for (var index = 0; index < monthCount; index++) {
+      final month = DateTime(firstMonth.year, firstMonth.month + index);
+      final monthKey = '${month.year}-${month.month}';
+      _phaseDatesByMonth.putIfAbsent(
+        monthKey,
+        () => CalendarViewUtils.phaseDatesForMonth(
+          cycles,
+          month,
+          forecast: forecast,
+        ),
+      );
+    }
+  }
+
+  void _preparePhaseDatesCache({
+    required List<CycleSummary> cycles,
+    required CycleForecast? forecast,
+  }) {
+    final cacheVersion = [
+      for (final cycle in cycles)
+        '${cycle.id}:${cycle.startDate.toIso8601String()}:'
+            '${cycle.cycleLength}:${cycle.menstruationLength}',
+      if (forecast != null)
+        '${forecast.cycleLength}:${forecast.ovulationDay}:'
+            '${forecast.menstruationLength}',
+    ].join('|');
+
+    if (_phaseDatesCacheVersion != cacheVersion) {
+      _phaseDatesByMonth.clear();
+      _phaseDatesCacheVersion = cacheVersion;
+    }
   }
 }
 

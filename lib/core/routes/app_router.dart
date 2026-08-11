@@ -134,13 +134,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutePaths.calendarDateDetails,
                 name: 'calendar-date-details',
-                builder: (context, state) {
+                pageBuilder: (context, state) {
                   final dateParam = state.pathParameters['date'];
                   final date = _parseCalendarRouteDate(dateParam);
                   if (date == null) {
-                    return const CalendarScreen();
+                    return const MaterialPage(child: CalendarScreen());
                   }
-                  return CalendarDateDetailsScreen(date: date);
+                  return CustomTransitionPage<void>(
+                    key: state.pageKey,
+                    child: CalendarDateDetailsScreen(date: date),
+                    transitionDuration: const Duration(milliseconds: 380),
+                    reverseTransitionDuration:
+                        const Duration(milliseconds: 280),
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                      final curvedAnimation = CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                        reverseCurve: Curves.easeInCubic,
+                      );
+                      return FadeTransition(
+                        opacity: curvedAnimation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.16),
+                            end: Offset.zero,
+                          ).animate(curvedAnimation),
+                          child: child,
+                        ),
+                      );
+                    },
+                  );
                 },
               ),
               GoRoute(

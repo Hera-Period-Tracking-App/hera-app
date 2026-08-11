@@ -128,6 +128,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final onboardingState = ref.watch(onboardingProvider);
     final loadedStatus = onboardingState.asData?.value;
     final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
+    if (onboardingState.isLoading) {
+      return const StartupLoadingScreen();
+    }
+
     if (!forceShowOnboarding && loadedStatus?.hasCompletedOnboarding == true) {
       return const StartupLoadingScreen();
     }
@@ -175,7 +179,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   showStepInfo: step.type != OnboardingStepType.welcome,
                 ),
               ),
-              SizedBox(height: isAccountStep ? 36 : 20),
+              SizedBox(height: isAccountStep ? 36 : 16),
               Expanded(
                 child: ColoredBox(
                   color: Colors.transparent,

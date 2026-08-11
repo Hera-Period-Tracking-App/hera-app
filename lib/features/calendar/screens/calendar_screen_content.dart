@@ -70,6 +70,13 @@ extension _CalendarScreenContent on _CalendarScreenState {
     final editedMenstruationLength =
         _editedMenstruationLength ?? editedCycle?.menstruationLength;
 
+    _precachePhaseDates(
+      cycles: editedCycles,
+      forecast: forecast,
+      firstMonth: firstMonth,
+      monthCount: monthCount,
+    );
+
     _ensureCurrentMonthInitialPosition(
       firstMonth: firstMonth,
       focusedMonth: safeFocusedMonth,
@@ -112,13 +119,13 @@ extension _CalendarScreenContent on _CalendarScreenState {
         ],
         const Row(
           children: [
-            WeekdayLabel('Mon'),
-            WeekdayLabel('Tue'),
-            WeekdayLabel('Wed'),
-            WeekdayLabel('Thu'),
-            WeekdayLabel('Fri'),
-            WeekdayLabel('Sat'),
-            WeekdayLabel('Sun'),
+            WeekdayLabel('S'),
+            WeekdayLabel('M'),
+            WeekdayLabel('T'),
+            WeekdayLabel('W'),
+            WeekdayLabel('T'),
+            WeekdayLabel('F'),
+            WeekdayLabel('S'),
           ],
         ),
         const SizedBox(height: 8),
@@ -127,8 +134,9 @@ extension _CalendarScreenContent on _CalendarScreenState {
             children: [
               ListView.builder(
                 controller: _monthScrollController,
-                physics: const SlowScrollPhysics(),
+                physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: legendOverlayHeight + 8),
+                cacheExtent: 300,
                 itemCount: monthCount,
                 itemBuilder: (context, index) {
                   final month = DateTime(firstMonth.year, firstMonth.month + index);
@@ -136,10 +144,11 @@ extension _CalendarScreenContent on _CalendarScreenState {
                     padding: const EdgeInsets.only(bottom: 24),
                     child: CalendarMonthSection(
                       month: month,
-                      cycles: editedCycles,
-                      fallbackCycleLength:
-                          profileCycleLength ?? defaultCycleLength,
-                      forecast: forecast,
+                      phaseDates: _phaseDatesForMonth(
+                        cycles: editedCycles,
+                        month: month,
+                        forecast: forecast,
+                      ),
                       noteDateKeys: noteDateKeys,
                       selectedDate: isFlowActive ? _selectedDate : null,
                       onDatePressed: (date) {

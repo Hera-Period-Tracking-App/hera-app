@@ -79,9 +79,11 @@ class PrivacyChoiceCard extends StatelessWidget {
                   padding: EdgeInsetsDirectional.only(
                     end: contentEndPadding,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  child: SingleChildScrollView(
+                    primary: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       Text(
                         '> $eyebrow',
                         style: TextStyle(
@@ -125,7 +127,8 @@ class PrivacyChoiceCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 Positioned(

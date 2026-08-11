@@ -5,6 +5,8 @@ class AppConstants {
   static const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8080');
   static const secureStorageDataSource = 'secure_storage_service';
   static const onboardingCompletedKey = 'onboarding_completed';
+  static const notificationPermissionPromptedKey =
+      'notification_permission_prompted';
   static const sqlCipherKey = 'sqlcipher_db_key';
   static const syncEncryptionKey = 'sync_encryption_key';
   static const syncMasterKey = 'sync_master_key';

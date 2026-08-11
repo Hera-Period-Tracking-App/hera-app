@@ -12,6 +12,7 @@ class AppColors {
   static const ink = Color(0xFF221D1B);
   static const plum = Color(0xFF594A6D);
   static const twilight = Color(0xFF12131A);
+  static const sun = Color(0xFFFFC857);
   static const moon = Color(0xFFE7E4F4);
   static const mist = Color(0xFFF8F5F1);
 }
