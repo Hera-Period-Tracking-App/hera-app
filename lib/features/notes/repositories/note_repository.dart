@@ -127,9 +127,11 @@ class NoteRepository {
   Future<Note> _toDecryptedNote(NoteEntry row) async {
     String content;
     try {
-      content = await _encryptionService.decrypt(row.encryptedContent);
+      content = await _decryptNoteContent(row.encryptedContent);
     } catch (_) {
-      content = row.encryptedContent;
+      content = _looksEncrypted(row.encryptedContent)
+          ? 'This note could not be decrypted. Try syncing again after logging in.'
+          : row.encryptedContent;
     }
 
     return Note(
@@ -140,6 +142,32 @@ class NoteRepository {
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );
+  }
+
+  Future<String> _decryptNoteContent(String value) async {
+    var content = value;
+    for (var i = 0; i < 3; i += 1) {
+      if (!_looksEncrypted(content)) {
+        return content;
+      }
+      final decrypted = await _encryptionService.decrypt(content);
+      if (decrypted == content) {
+        return decrypted;
+      }
+      content = decrypted;
+    }
+    return content;
+  }
+
+  bool _looksEncrypted(String value) {
+    try {
+      final decoded = jsonDecode(value);
+      return decoded is Map<String, dynamic> &&
+          decoded['alg'] == 'A256GCM' &&
+          decoded['ciphertext'] is String;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _saveDeletedNoteTombstones(

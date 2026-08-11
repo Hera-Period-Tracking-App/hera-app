@@ -24,6 +24,22 @@ class AuthRepository {
     return _service.login(credentials);
   }
 
+  Future<AuthSession> updateAccount({
+    required String currentPassword,
+    String? email,
+    String? newPassword,
+  }) {
+    return _service.updateAccount(
+      currentPassword: currentPassword,
+      email: email,
+      newPassword: newPassword,
+    );
+  }
+
+  Future<void> deleteAccount({required String currentPassword}) {
+    return _service.deleteAccount(currentPassword: currentPassword);
+  }
+
   Future<void> logout() {
     return _service.clearSession();
   }

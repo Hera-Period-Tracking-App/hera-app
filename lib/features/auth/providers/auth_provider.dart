@@ -40,8 +40,28 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
               email: email.trim(),
               password: password,
             ),
-          ),
+      ),
     );
+  }
+
+  Future<AuthSession> updateAccount({
+    required String currentPassword,
+    String? email,
+    String? newPassword,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final session = await ref.read(authRepositoryProvider).updateAccount(
+            currentPassword: currentPassword,
+            email: email,
+            newPassword: newPassword,
+          );
+      state = AsyncData(session);
+      return session;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<void> logout() async {
@@ -50,7 +70,25 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     state = const AsyncData(AuthSession(isAuthenticated: false));
   }
 
+  Future<void> deleteAccount({required String currentPassword}) async {
+    state = const AsyncLoading();
+    try {
+      await ref
+          .read(authRepositoryProvider)
+          .deleteAccount(currentPassword: currentPassword);
+      state = const AsyncData(AuthSession(isAuthenticated: false));
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+
   void setSession(AuthSession session) {
+    state = AsyncData(session);
+  }
+
+  Future<void> refreshSession() async {
+    final session = await ref.read(authRepositoryProvider).getCurrentSession();
     state = AsyncData(session);
   }
 }

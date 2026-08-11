@@ -44,7 +44,7 @@ class AuthService {
     try {
       return AuthSession.fromJson(_decodeJsonMap(storedSession));
     } catch (_) {
-      await clearSession();
+      await clearSession(clearSyncKeys: false);
       return const AuthSession(isAuthenticated: false);
     }
   }
@@ -57,11 +57,69 @@ class AuthService {
     return _authenticate('/api/auth/login', credentials);
   }
 
-  Future<void> clearSession() async {
+  Future<AuthSession> updateAccount({
+    required String currentPassword,
+    String? email,
+    String? newPassword,
+  }) async {
+    final currentSession = await getCurrentSession();
+    final token = await requireAccessToken();
+    final nextEmail = email?.trim();
+    final nextPassword = newPassword?.trim();
+    final response = await _apiClient.putJson(
+      '/api/account',
+      bearerToken: token,
+      body: {
+        'currentPassword': currentPassword,
+        if (nextEmail != null && nextEmail.isNotEmpty) 'email': nextEmail,
+        if (nextPassword != null && nextPassword.isNotEmpty)
+          'newPassword': nextPassword,
+      },
+    );
+
+    final fallbackEmail = nextEmail == null || nextEmail.isEmpty
+        ? currentSession.email ?? ''
+        : nextEmail;
+    final updatedSession = _sessionFromResponse(
+      response,
+      fallbackEmail: fallbackEmail,
+    );
+    final updatedToken = _tryExtractAccessToken(response);
+    if (updatedToken != null && updatedToken.isNotEmpty) {
+      await _secureStorage.write(AppConstants.authAccessTokenKey, updatedToken);
+    }
+    await _secureStorage.write(
+      AppConstants.authSessionKey,
+      _encodeJson(updatedSession.toJson()),
+    );
+
+    await _encryptionService.configureWrappingKeyFromCredentials(
+      email: updatedSession.email ?? fallbackEmail,
+      password: nextPassword == null || nextPassword.isEmpty
+          ? currentPassword
+          : nextPassword,
+    );
+
+    return updatedSession;
+  }
+
+  Future<void> deleteAccount({required String currentPassword}) async {
+    final token = await requireAccessToken();
+    await _apiClient.deleteJson(
+      '/api/account',
+      bearerToken: token,
+      body: {'currentPassword': currentPassword},
+    );
+    await clearSession(clearSyncKeys: false);
+  }
+
+  Future<void> clearSession({bool clearSyncKeys = false}) async {
     await _secureStorage.delete(AppConstants.authAccessTokenKey);
     await _secureStorage.delete(AppConstants.authSessionKey);
     await _secureStorage.delete(AppConstants.syncCursorKey);
-    await _encryptionService.clearSyncKeys();
+    if (clearSyncKeys) {
+      await _encryptionService.clearSyncKeys();
+    }
   }
 
   Future<String> requireAccessToken() async {
@@ -141,9 +199,19 @@ class AuthService {
   }
 
   String _extractAccessToken(Map<String, dynamic> response) {
+    final token = _tryExtractAccessToken(response);
+    if (token == null || token.isEmpty) {
+      throw const ApiException(
+        message:
+            'Authentication succeeded but the API response did not include an access token.',
+      );
+    }
+    return token;
+  }
+
+  String? _tryExtractAccessToken(Map<String, dynamic> response) {
     final payload = _primaryPayload(response);
-    final token =
-        _readFirstString(
+    return _readFirstString(
           response,
           const ['accessToken', 'token', 'jwt', 'bearerToken'],
         ) ??
@@ -151,15 +219,6 @@ class AuthService {
           payload,
           const ['accessToken', 'token', 'jwt', 'bearerToken'],
         );
-
-    if (token == null || token.isEmpty) {
-      throw const ApiException(
-        message:
-            'Authentication succeeded but the API response did not include an access token.',
-      );
-    }
-
-    return token;
   }
 
   Map<String, dynamic> _primaryPayload(Map<String, dynamic> response) {

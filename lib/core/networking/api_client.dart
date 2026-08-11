@@ -46,6 +46,38 @@ class ApiClient {
 
     return _decodeResponse(response, uri: uri);
   }
+
+  Future<Map<String, dynamic>> putJson(
+    String path, {
+    required Map<String, dynamic> body,
+    Map<String, String>? queryParameters,
+    String? bearerToken,
+  }) async {
+    final uri = _buildUri(path, queryParameters: queryParameters);
+    final response = await _client.put(
+      uri,
+      headers: _headers(bearerToken: bearerToken),
+      body: jsonEncode(body),
+    );
+
+    return _decodeResponse(response, uri: uri);
+  }
+
+  Future<Map<String, dynamic>> deleteJson(
+    String path, {
+    required Map<String, dynamic> body,
+    Map<String, String>? queryParameters,
+    String? bearerToken,
+  }) async {
+    final uri = _buildUri(path, queryParameters: queryParameters);
+    final response = await _client.delete(
+      uri,
+      headers: _headers(bearerToken: bearerToken),
+      body: jsonEncode(body),
+    );
+
+    return _decodeResponse(response, uri: uri);
+  }
   Uri _buildUri(
     String path, {
     Map<String, String>? queryParameters,

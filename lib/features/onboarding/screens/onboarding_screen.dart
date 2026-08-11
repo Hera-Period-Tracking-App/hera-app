@@ -496,12 +496,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return;
     }
 
-    setState(() => _isSaving = false);
-    context.go(AppRoutePaths.home);
     final onboardingAuthSession = _onboardingAuthSession;
     if (onboardingAuthSession != null) {
       ref.read(authSessionProvider.notifier).setSession(onboardingAuthSession);
     }
+    setState(() => _isSaving = false);
+    context.go(AppRoutePaths.home);
   }
 
   Future<void> _syncAfterLogin() async {
