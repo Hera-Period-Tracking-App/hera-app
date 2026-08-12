@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 class CalendarMonthSection extends StatelessWidget {
   const CalendarMonthSection({
@@ -22,6 +24,7 @@ class CalendarMonthSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final phaseColors = theme.extension<CyclePhaseColors>();
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final isCurrentMonth = month.year == now.year && month.month == now.month;
     final todayKey = CalendarViewUtils.dateKey(DateTime.now());
@@ -44,7 +47,11 @@ class CalendarMonthSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    CalendarViewUtils.monthLabel(month),
+                    _capitalizeFirst(
+                      DateFormat.yMMMM(
+                        Localizations.localeOf(context).toString(),
+                      ).format(month),
+                    ),
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight:
                           isCurrentMonth ? FontWeight.w700 : FontWeight.w600,
@@ -54,7 +61,7 @@ class CalendarMonthSection extends StatelessWidget {
                 ),
                 if (isCurrentMonth)
                   Text(
-                    'CURRENT',
+                    l10n.current,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w700,
@@ -192,6 +199,13 @@ class CalendarMonthSection extends StatelessWidget {
       ),
     );
   }
+}
+
+String _capitalizeFirst(String value) {
+  if (value.isEmpty) {
+    return value;
+  }
+  return value[0].toUpperCase() + value.substring(1);
 }
 
 class WeekdayLabel extends StatelessWidget {

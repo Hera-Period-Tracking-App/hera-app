@@ -27,4 +27,5 @@ class AppConstants {
   static const pendingCycleConflictsKey = 'pending_cycle_conflicts';
   static const customSymptomsKey = 'custom_symptoms';
   static const syncCursorKey = 'sync_cursor';
+  static const appLanguageCodeKey = 'app_language_code';
 }

@@ -14,6 +14,7 @@ import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/features/settings/repositories/sync_repository.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/widgets/placeholder_feature_screen.dart';
 import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
 
@@ -33,11 +34,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final authState = ref.watch(profileAuthSessionProvider);
     final session = authState.asData?.value;
     final isSignedIn = session?.isAuthenticated ?? false;
+    final l10n = AppLocalizations.of(context);
 
     return PlaceholderFeatureScreen(
-      title: 'Profile',
-      description:
-          'Basic user details, privacy controls, and app settings are grouped here.',
+      title: l10n.profile,
+      description: l10n.profileDescription,
       cards: [
         settings.when(
           data: (value) {
@@ -46,57 +47,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             if (averageCycleLength == null &&
                 averageMenstruationLength == null) {
-              return const SectionPlaceholderCard(
-                title: 'Average cycle settings',
-                body:
-                    'No averages saved yet. Complete onboarding to store your cycle and menstruation lengths.',
+              return SectionPlaceholderCard(
+                title: l10n.averageCycleSettings,
+                body: l10n.noAverageCycleSettings,
               );
             }
 
             return SectionPlaceholderCard(
-              title: 'Average cycle settings',
-              body:
-                  'Average cycle length: ${averageCycleLength ?? '-'} days\nAverage menstruation length: ${averageMenstruationLength ?? '-'} days',
+              title: l10n.averageCycleSettings,
+              body: l10n.averageCycleSettingsBody(
+                averageCycleLength?.toString() ?? '-',
+                averageMenstruationLength?.toString() ?? '-',
+              ),
             );
           },
-          loading: () => const SectionPlaceholderCard(
-            title: 'Average cycle settings',
-            body: 'Loading your saved averages...',
+          loading: () => SectionPlaceholderCard(
+            title: l10n.averageCycleSettings,
+            body: l10n.loadingSavedAverages,
           ),
-          error: (error, stackTrace) => const SectionPlaceholderCard(
-            title: 'Average cycle settings',
-            body: 'Could not load your saved averages.',
+          error: (error, stackTrace) => SectionPlaceholderCard(
+            title: l10n.averageCycleSettings,
+            body: l10n.couldNotLoadSavedAverages,
           ),
         ),
         SectionPlaceholderCard(
-          title: 'Settings',
-          body:
-              'Manage notifications, AI summaries, and other app preferences.',
+          title: l10n.settingsTitle,
+          body: l10n.profileSettingsDescription,
           footer: Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               onPressed: () => context.push(AppRoutePaths.settings),
               icon: const Icon(Icons.settings),
-              label: const Text('Open settings'),
+              label: Text(l10n.openSettings),
             ),
           ),
         ),
         SectionPlaceholderCard(
-          title: 'Account',
+          title: l10n.account,
           body: authState.when(
             data: (session) {
               if (!session.isAuthenticated) {
-                return 'You are not signed in. Create an account or log in to use secure sync.';
+                return l10n.signedOutAccountDescription;
               }
 
               final email = session.email?.trim();
               if (email == null || email.isEmpty) {
-                return 'You are signed in.';
+                return l10n.signedInAccountDescription;
               }
-              return 'You are signed in as $email.';
+              return l10n.signedInAsAccountDescription(email);
             },
-            loading: () => 'Checking account status...',
-            error: (error, stackTrace) => 'Could not load account status.',
+            loading: () => l10n.checkingAccountStatus,
+            error: (error, stackTrace) => l10n.couldNotLoadAccountStatus,
           ),
           footer: Align(
             alignment: Alignment.centerLeft,
@@ -110,7 +111,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           onPressed: () =>
                               context.push(AppRoutePaths.editAccount),
                           icon: const Icon(Icons.edit),
-                          label: const Text('Edit account'),
+                          label: Text(l10n.editAccount),
                         ),
                         FilledButton.icon(
                           onPressed: () async {
@@ -119,12 +120,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 .logout();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Signed out.')),
+                                SnackBar(content: Text(l10n.signedOutMessage)),
                               );
                             }
                           },
                           icon: const Icon(Icons.logout),
-                          label: const Text('Sign out'),
+                          label: Text(l10n.signOut),
                         ),
                       ],
                     )
@@ -136,38 +137,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           onPressed: () =>
                               context.push(AppRoutePaths.authSignup),
                           icon: const Icon(Icons.person_add),
-                          label: const Text('Create account'),
+                          label: Text(l10n.createAccount),
                         ),
                         OutlinedButton.icon(
                           onPressed: () =>
                               context.push(AppRoutePaths.authLogin),
                           icon: const Icon(Icons.login),
-                          label: const Text('Log in'),
+                          label: Text(l10n.logIn),
                         ),
                       ],
                     ),
-              loading: () => const FilledButton(
+              loading: () => FilledButton(
                 onPressed: null,
-                child: Text('Checking...'),
+                child: Text(l10n.checking),
               ),
               error: (error, stackTrace) => OutlinedButton.icon(
                 onPressed: () => ref.invalidate(authSessionProvider),
                 icon: const Icon(Icons.refresh),
-                label: const Text('Try again'),
+                label: Text(l10n.tryAgain),
               ),
             ),
           ),
         ),
         SectionPlaceholderCard(
-          title: 'Sync',
+          title: l10n.sync,
           body: isSignedIn
-              ? 'Upload encrypted local records, then pull newer encrypted changes from the API into the local database.'
-              : 'Sign in first to sync local encrypted data with the API.',
+              ? l10n.syncSignedInDescription
+              : l10n.syncSignedOutDescription,
           footer: Align(
             alignment: Alignment.centerLeft,
             child: FilledButton(
               onPressed: !isSignedIn || _isSyncing ? null : _syncNow,
-              child: Text(_isSyncing ? 'Syncing...' : 'Sync now'),
+              child: Text(_isSyncing ? l10n.syncing : l10n.syncNow),
             ),
           ),
         ),
@@ -192,7 +193,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Sync complete. Uploaded ${result.uploadedCount}, downloaded ${result.downloadedCount}, applied ${result.appliedCount}.',
+            AppLocalizations.of(context).syncComplete(
+              result.uploadedCount,
+              result.downloadedCount,
+              result.appliedCount,
+            ),
           ),
         ),
       );
@@ -220,19 +225,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _showSyncFailedDialog(Object error) async {
     final canReset =
         error is ApiException && error.isSyncKeyUnavailable;
+    final l10n = AppLocalizations.of(context);
 
     await showDialog<void>(
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Sync failed'),
+            title: Text(l10n.syncFailed),
             content: SingleChildScrollView(
               child: SelectableText(error.toString()),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Close'),
+                child: Text(l10n.close),
               ),
               if (canReset)
                 FilledButton(
@@ -240,7 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Navigator.of(dialogContext).pop();
                     await _resetRemoteSyncFromLocal();
                   },
-                  child: const Text('Reset sync data'),
+                  child: Text(l10n.resetSyncData),
                 ),
             ],
           );
@@ -255,7 +261,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _refreshSyncedProviders();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sync data reset.')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).syncDataReset),
+          ),
         );
       }
     } catch (error) {

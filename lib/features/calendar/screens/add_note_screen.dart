@@ -12,6 +12,7 @@ import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
 
 class AddNoteScreen extends ConsumerStatefulWidget {
@@ -137,6 +138,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
       widget.date.month,
       widget.date.day,
     );
+    final l10n = AppLocalizations.of(context);
     final noteInputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(
@@ -157,7 +159,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.note == null ? 'New note' : 'Edit note'),
+        title: Text(widget.note == null ? l10n.newNote : l10n.editNote),
       ),
       body: SafeArea(
         child: ListView(
@@ -169,7 +171,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    'Notes are disabled in Settings.',
+                    l10n.notesDisabledInSettings,
                     style: theme.textTheme.bodyMedium,
                   ),
                 ),
@@ -185,14 +187,14 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                   border: noteInputBorder,
                   enabledBorder: noteInputBorder,
                   focusedBorder: focusedNoteInputBorder,
-                  hintText: 'Write a private note...',
+                  hintText: l10n.writePrivateNoteHint,
                 ),
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 onPressed: _isSaving ? null : _showSymptomsSheet,
                 icon: const Icon(Icons.add),
-                label: const Text('Add symptoms'),
+                label: Text(l10n.addSymptoms),
               ),
               if (_selectedSymptoms.isNotEmpty || _selectedFlow != null) ...[
                 const SizedBox(height: 12),
@@ -211,7 +213,9 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                       ),
                     if (_selectedFlow != null)
                       InputChip(
-                        label: Text('Flow: $_selectedFlow'),
+                        label: Text(
+                          l10n.flowLabel(_flowLabel(l10n, _selectedFlow!)),
+                        ),
                         onDeleted: _isSaving
                             ? null
                             : () => setState(() => _selectedFlow = null),
@@ -227,7 +231,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                       onPressed: _isSaving
                           ? null
                           : () => _cancelNote(normalizedDate),
-                      child: const Text('Cancel note'),
+                      child: Text(l10n.cancelNote),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -245,7 +249,9 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Text(widget.note == null ? 'Save note' : 'Save'),
+                          : Text(
+                              widget.note == null ? l10n.saveNote : l10n.save,
+                            ),
                     ),
                   ),
                 ],
@@ -259,8 +265,9 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
 
   Future<void> _saveNote(DateTime date) async {
     final content = _buildNoteContent();
+    final l10n = AppLocalizations.of(context);
     if (content.isEmpty) {
-      _showMessage('Write a note or add symptoms before saving.');
+      _showMessage(l10n.writeNoteOrSymptomsBeforeSaving);
       return;
     }
 
@@ -284,12 +291,12 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
         return;
       }
 
-      _showMessage(widget.note == null ? 'Note saved.' : 'Note updated.');
+      _showMessage(widget.note == null ? l10n.noteSaved : l10n.noteUpdated);
       _closeNoteEditor(date);
     } on DuplicateNoteDateException catch (error) {
       _showMessage(error.message);
     } catch (error) {
-      _showMessage('Could not save note: $error');
+      _showMessage(l10n.couldNotSaveNote(error.toString()));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -324,6 +331,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
     var draftFlow = _selectedFlow;
     var isCustomSymptomInputVisible = false;
     var isEditingSymptoms = false;
+    final l10n = AppLocalizations.of(context);
 
     void applyChangesImmediately() {
       setState(() {
@@ -356,7 +364,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          isEditingSymptoms ? 'Edit symptoms' : 'Symptoms',
+                          isEditingSymptoms ? l10n.editSymptoms : l10n.symptoms,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
@@ -371,7 +379,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                         icon: Icon(
                           isEditingSymptoms ? Icons.check : Icons.edit,
                         ),
-                        label: Text(isEditingSymptoms ? 'Done' : 'Edit'),
+                        label: Text(isEditingSymptoms ? l10n.done : l10n.edit),
                       ),
                     ],
                   ),
@@ -382,7 +390,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                         children: [
                           for (final symptom in _commonSymptoms)
                             CheckboxListTile(
-                              title: Text(symptom),
+                              title: Text(_symptomLabel(l10n, symptom)),
                               value:
                                   draftVisibleCommonSymptoms.contains(symptom),
                               onChanged: (shown) {
@@ -409,7 +417,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                           draftVisibleCommonSymptoms.contains,
                         ))
                           FilterChip(
-                            label: Text(symptom),
+                            label: Text(_symptomLabel(l10n, symptom)),
                             selected: draftSymptoms.contains(symptom),
                             onSelected: (selected) {
                               setSheetState(() {
@@ -427,14 +435,14 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                   ],
                   const SizedBox(height: 20),
                   Text(
-                    'Custom symptoms',
+                    l10n.customSymptoms,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   if (isEditingSymptoms) ...[
                     if (draftCustomSymptoms.isEmpty)
                       Text(
-                        'No custom symptoms yet.',
+                        l10n.noCustomSymptomsYet,
                         style: Theme.of(context).textTheme.bodySmall,
                       )
                     else
@@ -455,9 +463,9 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                         autofocus: true,
                                         textCapitalization:
                                             TextCapitalization.sentences,
-                                        decoration: const InputDecoration(
-                                          border: OutlineInputBorder(),
-                                          hintText: 'Symptom name',
+                                        decoration: InputDecoration(
+                                          border: const OutlineInputBorder(),
+                                          hintText: l10n.symptomName,
                                         ),
                                       ),
                                       const SizedBox(height: 12),
@@ -474,7 +482,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                                 });
                                                 applyChangesImmediately();
                                               },
-                                              child: const Text('Cancel'),
+                                              child: Text(l10n.cancel),
                                             ),
                                           ),
                                           const SizedBox(width: 12),
@@ -504,7 +512,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                                 });
                                                 applyChangesImmediately();
                                               },
-                                              child: const Text('Save'),
+                                              child: Text(l10n.save),
                                             ),
                                           ),
                                         ],
@@ -519,7 +527,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                     spacing: 4,
                                     children: [
                                       IconButton(
-                                        tooltip: 'Edit custom symptom',
+                                        tooltip: l10n.editCustomSymptom,
                                         icon: const Icon(Icons.edit_outlined),
                                         onPressed: () {
                                           setSheetState(() {
@@ -530,7 +538,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                         },
                                       ),
                                       IconButton(
-                                        tooltip: 'Remove custom symptom',
+                                        tooltip: l10n.removeCustomSymptom,
                                         icon: const Icon(
                                           Icons.delete_outline,
                                         ),
@@ -579,7 +587,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                         if (!isCustomSymptomInputVisible)
                           ActionChip(
                             avatar: const Icon(Icons.add),
-                            label: const Text('Add a symptom'),
+                            label: Text(l10n.addSymptom),
                             onPressed: () {
                               setSheetState(() {
                                 isCustomSymptomInputVisible = true;
@@ -595,60 +603,59 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                              TextField(
+                            TextField(
+                              controller: customSymptomController,
+                              autofocus: true,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                border: const UnderlineInputBorder(),
+                                hintText: l10n.symptomName,
+                              ),
+                              onSubmitted: (_) => _addCustomSymptom(
                                 controller: customSymptomController,
-                                autofocus: true,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: const InputDecoration(
-                                  border: UnderlineInputBorder(),
-                                  hintText: 'Symptom name',
-                                ),
-                                onSubmitted: (_) => _addCustomSymptom(
-                                  controller: customSymptomController,
-                                  symptoms: draftSymptoms,
-                                  customSymptoms: draftCustomSymptoms,
-                                  setSheetState: setSheetState,
-                                  hideInput: () {
-                                    isCustomSymptomInputVisible = false;
-                                  },
-                                ),
+                                symptoms: draftSymptoms,
+                                customSymptoms: draftCustomSymptoms,
+                                setSheetState: setSheetState,
+                                hideInput: () {
+                                  isCustomSymptomInputVisible = false;
+                                },
                               ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () {
-                                        setSheetState(() {
-                                          customSymptomController.clear();
-                                          isCustomSymptomInputVisible = false;
-                                        });
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      setSheetState(() {
+                                        customSymptomController.clear();
+                                        isCustomSymptomInputVisible = false;
+                                      });
+                                    },
+                                    child: Text(l10n.cancel),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FilledButton(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: AppColors.sun,
+                                      foregroundColor: AppColors.twilight,
+                                    ),
+                                    onPressed: () => _addCustomSymptom(
+                                      controller: customSymptomController,
+                                      symptoms: draftSymptoms,
+                                      customSymptoms: draftCustomSymptoms,
+                                      setSheetState: setSheetState,
+                                      hideInput: () {
+                                        isCustomSymptomInputVisible = false;
                                       },
-                                      child: const Text('Cancel'),
                                     ),
+                                    child: Text(l10n.add),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: FilledButton(
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: AppColors.sun,
-                                        foregroundColor: AppColors.twilight,
-                                      ),
-                                      onPressed: () => _addCustomSymptom(
-                                        controller: customSymptomController,
-                                        symptoms: draftSymptoms,
-                                        customSymptoms: draftCustomSymptoms,
-                                        setSheetState: setSheetState,
-                                        hideInput: () {
-                                          isCustomSymptomInputVisible = false;
-                                        },
-                                      ),
-                                      child: const Text('Add'),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -656,7 +663,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                   ],
                   const SizedBox(height: 20),
                   Text(
-                    'Menstrual flow',
+                    l10n.menstrualFlow,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -666,7 +673,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                     children: [
                       for (final flow in _flowOptions)
                         ChoiceChip(
-                          label: Text(flow),
+                          label: Text(_flowLabel(l10n, flow)),
                           selected: draftFlow == flow,
                           onSelected: (selected) {
                             setSheetState(() {
@@ -781,6 +788,33 @@ const _flowOptions = [
   'Heavy',
   'Very heavy',
 ];
+
+String _symptomLabel(AppLocalizations l10n, String symptom) {
+  return switch (symptom) {
+    'Cramps' => l10n.symptomCramps,
+    'Headache' => l10n.symptomHeadache,
+    'Bloating' => l10n.symptomBloating,
+    'Back pain' => l10n.symptomBackPain,
+    'Breast tenderness' => l10n.symptomBreastTenderness,
+    'Acne' => l10n.symptomAcne,
+    'Fatigue' => l10n.symptomFatigue,
+    'Mood swings' => l10n.symptomMoodSwings,
+    'Nausea' => l10n.symptomNausea,
+    'Cravings' => l10n.symptomCravings,
+    _ => symptom,
+  };
+}
+
+String _flowLabel(AppLocalizations l10n, String flow) {
+  return switch (flow) {
+    'Spotting' => l10n.flowSpotting,
+    'Light' => l10n.flowLight,
+    'Medium' => l10n.flowMedium,
+    'Heavy' => l10n.flowHeavy,
+    'Very heavy' => l10n.flowVeryHeavy,
+    _ => flow,
+  };
+}
 
 String _formatRouteDate(DateTime date) {
   final normalized = DateTime(date.year, date.month, date.day);

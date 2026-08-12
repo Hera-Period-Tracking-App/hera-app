@@ -9,7 +9,9 @@ import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
+import 'package:intl/intl.dart';
 
 part 'month_cycle_dots_ring_header.dart';
 part 'month_cycle_dots_ring_ring.dart';
@@ -27,10 +29,12 @@ class MonthCycleDotsRing extends ConsumerWidget {
       data: (value) => value.averageCycleLength,
       orElse: () => null,
     );
+    final l10n = AppLocalizations.of(context);
     // Keep a strict, single source of truth for the ring dot count.
-    final dotsCount = averageCycleLength != null && averageCycleLength > 0
-      ? averageCycleLength
-      : 28;
+    final dotsCount =
+        averageCycleLength != null && averageCycleLength > 0
+            ? averageCycleLength
+            : 28;
 
     return cyclesAsync.when(
       data: (cycles) => _MonthCycleDotsRingView(
@@ -38,13 +42,13 @@ class MonthCycleDotsRing extends ConsumerWidget {
         dotsCount: dotsCount,
         forecast: forecastAsync.value,
       ),
-      loading: () => const SectionPlaceholderCard(
-        title: 'Cycle month ring',
-        body: 'Loading cycle data...',
+      loading: () => SectionPlaceholderCard(
+        title: l10n.cycleMonthRing,
+        body: l10n.loadingCycleData,
       ),
-      error: (error, _) => const SectionPlaceholderCard(
-        title: 'Cycle month ring',
-        body: 'Could not load cycle data for the month ring.',
+      error: (error, _) => SectionPlaceholderCard(
+        title: l10n.cycleMonthRing,
+        body: l10n.couldNotLoadCycleMonthRing,
       ),
     );
   }
@@ -153,6 +157,7 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
       forecast: widget.forecast,
     );
     final cyclePhase = phaseContext.phase;
+    final l10n = AppLocalizations.of(context);
     final phasesByDay = _phasesByDayInMonth(
       widget.cycles,
       displayDate,
@@ -212,7 +217,10 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                       alignment: Alignment.center,
                       children: [
                         Text(
-                          'Day ${phaseContext.dayOfCycle} of ${phaseContext.cycleLength}',
+                          l10n.dayOfCycle(
+                            phaseContext.dayOfCycle,
+                            phaseContext.cycleLength,
+                          ),
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
@@ -227,7 +235,7 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                                   .surfaceContainerHighest,
                               shape: const CircleBorder(),
                               child: IconButton(
-                                tooltip: 'Back to today',
+                                tooltip: l10n.backToToday,
                                 onPressed: _resetToToday,
                                 icon: Icon(
                                   Icons.replay,
@@ -247,7 +255,10 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                       Flexible(
                         fit: FlexFit.loose,
                         child: Text(
-                          cyclePhaseLabel(phaseContext).toUpperCase(),
+                          _localizedCyclePhaseLabel(
+                            l10n,
+                            phaseContext,
+                          ).toUpperCase(),
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w700,
@@ -261,7 +272,8 @@ class _MonthCycleDotsRingViewState extends State<_MonthCycleDotsRingView> {
                       Flexible(
                         fit: FlexFit.loose,
                         child: Text(
-                          _nextEventCountdownLabel(phaseContext).toUpperCase(),
+                          _nextEventCountdownLabel(l10n, phaseContext)
+                              .toUpperCase(),
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w700,
@@ -310,7 +322,8 @@ class _CycleInfoQuickRow extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              '${_formatShortDate(cycleStart)} - ${_formatShortDate(cycleEnd)}',
+              '${_formatShortDate(context, cycleStart)} - '
+              '${_formatShortDate(context, cycleEnd)}',
               style: theme.textTheme.bodyMedium,
             ),
           ],
@@ -326,7 +339,7 @@ class _CycleInfoQuickRow extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              _formatShortDate(ovulationDay),
+              _formatShortDate(context, ovulationDay),
               style: theme.textTheme.bodyMedium,
             ),
           ],
@@ -349,21 +362,8 @@ class _CycleInfoQuickRow extends StatelessWidget {
     );
   }
 
-  String _formatShortDate(DateTime date) {
-    const months = [
-      'jan',
-      'feb',
-      'mar',
-      'apr',
-      'may',
-      'jun',
-      'jul',
-      'aug',
-      'sep',
-      'oct',
-      'nov',
-      'dec',
-    ];
-    return '${date.day}. ${months[date.month - 1]}';
+  String _formatShortDate(BuildContext context, DateTime date) {
+    return DateFormat.MMMd(Localizations.localeOf(context).toString())
+        .format(date);
   }
 }

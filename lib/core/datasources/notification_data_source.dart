@@ -38,15 +38,8 @@ class NotificationDataSource {
   Future<bool> requestPermissions() async {
     await initialize();
 
-    final hasPrompted =
-        await _storage.read(AppConstants.notificationPermissionPromptedKey) ==
-            'true';
-    if (hasPrompted) {
-      return true;
-    }
-
-    // Remember the attempt before opening the system dialog. This prevents a
-    // dismissal or denial from prompting again on every app launch.
+    // Remember that the app has requested permission, but do not use this to
+    // block future manual requests from the Settings toggle.
     await _storage.write(
       AppConstants.notificationPermissionPromptedKey,
       'true',
@@ -61,7 +54,24 @@ class NotificationDataSource {
             IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(alert: true, badge: true, sound: true);
 
-    return androidGranted ?? iOSGranted ?? true;
+    return androidGranted ?? iOSGranted ?? await notificationsEnabled();
+  }
+
+  Future<bool> notificationsEnabled() async {
+    await initialize();
+
+    final androidNotifications = _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    final androidEnabled = await androidNotifications?.areNotificationsEnabled();
+    if (androidEnabled != null) {
+      return androidEnabled;
+    }
+
+    final iOSNotifications = _plugin
+        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+    final iOSEnabled = await iOSNotifications?.checkPermissions();
+    return iOSEnabled?.isEnabled ?? true;
   }
 
   Future<bool> requestExactAlarmPermission() async {

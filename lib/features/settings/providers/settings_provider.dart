@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/datasources/notification_data_source.dart';
+import 'package:hera_app/features/cycle_notifications/services/cycle_notification_scheduler.dart';
 import 'package:hera_app/features/settings/models/settings_state.dart';
 import 'package:hera_app/features/settings/repositories/settings_repository.dart';
 
@@ -15,14 +17,28 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
 
   Future<void> setNotificationsEnabled(bool enabled) async {
     final previous = state.asData?.value;
+    var effectiveEnabled = enabled;
+    if (enabled) {
+      effectiveEnabled =
+          await ref.read(notificationDataSourceProvider).requestPermissions();
+    }
+
     if (previous != null) {
-      state = AsyncData(previous.copyWith(notificationsEnabled: enabled));
+      state = AsyncData(
+        previous.copyWith(notificationsEnabled: effectiveEnabled),
+      );
+    }
+
+    if (!effectiveEnabled) {
+      await ref
+          .read(cycleNotificationSchedulerProvider)
+          .cancelCycleNotifications();
     }
 
     state = await AsyncValue.guard(
       () => ref
           .read(settingsRepositoryProvider)
-          .setNotificationsEnabled(enabled),
+          .setNotificationsEnabled(effectiveEnabled),
     );
   }
 

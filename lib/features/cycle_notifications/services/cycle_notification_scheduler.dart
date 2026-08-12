@@ -28,7 +28,7 @@ class CycleNotificationScheduler {
             _baseId + (cycleIndex * _idsPerCycle) + offset,
       ];
 
-  Future<void> reschedule({
+  Future<bool> reschedule({
     required List<CycleSummary> cycles,
     required CycleForecast? forecast,
     required bool enabled,
@@ -36,18 +36,18 @@ class CycleNotificationScheduler {
     await _notifications.cancelMany(notificationIds);
 
     if (!enabled) {
-      return;
+      return false;
     }
 
     final permissionsGranted = await _notifications.requestPermissions();
     if (!permissionsGranted) {
-      return;
+      return false;
     }
 
     await _scheduleDebugTestNotification();
 
     if (cycles.isEmpty || forecast == null) {
-      return;
+      return true;
     }
 
     final sortedCycles = [...cycles]
@@ -112,6 +112,8 @@ class CycleNotificationScheduler {
         payload: 'luteal_start',
       );
     }
+
+    return true;
   }
 
   Future<void> cancelCycleNotifications() {

@@ -12,6 +12,8 @@ import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 class NotesScreen extends ConsumerWidget {
   const NotesScreen({super.key});
@@ -26,6 +28,7 @@ class NotesScreen extends ConsumerWidget {
           data: (settings) => settings.notesEnabled,
           orElse: () => true,
         );
+    final l10n = AppLocalizations.of(context);
     final cycles = cyclesAsync.maybeWhen(
       data: (value) => value,
       orElse: () => const <CycleSummary>[],
@@ -36,16 +39,16 @@ class NotesScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notes')),
+      appBar: AppBar(title: Text(l10n.notes)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           children: [
             if (!notesEnabled)
-              const Card(
+              Card(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('Notes are disabled in Settings.'),
+                  padding: const EdgeInsets.all(20),
+                  child: Text(l10n.notesDisabledInSettings),
                 ),
               )
             else
@@ -57,7 +60,7 @@ class NotesScreen extends ConsumerWidget {
                 forecast: forecastAsync.value,
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Text('Could not load notes: $error'),
+              error: (error, _) => Text(l10n.couldNotLoadNotes(error.toString())),
             ),
           ],
         ),
@@ -90,13 +93,14 @@ class _NotesListState extends State<_NotesList> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     if (widget.notes.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Text(
-            'No notes yet.',
+            l10n.noNotesYet,
             style: textTheme.bodyLarge,
           ),
         ),
@@ -180,7 +184,7 @@ class _CycleNotesGroupCard extends StatelessWidget {
           tilePadding: EdgeInsets.zero,
           childrenPadding: EdgeInsets.zero,
           title: Text(
-            group.title,
+            _formatCycleRange(context, group.cycleStart, group.cycleEnd),
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: colorScheme.onPrimaryContainer,
@@ -193,7 +197,7 @@ class _CycleNotesGroupCard extends StatelessWidget {
               _NotesPhaseLine(phaseContext: group.phaseContext),
               const SizedBox(height: 8),
               Text(
-                '${group.notes.length} ${group.notes.length == 1 ? 'note' : 'notes'}',
+                AppLocalizations.of(context).noteCount(group.notes.length),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onPrimaryContainer.withValues(alpha: 0.72),
                 ),
@@ -247,6 +251,7 @@ class _NoteRow extends StatelessWidget {
                   children: [
                     Text(
                       _buildNoteTitleFromContext(
+                        context: context,
                         date: entry.note.date,
                         phaseContext: entry.phaseContext,
                       ),
@@ -281,14 +286,16 @@ class _NoteRow extends StatelessWidget {
 class _NoteCycleGroup {
   const _NoteCycleGroup({
     required this.key,
-    required this.title,
+    required this.cycleStart,
+    required this.cycleEnd,
     required this.notes,
     required this.isCurrentCycle,
     required this.phaseContext,
   });
 
   final String key;
-  final String title;
+  final DateTime cycleStart;
+  final DateTime cycleEnd;
   final List<_NoteWithCycleContext> notes;
   final bool isCurrentCycle;
   final CyclePhaseContext phaseContext;
@@ -338,8 +345,8 @@ List<_NoteCycleGroup> _groupNotesByCycle({
 
     return _NoteCycleGroup(
       key: entry.key,
-      title:
-          _formatCycleRange(phaseContext.cycleStart, phaseContext.cycleEnd),
+      cycleStart: phaseContext.cycleStart,
+      cycleEnd: phaseContext.cycleEnd,
       notes: noteEntries,
       isCurrentCycle: _isCurrentCycle(phaseContext),
       phaseContext: phaseContext,
@@ -365,28 +372,16 @@ bool _isCurrentCycle(CyclePhaseContext phaseContext) {
 }
 
 String _buildNoteTitleFromContext({
+  required BuildContext context,
   required DateTime date,
   required CyclePhaseContext phaseContext,
 }) {
-  return '${_formatShortNoteDate(date)} - ${cyclePhaseLabel(phaseContext)}';
+  return '${_formatShortNoteDate(context, date)} - '
+      '${_cyclePhaseLabel(context, phaseContext)}';
 }
 
-String _formatShortNoteDate(DateTime date) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[date.month - 1]} ${date.day}';
+String _formatShortNoteDate(BuildContext context, DateTime date) {
+  return DateFormat.MMMd(Localizations.localeOf(context).toString()).format(date);
 }
 
 String _formatNoteDate(DateTime date) {
@@ -471,23 +466,24 @@ Color _phaseDotColor({
   };
 }
 
-String _formatCycleRange(DateTime start, DateTime end) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  final startLabel = '${months[start.month - 1]} ${start.day}';
-  final endLabel = '${months[end.month - 1]} ${end.day}';
-  final year = end.year;
-  return '$startLabel - $endLabel $year';
+String _formatCycleRange(BuildContext context, DateTime start, DateTime end) {
+  final locale = Localizations.localeOf(context).toString();
+  final startLabel = DateFormat.MMMd(locale).format(start);
+  final endLabel = DateFormat.MMMd(locale).format(end);
+  return '$startLabel - $endLabel ${end.year}';
+}
+
+String _cyclePhaseLabel(BuildContext context, CyclePhaseContext phaseContext) {
+  final l10n = AppLocalizations.of(context);
+  if (phaseContext.phase == CyclePhase.ovulation) {
+    return phaseContext.isPredictedOvulationDay
+        ? l10n.phaseOvulationDay
+        : l10n.phaseFertileWindow;
+  }
+  return switch (phaseContext.phase) {
+    CyclePhase.menstruation => l10n.phaseMenstruation,
+    CyclePhase.follicular => l10n.phaseFollicular,
+    CyclePhase.luteal => l10n.phaseLuteal,
+    CyclePhase.ovulation => l10n.phaseFertileWindow,
+  };
 }
