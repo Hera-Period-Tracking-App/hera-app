@@ -37,7 +37,12 @@ import 'package:hera_app/shared/models/privacy_mode.dart';
 import 'package:hera_app/shared/screens/startup_loading_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({
+    this.accountSetupOnly = false,
+    super.key,
+  });
+
+  final bool accountSetupOnly;
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -64,6 +69,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   AuthSession? _onboardingAuthSession;
 
   List<OnboardingStep> get _steps {
+    if (widget.accountSetupOnly) {
+      return const [
+        OnboardingStep.cycleLength(),
+        OnboardingStep.menstruationLength(),
+      ];
+    }
+
     return [
       const OnboardingStep.welcome(),
       const OnboardingStep.privacy(),
@@ -136,11 +148,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return const StartupLoadingScreen();
     }
 
-    if (!forceShowOnboarding && loadedStatus?.hasCompletedOnboarding == true) {
+    if (!widget.accountSetupOnly &&
+        !forceShowOnboarding &&
+        loadedStatus?.hasCompletedOnboarding == true) {
       return const StartupLoadingScreen();
     }
 
-    if (!_welcomeAssetsReady) {
+    if (!widget.accountSetupOnly && !_welcomeAssetsReady) {
       return const StartupLoadingScreen();
     }
 
@@ -148,7 +162,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return const StartupLoadingScreen();
     }
 
-    _selectedPrivacyMode ??= loadedStatus?.selectedPrivacyMode;
+    _selectedPrivacyMode ??= widget.accountSetupOnly
+        ? PrivacyMode.secureSync
+        : loadedStatus?.selectedPrivacyMode;
 
     final step = _steps[_currentStep];
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
@@ -402,13 +418,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() {
       _submitted = false;
       _accountErrorMessage = null;
-      if (_isLoginFlow) {
-        _isLoginFlow = false;
-        // Registration is always the third screen in the secure-sync flow.
-        _currentStep = 2;
-      } else {
-        _currentStep -= 1;
+    if (_isLoginFlow) {
+      _isLoginFlow = false;
+      // Registration is always the third screen in the secure-sync flow.
+      _currentStep = 2;
+    } else {
+      if (_currentStep == 0) {
+        return;
       }
+      _currentStep -= 1;
+    }
       if (_currentStep == 0) {
         _welcomeAnimationCompleted = false;
       }
@@ -462,7 +481,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
     }
 
-    if (!isLoginStep) {
+    if (!isLoginStep && !widget.accountSetupOnly) {
       try {
         await ref.read(cycleRepositoryProvider).addCycle(
               startDate: _lastCycleStart,
@@ -491,7 +510,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
       await ref.read(themeStyleProvider.notifier).setStyle(AppThemeStyle.dark);
       await ref.read(onboardingProvider.notifier).completeOnboarding(
-            privacyMode: _selectedPrivacyMode!,
+            privacyMode: widget.accountSetupOnly
+                ? PrivacyMode.secureSync
+                : _selectedPrivacyMode!,
         averageCycleLength: _cycleLength.round(),
         averageMenstruationLength: _menstruationLength.round(),
           );

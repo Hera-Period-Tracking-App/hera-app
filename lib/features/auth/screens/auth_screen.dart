@@ -167,6 +167,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     final isAuthenticated = authState.asData?.value.isAuthenticated ?? false;
     if (isAuthenticated) {
+      if (widget.mode == AuthScreenMode.signup) {
+        if (mounted) {
+          context.go(AppRoutePaths.accountSetup);
+        }
+        return;
+      }
+
       final didSync = await _syncAfterAuth();
       if (mounted && didSync) {
         context.go(AppRoutePaths.home);

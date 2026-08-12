@@ -32,18 +32,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isOnboardingRoute =
           state.matchedLocation == AppRoutePaths.onboarding;
+      final isAccountSetupRoute =
+          state.matchedLocation == AppRoutePaths.accountSetup;
       final isCycleConflictRoute =
           state.matchedLocation == AppRoutePaths.cycleConflicts;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return isOnboardingRoute || isAccountSetupRoute
+            ? null
+            : AppRoutePaths.onboarding;
       }
 
       final hasCompletedOnboarding =
           onboardingState.asData?.value.hasCompletedOnboarding ?? false;
 
       if (forceShowOnboarding) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return isOnboardingRoute || isAccountSetupRoute
+            ? null
+            : AppRoutePaths.onboarding;
       }
 
       if (!hasCompletedOnboarding) {
@@ -52,6 +58,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (isOnboardingRoute) {
         return AppRoutePaths.home;
+      }
+
+      if (isAccountSetupRoute) {
+        return null;
       }
 
       final hasPendingCycleConflicts = pendingCycleConflicts.maybeWhen(
@@ -69,6 +79,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutePaths.onboarding,
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutePaths.accountSetup,
+        name: 'account-setup',
+        builder: (context, state) =>
+            const OnboardingScreen(accountSetupOnly: true),
       ),
       GoRoute(
         path: AppRoutePaths.auth,

@@ -3,6 +3,7 @@ class AppRoutePaths {
 
   static const splash = '/splash';
   static const onboarding = '/onboarding';
+  static const accountSetup = '/onboarding/account-setup';
   static const auth = '/auth';
   static const authLogin = '/auth/login';
   static const authSignup = '/auth/signup';
