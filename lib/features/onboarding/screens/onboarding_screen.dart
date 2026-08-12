@@ -507,6 +507,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
     }
 
+    if (!widget.accountSetupOnly) {
+      final canContinue = await _askForNotificationPermission();
+      if (!canContinue) {
+        return;
+      }
+    }
+
     try {
       await ref.read(themeStyleProvider.notifier).setStyle(AppThemeStyle.dark);
       await ref.read(onboardingProvider.notifier).completeOnboarding(
@@ -537,6 +544,47 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
     setState(() => _isSaving = false);
     context.go(AppRoutePaths.home);
+  }
+
+  Future<bool> _askForNotificationPermission() async {
+    if (!mounted) {
+      return false;
+    }
+
+    setState(() => _isSaving = false);
+
+    final shouldEnable = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Enable notifications?'),
+              content: const Text(
+                'Hera can remind you about upcoming menstruation, ovulation, and cycle changes.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Not now'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Enable'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!mounted) {
+      return false;
+    }
+
+    setState(() => _isSaving = true);
+    await ref
+        .read(settingsProvider.notifier)
+        .setNotificationsEnabled(shouldEnable);
+    return true;
   }
 
   Future<void> _syncAfterLogin() async {

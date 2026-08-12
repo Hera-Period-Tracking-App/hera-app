@@ -32,6 +32,7 @@ class CycleNotificationScheduler {
     required List<CycleSummary> cycles,
     required CycleForecast? forecast,
     required bool enabled,
+    bool requestPermission = false,
   }) async {
     await _notifications.cancelMany(notificationIds);
 
@@ -39,7 +40,9 @@ class CycleNotificationScheduler {
       return false;
     }
 
-    final permissionsGranted = await _notifications.requestPermissions();
+    final permissionsGranted = requestPermission
+        ? await _notifications.requestPermissions()
+        : await _notifications.notificationsEnabled();
     if (!permissionsGranted) {
       return false;
     }
