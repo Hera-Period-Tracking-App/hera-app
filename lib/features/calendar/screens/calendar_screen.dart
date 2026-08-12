@@ -22,6 +22,7 @@ import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
 
 part 'calendar_screen_actions.dart';
@@ -202,6 +203,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       orElse: () => const <Note>[],
     );
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isFlowActive = widget.isStartNewCycleFlow ||
         widget.isAddNoteFlow ||
         widget.isEditCurrentCycleFlow;
@@ -211,16 +213,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       appBar: AppBar(
         backgroundColor: theme.scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Calendar'),
+        title: Text(l10n.calendarTitle),
         actions: [
           if (isFlowActive && !widget.isEditCurrentCycleFlow)
             TextButton(
               onPressed: isBusy ? null : _cancelCalendarFlow,
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             )
           else ...[
             IconButton(
-              tooltip: 'View predictions',
+              tooltip: l10n.viewPredictions,
               icon: const Icon(Icons.auto_graph_outlined),
               onPressed: () => context.push(AppRoutePaths.calendarPredictions),
             ),
@@ -232,7 +234,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   }
 
                   return IconButton(
-                    tooltip: 'Edit current cycle start date',
+                    tooltip: l10n.editCurrentCycleStartDate,
                     icon: const Icon(Icons.edit_calendar),
                     onPressed: () {
                       final scrollOffset = _lastCalendarScrollOffset ??
@@ -252,8 +254,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ),
             IconButton(
               tooltip: _isLegendVisible
-                  ? 'Hide calendar legend'
-                  : 'Show calendar legend',
+                  ? l10n.hideCalendarLegend
+                  : l10n.showCalendarLegend,
               icon: Icon(
                 _isLegendVisible
                     ? Icons.info_rounded
@@ -275,8 +277,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           child: cyclesAsync.when(
             data: (cycles) {
               if (widget.isAddNoteFlow && !notesEnabled) {
-                return const Center(
-                  child: Text('Notes are disabled in Settings.'),
+                return Center(
+                  child: Text(l10n.notesDisabledInSettings),
                 );
               }
 
@@ -294,7 +296,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Center(
-                    child: Text('Could not load notes: $error'),
+                    child: Text(l10n.couldNotLoadNotes(error.toString())),
                   ),
                 );
               }
@@ -335,13 +337,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(
-                  child: Text('Could not load profile settings: $error'),
+                  child: Text(
+                    l10n.couldNotLoadProfileSettings(error.toString()),
+                  ),
                 ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Center(
-              child: Text('Could not load calendar: $error'),
+              child: Text(l10n.couldNotLoadCalendar(error.toString())),
             ),
           ),
         ),

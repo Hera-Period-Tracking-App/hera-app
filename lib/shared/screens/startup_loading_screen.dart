@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 class StartupLoadingScreen extends StatelessWidget {
   const StartupLoadingScreen({super.key});
 
@@ -7,6 +8,7 @@ class StartupLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -27,7 +29,7 @@ class StartupLoadingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Preparing your private space',
+                l10n.preparingPrivateSpace,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.58),
                   fontFamily: 'monospace',

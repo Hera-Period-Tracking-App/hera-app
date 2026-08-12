@@ -5,6 +5,7 @@ import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
 class CyclePredictionScreen extends ConsumerWidget {
   const CyclePredictionScreen({super.key});
@@ -13,10 +14,11 @@ class CyclePredictionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cycles = ref.watch(cyclesProvider);
     final forecast = ref.watch(upcomingCycleForecastProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Predictions'),
+        title: Text(l10n.predictionsTitle),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
@@ -25,12 +27,12 @@ class CyclePredictionScreen extends ConsumerWidget {
         child: cycles.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
-            child: Text('Could not load cycle history: $error'),
+            child: Text(l10n.couldNotLoadCycleHistory(error.toString())),
           ),
           data: (cycleHistory) => forecast.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Center(
-              child: Text('Could not create predictions: $error'),
+              child: Text(l10n.couldNotCreatePredictions(error.toString())),
             ),
             data: (value) => _PredictionContent(
               cycles: cycleHistory,
@@ -52,12 +54,13 @@ class _PredictionContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final prediction = forecast;
     if (cycles.isEmpty || prediction == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text('Add a cycle first to see predictions.'),
+          padding: const EdgeInsets.all(24),
+          child: Text(l10n.addCycleFirstForPredictions),
         ),
       );
     }
@@ -83,12 +86,12 @@ class _PredictionContent extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          'These forecast settings are calculated from your saved previous cycles. Your latest cycle only sets the starting point for the first predicted date.',
+          l10n.forecastExplanation,
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 8),
         Text(
-          'Predictions are estimates and may be inaccurate. They are not medical advice.',
+          l10n.predictionDisclaimer,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -111,18 +114,20 @@ class _PredictionContent extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'FORECAST SETTINGS',
+                      l10n.forecastSettings,
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text('Cycle length: ${prediction.cycleLength} days'),
+                    Text(l10n.cycleLengthDays(prediction.cycleLength)),
                     Text(
-                      'Menstruation length: ${prediction.menstruationLength} days',
+                      l10n.menstruationLengthDays(
+                        prediction.menstruationLength,
+                      ),
                     ),
-                    Text('Ovulation day: ${prediction.ovulationDay}'),
+                    Text(l10n.ovulationDay(prediction.ovulationDay)),
                   ],
                 ),
               ),
@@ -147,24 +152,30 @@ class _PredictionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final periodEnd = _addCalendarDays(start, forecast.menstruationLength - 1);
     final ovulation = _addCalendarDays(start, forecast.ovulationDay - 1);
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'CYCLE STARTING - ${_formatDate(start)}',
+          l10n.cycleStarting(_formatDate(start)),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.8,
               ),
         ),
         const SizedBox(height: 2),
-        Text('${forecast.cycleLength} day cycle'),
+        Text(l10n.dayCycle(forecast.cycleLength)),
         const SizedBox(height: 8),
         _PredictionPhaseLine(forecast: forecast),
         const SizedBox(height: 12),
-        Text('Menstruation: ${_formatDate(start)} - ${_formatDate(periodEnd)}'),
-        Text('Ovulation: ${_formatDate(ovulation)}'),
+        Text(
+          l10n.menstruationDateRange(
+            _formatDate(start),
+            _formatDate(periodEnd),
+          ),
+        ),
+        Text(l10n.ovulationDate(_formatDate(ovulation))),
         const SizedBox(height: 36),
       ],
     );
@@ -179,6 +190,7 @@ class _PredictionPhaseLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final phaseColors = theme.extension<CyclePhaseColors>();
     final totalDays = forecast.cycleLength.clamp(1, 90).toInt();
 
@@ -193,7 +205,7 @@ class _PredictionPhaseLine extends StatelessWidget {
                 .clamp(7.0, 10.0);
 
         return Semantics(
-          label: 'Predicted full cycle phase timeline',
+          label: l10n.predictedFullCyclePhaseTimeline,
           child: Wrap(
             spacing: spacing,
             runSpacing: spacing,

@@ -11,6 +11,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   cupertino_icons: ^1.0.8
   collection: ^1.19.1
   cryptography: ^2.7.0
@@ -59,6 +61,7 @@ flutter_native_splash:
     image: assets/images/logo/hera_logo.png
 
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - assets/models/LFM2-5-230M-q4-0.gguf

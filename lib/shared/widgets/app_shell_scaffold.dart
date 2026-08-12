@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
 class AppShellScaffold extends StatelessWidget {
   const AppShellScaffold({
@@ -15,6 +16,8 @@ class AppShellScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: navigationShell,
       extendBody: true,
@@ -32,48 +35,52 @@ class AppShellScaffold extends StatelessWidget {
                     child: SizedBox(
                       height: 72,
                       child: Row(
-              children: [
-                _ShellTabButton(
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home,
-                  label: 'Home',
-                  isSelected: navigationShell.currentIndex == 0,
-                  onTap: () => navigationShell.goBranch(
-                    0,
-                    initialLocation: 0 == navigationShell.currentIndex,
-                  ),
-                ),
-                _ShellTabButton(
-                  icon: Icons.calendar_today_outlined,
-                  activeIcon: Icons.calendar_today,
-                  label: 'Calendar',
-                  isSelected: navigationShell.currentIndex == 1,
-                  onTap: () => navigationShell.goBranch(
-                    1,
-                    initialLocation: 1 == navigationShell.currentIndex,
-                  ),
-                ),
-                const SizedBox(width: 56),
-                _ShellTabButton(
-                  icon: Icons.edit_note_outlined,
-                  activeIcon: Icons.edit_note,
-                  label: 'Notes',
-                  isSelected: navigationShell.currentIndex == 2,
-                  onTap: () => navigationShell.goBranch(
-                    2,
-                    initialLocation: 2 == navigationShell.currentIndex,
-                  ),
-                ),
-                _ShellTabButton(
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  label: 'Profile',
-                  isSelected: navigationShell.currentIndex == 3,
-                  onTap: () => navigationShell.goBranch(
-                    3,
-                    initialLocation: 3 == navigationShell.currentIndex,
-                  ),
-                ),
+                        children: [
+                          _ShellTabButton(
+                            icon: Icons.home_outlined,
+                            activeIcon: Icons.home,
+                            label: l10n.home,
+                            isSelected: navigationShell.currentIndex == 0,
+                            onTap: () => navigationShell.goBranch(
+                              0,
+                              initialLocation:
+                                  0 == navigationShell.currentIndex,
+                            ),
+                          ),
+                          _ShellTabButton(
+                            icon: Icons.calendar_today_outlined,
+                            activeIcon: Icons.calendar_today,
+                            label: l10n.calendar,
+                            isSelected: navigationShell.currentIndex == 1,
+                            onTap: () => navigationShell.goBranch(
+                              1,
+                              initialLocation:
+                                  1 == navigationShell.currentIndex,
+                            ),
+                          ),
+                          const SizedBox(width: 56),
+                          _ShellTabButton(
+                            icon: Icons.edit_note_outlined,
+                            activeIcon: Icons.edit_note,
+                            label: l10n.notes,
+                            isSelected: navigationShell.currentIndex == 2,
+                            onTap: () => navigationShell.goBranch(
+                              2,
+                              initialLocation:
+                                  2 == navigationShell.currentIndex,
+                            ),
+                          ),
+                          _ShellTabButton(
+                            icon: Icons.person_outline,
+                            activeIcon: Icons.person,
+                            label: l10n.profile,
+                            isSelected: navigationShell.currentIndex == 3,
+                            onTap: () => navigationShell.goBranch(
+                              3,
+                              initialLocation:
+                                  3 == navigationShell.currentIndex,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -99,6 +106,8 @@ class AppShellScaffold extends StatelessWidget {
   }
 
   void _showAddMenu(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -111,9 +120,8 @@ class AppShellScaffold extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.playlist_add_circle_outlined),
-                  title: const Text('Start new cycle'),
-                  subtitle:
-                      const Text('Begin tracking a fresh cycle start date.'),
+                  title: Text(l10n.startNewCycle),
+                  subtitle: Text(l10n.startNewCycleDescription),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     final focusToday = DateTime.now().millisecondsSinceEpoch;

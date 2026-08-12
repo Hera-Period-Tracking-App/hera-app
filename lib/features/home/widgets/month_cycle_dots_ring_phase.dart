@@ -22,7 +22,10 @@ Map<int, CyclePhase> _phasesByDayInMonth(
   return result;
 }
 
-String _nextEventCountdownLabel(CyclePhaseContext context) {
+String _nextEventCountdownLabel(
+  AppLocalizations l10n,
+  CyclePhaseContext context,
+) {
   final selected = DateTime(
     context.selectedDate.year,
     context.selectedDate.month,
@@ -41,11 +44,28 @@ String _nextEventCountdownLabel(CyclePhaseContext context) {
 
   if (selected.isBefore(ovulation)) {
     final days = ovulation.difference(selected).inDays;
-    return days == 0 ? 'Ovulation today' : 'Ovulation in $days days';
+    return days == 0 ? l10n.ovulationToday : l10n.ovulationInDays(days);
   }
 
   final daysToPeriod = nextPeriod.difference(selected).inDays;
   return daysToPeriod == 0
-      ? 'Menstruation today'
-      : 'Menstruation in $daysToPeriod days';
+      ? l10n.menstruationToday
+      : l10n.menstruationInDays(daysToPeriod);
+}
+
+String _localizedCyclePhaseLabel(
+  AppLocalizations l10n,
+  CyclePhaseContext phaseContext,
+) {
+  if (phaseContext.phase == CyclePhase.ovulation) {
+    return phaseContext.isPredictedOvulationDay
+        ? l10n.phaseOvulationDay
+        : l10n.phaseFertileWindow;
+  }
+  return switch (phaseContext.phase) {
+    CyclePhase.menstruation => l10n.phaseMenstruation,
+    CyclePhase.follicular => l10n.phaseFollicular,
+    CyclePhase.luteal => l10n.phaseLuteal,
+    CyclePhase.ovulation => l10n.phaseFertileWindow,
+  };
 }

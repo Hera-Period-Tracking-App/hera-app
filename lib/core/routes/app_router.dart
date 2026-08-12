@@ -19,6 +19,7 @@ import 'package:hera_app/features/settings/screens/app_lock_disable_screen.dart'
 import 'package:hera_app/features/settings/screens/app_lock_setup_screen.dart';
 import 'package:hera_app/features/settings/screens/cycle_conflict_resolution_screen.dart';
 import 'package:hera_app/features/settings/screens/settings_screen.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
@@ -232,9 +233,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     errorBuilder: (context, state) {
+      final l10n = AppLocalizations.of(context);
       return Scaffold(
         body: Center(
-          child: Text('Route not found: ${state.uri}'),
+          child: Text(l10n.routeNotFound(state.uri.toString())),
         ),
       );
     },

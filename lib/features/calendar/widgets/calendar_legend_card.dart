@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_month_section.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
 class CalendarLegendCard extends StatelessWidget {
   const CalendarLegendCard({super.key});
@@ -11,6 +12,7 @@ class CalendarLegendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final phaseColors = theme.extension<CyclePhaseColors>();
+    final l10n = AppLocalizations.of(context);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
@@ -33,9 +35,9 @@ class CalendarLegendCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
           
-              const CalendarLegendItem(
+              CalendarLegendItem(
                 color: Colors.red,
-                label: 'Menstruation',
+                label: l10n.phaseMenstruation,
               ),
 
               const SizedBox(height: 10),
@@ -44,7 +46,7 @@ class CalendarLegendCard extends StatelessWidget {
                 color: (phaseColors?.follicular ??
                         theme.colorScheme.secondary)
                     .withValues(alpha: 0.85),
-                label: 'Fertile',
+                label: l10n.fertile,
               ),
 
               const SizedBox(height: 10),
@@ -53,14 +55,14 @@ class CalendarLegendCard extends StatelessWidget {
                 color: (phaseColors?.ovulation ??
                         theme.colorScheme.secondary)
                     .withValues(alpha: 0.85),
-                label: 'Ovulation',
+                label: l10n.ovulation,
               ),
 
               const SizedBox(height: 10),
 
-              const CalendarLegendItem(
+              CalendarLegendItem(
                 color: Colors.transparent,
-                label: 'Today',
+                label: l10n.today,
                 outlined: true,
               ),
             ],

@@ -10,6 +10,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
     required int? profileMenstruationLength,
     required CycleForecast? forecast,
   }) {
+    final l10n = AppLocalizations.of(context);
     final legendOverlayHeight = _isLegendVisible ? 108.0 : 0.0;
     final now = DateTime.now();
     final nowMonth = DateTime(now.year, now.month);
@@ -98,7 +99,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Tap on days you want your period to be added or removed.',
+                      l10n.editCycleInstruction,
                       style: theme.textTheme.bodySmall,
                     ),
                   ),
@@ -108,16 +109,16 @@ extension _CalendarScreenContent on _CalendarScreenState {
           else
             Text(
               widget.isStartNewCycleFlow
-                  ? 'Select a start date for your new cycle.'
-                  : 'Select a date for your note.',
+                  ? l10n.selectNewCycleStartDate
+                  : l10n.selectNoteDate,
               style: theme.textTheme.titleMedium,
             ),
           if (!widget.isEditCurrentCycleFlow) ...[
             const SizedBox(height: 8),
             Text(
               widget.isStartNewCycleFlow
-                  ? 'Future dates are disabled. Existing cycle rules are applied when saving.'
-                  : 'Each date can have one note.',
+                  ? l10n.newCycleDateRules
+                  : l10n.noteDateRules,
               style: theme.textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
@@ -127,7 +128,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Selected: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                l10n.selectedDate(_formatRouteDate(_selectedDate!)),
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -220,7 +221,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _isSavingCycle ? null : _cancelStartNewCycle,
-                    child: const Text('Cancel'),
+                    child: Text(l10n.cancel),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -250,8 +251,8 @@ extension _CalendarScreenContent on _CalendarScreenState {
                           )
                         : Text(
                             widget.isEditCurrentCycleFlow
-                                ? 'Save changes'
-                                : 'Start new cycle',
+                                ? l10n.saveChanges
+                                : l10n.startNewCycle,
                           ),
                   ),
                 ),

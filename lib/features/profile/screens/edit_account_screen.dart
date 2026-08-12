@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
 class EditAccountScreen extends ConsumerStatefulWidget {
   const EditAccountScreen({super.key});
@@ -40,13 +41,14 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
     final authState = ref.watch(authSessionProvider);
     final session = authState.asData?.value;
     final email = session?.email?.trim() ?? '';
+    final l10n = AppLocalizations.of(context);
     if (_initialEmail == null) {
       _initialEmail = email;
       _emailController.text = email;
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit account')),
+      appBar: AppBar(title: Text(l10n.editAccount)),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: LayoutBuilder(
@@ -67,16 +69,15 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _AccountEditCard(
-                      title: 'Update email',
-                      description:
-                          'Change the email address connected to your account.',
+                      title: l10n.updateEmail,
+                      description: l10n.updateEmailDescription,
                       children: [
                         AppTextField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'New email',
-                            hintText: 'you@example.com',
+                          decoration: InputDecoration(
+                            labelText: l10n.newEmail,
+                            hintText: l10n.emailHint,
                           ),
                           onChanged: (_) => _clearEmailError(),
                         ),
@@ -84,8 +85,8 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                         AppTextField(
                           controller: _emailCurrentPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Current password',
+                          decoration: InputDecoration(
+                            labelText: l10n.currentPassword,
                           ),
                           onChanged: (_) => _clearEmailError(),
                         ),
@@ -99,20 +100,20 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                               ? null
                               : _saveEmail,
                           child:
-                              Text(_isSavingEmail ? 'Saving...' : 'Save email'),
+                              Text(_isSavingEmail ? l10n.saving : l10n.saveEmail),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
                     _AccountEditCard(
-                      title: 'Update password',
-                      description: 'Choose a new password for this account.',
+                      title: l10n.updatePassword,
+                      description: l10n.updatePasswordDescription,
                       children: [
                         AppTextField(
                           controller: _passwordCurrentPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Current password',
+                          decoration: InputDecoration(
+                            labelText: l10n.currentPassword,
                           ),
                           onChanged: (_) => _clearPasswordError(),
                         ),
@@ -120,8 +121,8 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                         AppTextField(
                           controller: _newPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'New password',
+                          decoration: InputDecoration(
+                            labelText: l10n.newPassword,
                           ),
                           onChanged: (_) => _clearPasswordError(),
                         ),
@@ -129,8 +130,8 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                         AppTextField(
                           controller: _confirmNewPasswordController,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm new password',
+                          decoration: InputDecoration(
+                            labelText: l10n.confirmNewPassword,
                           ),
                           onChanged: (_) => _clearPasswordError(),
                         ),
@@ -144,13 +145,18 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                               ? null
                               : _savePassword,
                           child: Text(
-                            _isSavingPassword ? 'Saving...' : 'Save password',
+                            _isSavingPassword
+                                ? l10n.saving
+                                : l10n.savePassword,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 28),
                     _DangerCard(
+                      title: l10n.deleteAccount,
+                      description: l10n.deleteAccountDescription,
+                      buttonLabel: l10n.deleteAccount,
                       onDelete: _showDeleteAccountDialog,
                     ),
                   ],
@@ -166,17 +172,18 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
   Future<void> _saveEmail() async {
     final email = _emailController.text.trim();
     final currentPassword = _emailCurrentPasswordController.text;
+    final l10n = AppLocalizations.of(context);
 
     if (currentPassword.isEmpty) {
-      setState(() => _emailErrorMessage = 'Enter your current password.');
+      setState(() => _emailErrorMessage = l10n.enterCurrentPassword);
       return;
     }
     if (email == (_initialEmail ?? '').trim()) {
-      setState(() => _emailErrorMessage = 'Enter a new email address.');
+      setState(() => _emailErrorMessage = l10n.enterNewEmail);
       return;
     }
     if (!_isValidEmail(email)) {
-      setState(() => _emailErrorMessage = 'Enter a valid email address.');
+      setState(() => _emailErrorMessage = l10n.enterValidEmail);
       return;
     }
 
@@ -199,7 +206,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
         _emailCurrentPasswordController.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email updated.')),
+        SnackBar(content: Text(l10n.emailUpdated)),
       );
     } catch (error) {
       if (!mounted) {
@@ -216,20 +223,20 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
     final currentPassword = _passwordCurrentPasswordController.text;
     final newPassword = _newPasswordController.text;
     final confirmNewPassword = _confirmNewPasswordController.text;
+    final l10n = AppLocalizations.of(context);
 
     if (currentPassword.isEmpty) {
-      setState(() => _passwordErrorMessage = 'Enter your current password.');
+      setState(() => _passwordErrorMessage = l10n.enterCurrentPassword);
       return;
     }
     if (newPassword.trim().length < 8) {
       setState(
-        () => _passwordErrorMessage =
-            'New password must be at least 8 characters.',
+        () => _passwordErrorMessage = l10n.newPasswordTooShort,
       );
       return;
     }
     if (newPassword != confirmNewPassword) {
-      setState(() => _passwordErrorMessage = 'New passwords do not match.');
+      setState(() => _passwordErrorMessage = l10n.newPasswordsDoNotMatch);
       return;
     }
 
@@ -253,7 +260,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
         _confirmNewPasswordController.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated.')),
+        SnackBar(content: Text(l10n.passwordUpdated)),
       );
     } catch (error) {
       if (!mounted) {
@@ -286,6 +293,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
     final passwordController = TextEditingController();
     String? errorMessage;
     var isDeleting = false;
+    final l10n = AppLocalizations.of(context);
 
     await showDialog<void>(
       context: context,
@@ -296,7 +304,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
               final currentPassword = passwordController.text;
               if (currentPassword.isEmpty) {
                 setDialogState(() {
-                  errorMessage = 'Enter your current password.';
+                  errorMessage = l10n.enterCurrentPassword;
                 });
                 return;
               }
@@ -329,20 +337,20 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
             }
 
             return AlertDialog(
-              title: const Text('Delete account?'),
+              title: Text(l10n.deleteAccountQuestion),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'This deletes your account and encrypted sync records. This cannot be undone.',
+                  Text(
+                    l10n.deleteAccountWarning,
                   ),
                   const SizedBox(height: 16),
                   AppTextField(
                     controller: passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Current password',
+                    decoration: InputDecoration(
+                      labelText: l10n.currentPassword,
                     ),
                     onChanged: (_) {
                       if (errorMessage != null) {
@@ -360,7 +368,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                 TextButton(
                   onPressed:
                       isDeleting ? null : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 FilledButton(
                   style: FilledButton.styleFrom(
@@ -368,7 +376,9 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                     foregroundColor: Theme.of(context).colorScheme.onError,
                   ),
                   onPressed: isDeleting ? null : deleteAccount,
-                  child: Text(isDeleting ? 'Deleting...' : 'Delete account'),
+                  child: Text(
+                    isDeleting ? l10n.deleting : l10n.deleteAccount,
+                  ),
                 ),
               ],
             );
@@ -438,8 +448,16 @@ class _ErrorText extends StatelessWidget {
 }
 
 class _DangerCard extends StatelessWidget {
-  const _DangerCard({required this.onDelete});
+  const _DangerCard({
+    required this.title,
+    required this.description,
+    required this.buttonLabel,
+    required this.onDelete,
+  });
 
+  final String title;
+  final String description;
+  final String buttonLabel;
   final VoidCallback onDelete;
 
   @override
@@ -458,7 +476,7 @@ class _DangerCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Delete account',
+            title,
             style: theme.textTheme.titleLarge?.copyWith(
               color: theme.colorScheme.error,
               fontWeight: FontWeight.w800,
@@ -466,7 +484,7 @@ class _DangerCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Permanently delete your account and encrypted sync records.',
+            description,
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
@@ -476,7 +494,7 @@ class _DangerCard extends StatelessWidget {
               foregroundColor: theme.colorScheme.onError,
             ),
             onPressed: onDelete,
-            child: const Text('Delete account'),
+            child: Text(buttonLabel),
           ),
         ],
       ),
