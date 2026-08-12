@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/localization/app_language_provider.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
+import 'package:hera_app/features/auth/repositories/auth_repository.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 import 'package:hera_app/l10n/generated/app_localizations.dart';
@@ -14,7 +16,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final authState = ref.watch(authSessionProvider);
+    final authState = ref.watch(settingsAuthSessionProvider);
     final isSignedIn = authState.asData?.value.isAuthenticated ?? false;
     final language =
         ref.watch(appLanguageProvider).asData?.value ?? AppLanguage.english;
@@ -174,3 +176,13 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
+
+final settingsAuthSessionProvider = FutureProvider.autoDispose<AuthSession>((
+  ref,
+) async {
+  final authSession = ref.watch(authSessionProvider).asData?.value;
+  if (authSession?.isAuthenticated == true) {
+    return authSession!;
+  }
+  return ref.read(authRepositoryProvider).getCurrentSession();
+});
