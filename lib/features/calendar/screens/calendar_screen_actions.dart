@@ -112,7 +112,15 @@ extension _CalendarScreenActions on _CalendarScreenState {
       if (!mounted) {
         return;
       }
-      context.go(AppRoutePaths.calendar);
+      final scrollOffset = _monthScrollController.hasClients
+          ? _monthScrollController.offset
+          : _lastCalendarScrollOffset;
+      final scrollQuery = scrollOffset == null
+          ? ''
+          : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
+      context.go(
+        '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(selectedDate)}$scrollQuery',
+      );
     } on FutureCycleException catch (error) {
       _showMessage(error.message);
     } on CycleLengthException catch (error) {

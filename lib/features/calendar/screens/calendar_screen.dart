@@ -152,6 +152,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _positionedAtCurrentMonth = false;
       _forceRecenterOnBuild = true;
       _isCenteringMonth = focusTokenChanged || exitingFlow;
+      if (exitingFlow && widget.editScrollOffset != null) {
+        _pendingScrollOffset = widget.editScrollOffset;
+        _forceRecenterOnBuild = false;
+      }
       if (focusDateChanged) {
         _pendingFocusDate = widget.focusDate;
       }
