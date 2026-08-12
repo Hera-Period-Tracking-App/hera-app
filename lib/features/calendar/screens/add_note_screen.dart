@@ -754,7 +754,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
         backgroundColor: AppColors.twilight,
         content: Text(
           message,
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
       ),
     );
@@ -787,33 +787,4 @@ String _formatRouteDate(DateTime date) {
   return '${normalized.year.toString().padLeft(4, '0')}-'
       '${normalized.month.toString().padLeft(2, '0')}-'
       '${normalized.day.toString().padLeft(2, '0')}';
-}
-
-String _formatDateTitle(DateTime date) {
-  const weekdays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  return '${weekdays[date.weekday - 1]}, '
-      '${months[date.month - 1]} ${date.day}, ${date.year}';
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 
 class RegisterOnboardingScreen extends StatelessWidget {
   const RegisterOnboardingScreen({

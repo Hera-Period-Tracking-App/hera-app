@@ -87,6 +87,9 @@ class _AppLockDisableScreenState extends ConsumerState<AppLockDisableScreen> {
         await ref.read(appLockProvider.notifier).unlockWithPin(
               _pinController.text,
             );
+    if (!mounted) {
+      return;
+    }
     if (!unlocked) {
       setState(() => _errorMessage = 'Incorrect PIN.');
       return;
@@ -102,6 +105,9 @@ class _AppLockDisableScreenState extends ConsumerState<AppLockDisableScreen> {
           enabled: false,
           biometricsEnabled: false,
         );
+    if (!mounted) {
+      return;
+    }
     ref.read(appLockProvider.notifier).setConfiguration(
           enabled: false,
           biometricsEnabled: false,

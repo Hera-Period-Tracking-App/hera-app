@@ -211,12 +211,11 @@ class ApiException implements Exception {
     this.isSyncKeyUnavailable = false,
   });
 
-  const ApiException.networkUnavailable({Uri? uri})
+  const ApiException.networkUnavailable({this.uri})
       : message = ApiClient._networkUnavailableMessage,
         statusCode = null,
         body = null,
         rawBody = null,
-        uri = uri,
         isNetworkUnavailable = true,
         isSyncKeyUnavailable = false;
 
