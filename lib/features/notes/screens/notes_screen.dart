@@ -404,37 +404,71 @@ class _NotesPhaseLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final phaseColors = theme.extension<CyclePhaseColors>();
-    final totalDays = phaseContext.ovulationDay
-        .difference(phaseContext.cycleStart)
-        .inDays
-        .clamp(0, phaseContext.cycleLength - 1)
-        .toInt() +
-        1;
-    final dotSize = (180 / totalDays).clamp(7.0, 15.0);
+    final cycleLength = phaseContext.cycleLength.clamp(1, 90).toInt();
 
-    return Row(
-      children: [
-        for (var day = 1; day <= totalDays; day++)
-          Expanded(
-            child: Center(
-              child: Container(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const maxDotsPerRow = 28;
+        const spacing = 4.0;
+        final dotsInFirstRow = cycleLength.clamp(1, maxDotsPerRow).toInt();
+        final dotSize =
+            ((constraints.maxWidth - (spacing * (dotsInFirstRow - 1))) /
+                    dotsInFirstRow)
+                .clamp(7.0, 10.0);
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (var day = 1; day <= cycleLength; day++)
+              Container(
                 width: dotSize,
                 height: dotSize,
                 decoration: BoxDecoration(
-                  color: day <= phaseContext.menstruationLength
-                      ? phaseColors?.menstrual ?? Colors.red
-                      : day == totalDays
-                          ? phaseColors?.ovulation ?? theme.colorScheme.primary
-                          : phaseColors?.follicular ??
-                              theme.colorScheme.secondary,
+                  color: _phaseDotColor(
+                    context: phaseContext,
+                    day: day,
+                    phaseColors: phaseColors,
+                    theme: theme,
+                  ),
                   shape: BoxShape.circle,
                 ),
               ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
+}
+
+Color _phaseDotColor({
+  required CyclePhaseContext context,
+  required int day,
+  required CyclePhaseColors? phaseColors,
+  required ThemeData theme,
+}) {
+  final date = context.cycleStart.add(Duration(days: day - 1));
+  final phase = cyclePhaseContextForDate(
+    [
+      CycleSummary(
+        id: 'notes-cycle-preview',
+        startDate: context.cycleStart,
+        cycleLength: context.cycleLength,
+        menstruationLength: context.menstruationLength,
+      ),
+    ],
+    date,
+    fallbackCycleLength: context.cycleLength,
+  ).phase;
+
+  return switch (phase) {
+    CyclePhase.menstruation => phaseColors?.menstrual ?? Colors.red,
+    CyclePhase.follicular =>
+      phaseColors?.follicular ?? theme.colorScheme.secondary,
+    CyclePhase.ovulation => phaseColors?.ovulation ?? theme.colorScheme.primary,
+    CyclePhase.luteal =>
+      phaseColors?.luteal ?? theme.colorScheme.tertiary,
+  };
 }
 
 String _formatCycleRange(DateTime start, DateTime end) {

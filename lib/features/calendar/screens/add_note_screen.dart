@@ -285,11 +285,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
       }
 
       _showMessage(widget.note == null ? 'Note saved.' : 'Note updated.');
-      context.go(
-        widget.returnToNotes
-            ? AppRoutePaths.notes
-            : '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(date)}',
-      );
+      _closeNoteEditor(date);
     } on DuplicateNoteDateException catch (error) {
       _showMessage(error.message);
     } catch (error) {
@@ -302,6 +298,15 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   }
 
   void _cancelNote(DateTime date) {
+    _closeNoteEditor(date);
+  }
+
+  void _closeNoteEditor(DateTime date) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+
     context.go(
       widget.returnToNotes
           ? AppRoutePaths.notes

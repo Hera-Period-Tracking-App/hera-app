@@ -15,7 +15,6 @@ import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart'
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
 import 'package:hera_app/features/profile/screens/edit_account_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
-import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/features/settings/screens/app_lock_disable_screen.dart';
 import 'package:hera_app/features/settings/screens/app_lock_setup_screen.dart';
 import 'package:hera_app/features/settings/screens/cycle_conflict_resolution_screen.dart';
@@ -26,7 +25,6 @@ import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingState = ref.watch(onboardingProvider);
   final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
-  final pendingCycleConflicts = ref.watch(pendingCycleConflictsProvider);
 
   return GoRouter(
     initialLocation: AppRoutePaths.onboarding,
@@ -35,8 +33,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == AppRoutePaths.onboarding;
       final isAccountSetupRoute =
           state.matchedLocation == AppRoutePaths.accountSetup;
-      final isCycleConflictRoute =
-          state.matchedLocation == AppRoutePaths.cycleConflicts;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
         return isOnboardingRoute || isAccountSetupRoute
@@ -63,14 +59,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (isAccountSetupRoute) {
         return null;
-      }
-
-      final hasPendingCycleConflicts = pendingCycleConflicts.maybeWhen(
-        data: (conflicts) => conflicts.isNotEmpty,
-        orElse: () => false,
-      );
-      if (hasPendingCycleConflicts && !isCycleConflictRoute) {
-        return AppRoutePaths.cycleConflicts;
       }
 
       return null;

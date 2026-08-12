@@ -180,38 +180,36 @@ class _PredictionPhaseLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final phaseColors = theme.extension<CyclePhaseColors>();
-    final menstruationColor = phaseColors?.menstrual ?? Colors.red;
-    final follicularColor =
-        phaseColors?.follicular ?? theme.colorScheme.secondary;
-    final ovulationColor = phaseColors?.ovulation ?? theme.colorScheme.primary;
-    final totalDays = forecast.ovulationDay
-        .clamp(1, forecast.cycleLength)
-        .toInt();
+    final totalDays = forecast.cycleLength.clamp(1, 90).toInt();
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        const maxDotsPerRow = 28;
+        const spacing = 4.0;
+        final dotsInFirstRow = totalDays.clamp(1, maxDotsPerRow).toInt();
         final dotSize =
-            (constraints.maxWidth / totalDays * 0.62).clamp(7.0, 18.0);
+            ((constraints.maxWidth - (spacing * (dotsInFirstRow - 1))) /
+                    dotsInFirstRow)
+                .clamp(7.0, 10.0);
 
         return Semantics(
-          label: 'Cycle phase timeline from menstruation to ovulation',
-          child: Row(
+          label: 'Predicted full cycle phase timeline',
+          child: Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
             children: [
               for (var day = 1; day <= totalDays; day++)
-                Expanded(
-                  child: Center(
-                    child: Container(
-                      width: dotSize,
-                      height: dotSize,
-                      decoration: BoxDecoration(
-                        color: day <= forecast.menstruationLength
-                            ? menstruationColor
-                            : day == totalDays
-                                ? ovulationColor
-                                : follicularColor,
-                        shape: BoxShape.circle,
-                      ),
+                Container(
+                  width: dotSize,
+                  height: dotSize,
+                  decoration: BoxDecoration(
+                    color: _predictionPhaseDotColor(
+                      day: day,
+                      forecast: forecast,
+                      phaseColors: phaseColors,
+                      theme: theme,
                     ),
+                    shape: BoxShape.circle,
                   ),
                 ),
             ],
@@ -220,6 +218,29 @@ class _PredictionPhaseLine extends StatelessWidget {
       },
     );
   }
+}
+
+Color _predictionPhaseDotColor({
+  required int day,
+  required CycleForecast forecast,
+  required CyclePhaseColors? phaseColors,
+  required ThemeData theme,
+}) {
+  final menstruationLength =
+      forecast.menstruationLength.clamp(1, forecast.cycleLength).toInt();
+  final ovulationDay = forecast.ovulationDay.clamp(1, forecast.cycleLength).toInt();
+  final fertileStart = (ovulationDay - 5).clamp(1, forecast.cycleLength).toInt();
+
+  if (day <= menstruationLength) {
+    return phaseColors?.menstrual ?? Colors.red;
+  }
+  if (day >= fertileStart && day <= ovulationDay) {
+    return phaseColors?.ovulation ?? theme.colorScheme.primary;
+  }
+  if (day > ovulationDay) {
+    return phaseColors?.luteal ?? theme.colorScheme.tertiary;
+  }
+  return phaseColors?.follicular ?? theme.colorScheme.secondary;
 }
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);

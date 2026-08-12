@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
-import 'package:hera_app/features/settings/providers/settings_provider.dart';
-import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
 
-class AppShellScaffold extends ConsumerWidget {
+class AppShellScaffold extends StatelessWidget {
   const AppShellScaffold({
     required this.navigationShell,
     this.hideNavigation = false,
@@ -17,13 +14,7 @@ class AppShellScaffold extends ConsumerWidget {
   final bool hideNavigation;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final phaseColors = Theme.of(context).extension<CyclePhaseColors>();
-    final notesEnabled = ref.watch(settingsProvider).maybeWhen(
-          data: (settings) => settings.notesEnabled,
-          orElse: () => true,
-        );
-
+  Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
       extendBody: true,
@@ -68,12 +59,10 @@ class AppShellScaffold extends ConsumerWidget {
                   activeIcon: Icons.edit_note,
                   label: 'Notes',
                   isSelected: navigationShell.currentIndex == 2,
-                  onTap: notesEnabled
-                      ? () => navigationShell.goBranch(
-                            2,
-                            initialLocation: 2 == navigationShell.currentIndex,
-                          )
-                      : null,
+                  onTap: () => navigationShell.goBranch(
+                    2,
+                    initialLocation: 2 == navigationShell.currentIndex,
+                  ),
                 ),
                 _ShellTabButton(
                   icon: Icons.person_outline,
@@ -96,8 +85,7 @@ class AppShellScaffold extends ConsumerWidget {
                   right: 0,
                   child: Center(
                     child: FloatingActionButton(
-                      onPressed: () =>
-                          _showAddMenu(context, notesEnabled: notesEnabled),
+                      onPressed: () => _showAddMenu(context),
                       backgroundColor: AppColors.sun,
                       foregroundColor: AppColors.twilight,
                       shape: const CircleBorder(),
@@ -110,10 +98,7 @@ class AppShellScaffold extends ConsumerWidget {
     );
   }
 
-  void _showAddMenu(
-    BuildContext context, {
-    required bool notesEnabled,
-  }) {
+  void _showAddMenu(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -137,21 +122,6 @@ class AppShellScaffold extends ConsumerWidget {
                     );
                   },
                 ),
-                if (notesEnabled)
-                  ListTile(
-                    leading: const Icon(Icons.note_add_outlined),
-                    title: const Text('Add note'),
-                    subtitle:
-                        const Text('Pick a date and write a private note.'),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      final focusAddNote =
-                          DateTime.now().millisecondsSinceEpoch;
-                      context.go(
-                        '${AppRoutePaths.calendar}?addNote=true&focusAddNote=$focusAddNote',
-                      );
-                    },
-                  ),
               ],
             ),
           ),

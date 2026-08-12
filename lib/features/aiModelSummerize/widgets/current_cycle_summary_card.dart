@@ -76,22 +76,6 @@ class _SummaryCard extends StatelessWidget {
               summary.body,
               style: theme.textTheme.bodyMedium,
             ),
-            if (summary.noteHighlights.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Text(
-                'Recent notes in this cycle',
-                style: theme.textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              for (final item in summary.noteHighlights)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    item,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
               ],
             ),
           ),

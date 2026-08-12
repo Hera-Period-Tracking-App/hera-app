@@ -117,17 +117,28 @@ $noteBlock
     CyclePhaseContext phaseContext,
     List<Note> cycleNotes,
   ) {
-    final noteCount = cycleNotes.length;
     final phase = cyclePhaseLabel(phaseContext).toLowerCase();
     final nextEvent = _nextEventLabel(phaseContext);
-    final noteSentence = noteCount == 0
-        ? 'No notes recorded in this cycle yet.'
-        : noteCount == 1
-            ? '1 note recorded in this cycle.'
-            : '$noteCount notes recorded in this cycle.';
+    final noteSentence = _summarizeNotes(cycleNotes);
 
     return 'Today is day ${phaseContext.dayOfCycle} of an estimated ${phaseContext.cycleLength}-day cycle. '
         'You are currently in the $phase. $nextEvent $noteSentence';
+  }
+
+  String _summarizeNotes(List<Note> cycleNotes) {
+    if (cycleNotes.isEmpty) {
+      return 'Add notes during this cycle to include more personal context.';
+    }
+
+    final recentNotes = cycleNotes.take(3).map((note) {
+      return note.encryptedContent.replaceAll(RegExp(r'\s+'), ' ').trim();
+    }).where((content) => content.isNotEmpty);
+
+    if (recentNotes.isEmpty) {
+      return 'Your recent entries do not include enough detail to summarize patterns yet.';
+    }
+
+    return 'Recent entries mention ${recentNotes.join('; ')}.';
   }
 
   String _nextEventLabel(CyclePhaseContext context) {
