@@ -18,12 +18,11 @@ class AppShellScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final phaseColors = Theme.of(context).extension<CyclePhaseColors>();
     final notesEnabled = ref.watch(settingsProvider).maybeWhen(
           data: (settings) => settings.notesEnabled,
           orElse: () => true,
         );
-    final hideNavigation =
-        this.hideNavigation || !ref.watch(shellNavigationVisibleProvider);
 
     return Scaffold(
       body: navigationShell,
@@ -58,12 +57,10 @@ class AppShellScaffold extends ConsumerWidget {
                   activeIcon: Icons.calendar_today,
                   label: 'Calendar',
                   isSelected: navigationShell.currentIndex == 1,
-                  onTap: () {
-                    final focusToday = DateTime.now().millisecondsSinceEpoch;
-                    context.go(
-                      '${AppRoutePaths.calendar}?focusToday=$focusToday',
-                    );
-                  },
+                  onTap: () => navigationShell.goBranch(
+                    1,
+                    initialLocation: 1 == navigationShell.currentIndex,
+                  ),
                 ),
                 const SizedBox(width: 56),
                 _ShellTabButton(
@@ -120,17 +117,13 @@ class AppShellScaffold extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).cardColor,
       builder: (sheetContext) {
-        return Material(
-          color: Theme.of(context).cardColor,
-          surfaceTintColor: Colors.transparent,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 ListTile(
                   leading: const Icon(Icons.playlist_add_circle_outlined),
                   title: const Text('Start new cycle'),
@@ -159,8 +152,7 @@ class AppShellScaffold extends ConsumerWidget {
                       );
                     },
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         );

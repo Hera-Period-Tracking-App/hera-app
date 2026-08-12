@@ -21,7 +21,10 @@ class AppConstants {
   static const authAccessTokenKey = 'auth_access_token';
   static const authSessionKey = 'auth_session';
   static const authDeviceIdKey = 'auth_device_id';
+  static const lastAuthAccountKey = 'last_auth_account';
+  static const pendingAuthAccountSwitchKey = 'pending_auth_account_switch';
   static const deletedNoteTombstonesKey = 'deleted_note_tombstones';
+  static const pendingCycleConflictsKey = 'pending_cycle_conflicts';
   static const customSymptomsKey = 'custom_symptoms';
   static const syncCursorKey = 'sync_cursor';
 }

@@ -1,8 +1,16 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/networking/api_client.dart';
+import 'package:hera_app/features/aiModelSummerize/providers/current_cycle_summary_provider.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
+import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
+import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
+import 'package:hera_app/features/notes/providers/notes_provider.dart';
+import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/features/settings/repositories/sync_repository.dart';
 
 final autoSyncProvider = Provider<AutoSyncController>((ref) {
@@ -69,8 +77,25 @@ class AutoSyncController {
     _lastSyncAttemptAt = DateTime.now();
     try {
       await _ref.read(syncRepositoryProvider).syncNow();
+      _refreshSyncedProviders();
+    } on ApiException catch (error) {
+      if (!error.isNetworkUnavailable) {
+        debugPrint('Auto sync failed: $error');
+      }
+    } catch (error) {
+      debugPrint('Auto sync failed: $error');
     } finally {
       _isSyncing = false;
     }
+  }
+
+  void _refreshSyncedProviders() {
+    _ref.invalidate(cyclesProvider);
+    _ref.invalidate(notesProvider);
+    _ref.invalidate(profileSettingsProvider);
+    _ref.invalidate(settingsProvider);
+    _ref.invalidate(upcomingCycleForecastProvider);
+    _ref.invalidate(currentCycleSummaryProvider);
+    _ref.invalidate(pendingCycleConflictsProvider);
   }
 }

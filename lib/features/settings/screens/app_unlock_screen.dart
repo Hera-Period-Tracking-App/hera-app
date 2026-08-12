@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/features/settings/providers/app_lock_provider.dart';
 
 class AppUnlockScreen extends ConsumerStatefulWidget {
@@ -58,7 +59,7 @@ class _AppUnlockScreenState extends ConsumerState<AppUnlockScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 28),
-                  TextField(
+                  AppTextField(
                     controller: _pinController,
                     keyboardType: TextInputType.number,
                     obscureText: true,

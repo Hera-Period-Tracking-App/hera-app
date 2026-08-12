@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/core/constants/app_constants.dart';
@@ -8,9 +9,12 @@ import 'package:hera_app/core/database/app_database.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:hera_app/core/encryption/encryption_service.dart';
 import 'package:hera_app/core/networking/api_client.dart';
+import 'package:hera_app/features/auth/repositories/account_switch_repository.dart';
 import 'package:hera_app/features/auth/services/auth_service.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
+import 'package:hera_app/features/settings/models/pending_cycle_conflict.dart';
 import 'package:hera_app/features/settings/models/sync_models.dart';
+import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
 
 final syncRepositoryProvider = Provider<SyncRepository>(
@@ -20,6 +24,8 @@ final syncRepositoryProvider = Provider<SyncRepository>(
     encryptionService: ref.watch(encryptionServiceProvider),
     apiClient: ref.watch(apiClientProvider),
     authService: ref.watch(authServiceProvider),
+    accountSwitchRepository: ref.watch(accountSwitchRepositoryProvider),
+    cycleConflictRepository: ref.watch(cycleConflictRepositoryProvider),
   ),
 );
 
@@ -32,17 +38,23 @@ class SyncRepository {
     required EncryptionService encryptionService,
     required ApiClient apiClient,
     required AuthService authService,
+    required AccountSwitchRepository accountSwitchRepository,
+    required CycleConflictRepository cycleConflictRepository,
   }) : _database = database,
        _secureStorage = secureStorage,
        _encryptionService = encryptionService,
        _apiClient = apiClient,
-       _authService = authService;
+       _authService = authService,
+       _accountSwitchRepository = accountSwitchRepository,
+       _cycleConflictRepository = cycleConflictRepository;
 
   final AppDatabase _database;
   final SecureStorageDataSource _secureStorage;
   final EncryptionService _encryptionService;
   final ApiClient _apiClient;
   final AuthService _authService;
+  final AccountSwitchRepository _accountSwitchRepository;
+  final CycleConflictRepository _cycleConflictRepository;
 
   Future<bool> isSyncAvailable(PrivacyMode privacyMode) async {
     if (privacyMode != PrivacyMode.secureSync) {
@@ -56,6 +68,7 @@ class SyncRepository {
   Future<SyncDownloadResult> downloadEncryptedRecords({
     String? cursor,
     String? deviceId,
+    bool includeDeviceId = true,
   }) async {
     final token = await _authService.requireAccessToken();
     final resolvedDeviceId = deviceId ?? await _authService.getOrCreateDeviceId();
@@ -66,19 +79,12 @@ class SyncRepository {
       bearerToken: token,
       queryParameters: {
         if (resolvedCursor != null && resolvedCursor.isNotEmpty) 'cursor': resolvedCursor,
-        if (resolvedDeviceId.isNotEmpty) 'deviceId': resolvedDeviceId,
+        if (includeDeviceId && resolvedDeviceId.isNotEmpty) 'deviceId': resolvedDeviceId,
       },
     );
 
     final result = SyncDownloadResult.fromJson(response);
-    final wrappedMasterKeyBundle =
-        result.wrappedMasterKey ??
-        _extractWrappedMasterKeyBundle(result.appSettings);
-    if (wrappedMasterKeyBundle != null && wrappedMasterKeyBundle.isNotEmpty) {
-      await _encryptionService.importWrappedMasterKeyBundle(
-        wrappedMasterKeyBundle,
-      );
-    }
+    await _importWrappedMasterKeyFromDownload(result, requireBundle: false);
     await _authService.saveCursor(result.cursor);
     return result;
   }
@@ -125,6 +131,8 @@ class SyncRepository {
         uri: error.uri,
         body: error.body,
         rawBody: error.rawBody,
+        isNetworkUnavailable: error.isNetworkUnavailable,
+        isSyncKeyUnavailable: error.isSyncKeyUnavailable,
         message:
             '${error.message} uploadSummary=${_summarizeUploadPayload(payload)}',
       );
@@ -137,11 +145,58 @@ class SyncRepository {
     return result;
   }
 
-  Future<SyncRunResult> syncNow() async {
+  Future<SyncRunResult> syncNow({bool forceFullDownload = false}) async {
     final deviceId = await _authService.getOrCreateDeviceId();
-    final downloadResult = await downloadEncryptedRecords(deviceId: deviceId);
-    final applied = await _applyDownloadResult(downloadResult);
+    final isAccountSwitch =
+        await _accountSwitchRepository.hasPendingAccountSwitch();
+    late final SyncDownloadResult downloadResult;
+    late final int applied;
+    try {
+      if (isAccountSwitch) {
+        downloadResult = await _downloadEncryptedRecordsWithoutImport(
+          deviceId: deviceId,
+          cursor: '',
+          includeDeviceId: false,
+        );
+        final importedRemoteSyncKey = await _importWrappedMasterKeyFromDownload(
+          downloadResult,
+          requireBundle: downloadResult.totalCount > 0,
+        );
+        await _accountSwitchRepository.clearLocalDataForPendingAccountSwitch();
+        if (!importedRemoteSyncKey) {
+          await _accountSwitchRepository
+              .clearAccountScopedSyncKeysForPendingAccountSwitch();
+        }
+        await _authService.saveCursor(downloadResult.cursor);
+      } else {
+        downloadResult = await downloadEncryptedRecords(
+          deviceId: deviceId,
+          cursor: forceFullDownload ? '' : null,
+          includeDeviceId: !forceFullDownload,
+        );
+      }
+      applied = await _applyDownloadResult(downloadResult);
+      if (isAccountSwitch) {
+        await _accountSwitchRepository.completePendingAccountSwitch();
+      }
+    } on SecretBoxAuthenticationError {
+      throw const ApiException(
+        isSyncKeyUnavailable: true,
+        message:
+            'Could not open this account sync data with the current login credentials.',
+      );
+    }
     final localSnapshot = await _buildLocalSnapshot(deviceId);
+    if (localSnapshot.isEmpty && downloadResult.totalCount == 0) {
+      return SyncRunResult(
+        uploadedCount: 0,
+        downloadedCount: 0,
+        appliedCount: 0,
+        ignoredCount: 0,
+        cursor: downloadResult.cursor,
+      );
+    }
+
     final uploadResult = await uploadEncryptedRecords(
       userSettings: localSnapshot.userSettings,
       cycles: localSnapshot.cycles,
@@ -240,6 +295,28 @@ class SyncRepository {
     );
   }
 
+  List<EncryptedSyncRecord> _tombstonesForMissingRemoteRecords({
+    required List<EncryptedSyncRecord> remoteRecords,
+    required List<EncryptedSyncRecord> localRecords,
+    required DateTime deletedAtUtc,
+    required String deviceId,
+  }) {
+    final localIds = localRecords.map((record) => record.id.toString()).toSet();
+    return remoteRecords
+        .where((record) => !record.isDeleted)
+        .where((record) => !localIds.contains(record.id.toString()))
+        .map(
+          (record) => EncryptedSyncRecord(
+            id: record.id,
+            ciphertext: null,
+            updatedAtUtc: deletedAtUtc,
+            isDeleted: true,
+            originDeviceId: deviceId,
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Future<Map<String, dynamic>> _notePayloadForSync(NoteEntry row) async {
     final json = row.toJson();
     json['encryptedContent'] = await _decryptNestedContent(row.encryptedContent);
@@ -323,8 +400,118 @@ class SyncRepository {
 
     final json = await _decodeRecord(record);
     final row = CycleEntry.fromJson(json).copyWith(updatedAt: record.updatedAtUtc);
+    final remoteSnapshot = SyncCycleSnapshot.fromEntry(row);
+    final overlappingLocal = await _cycleConflictRepository
+        .findOverlappingLocalCycle(remoteCycle: remoteSnapshot);
+    if (overlappingLocal != null) {
+      await _cycleConflictRepository.saveConflict(
+        localCycle: overlappingLocal,
+        remoteCycle: remoteSnapshot,
+      );
+      return 0;
+    }
+
     await _database.into(_database.cycleEntries).insertOnConflictUpdate(row);
     return 1;
+  }
+
+  Future<SyncRunResult> resetRemoteSyncFromLocal() async {
+    if (await _accountSwitchRepository.hasPendingAccountSwitch()) {
+      throw const ApiException(
+        message:
+            'Sync reset is blocked while switching accounts. Finish a successful account download first.',
+      );
+    }
+
+    final deviceId = await _authService.getOrCreateDeviceId();
+    final downloadResult = await _downloadEncryptedRecordsWithoutImport(
+      deviceId: deviceId,
+    );
+    final localSnapshot = await _buildLocalSnapshot(deviceId);
+    if (localSnapshot.isEmpty) {
+      throw const ApiException(
+        message:
+            'Sync reset was blocked because this device has no local cycle or note data to upload.',
+      );
+    }
+
+    final now = DateTime.now().toUtc();
+    await _encryptionService.clearAccountScopedSyncKeys();
+
+    final uploadResult = await uploadEncryptedRecords(
+      userSettings: [
+        ...localSnapshot.userSettings,
+        ..._tombstonesForMissingRemoteRecords(
+          remoteRecords: downloadResult.userSettings,
+          localRecords: localSnapshot.userSettings,
+          deletedAtUtc: now,
+          deviceId: deviceId,
+        ),
+      ],
+      cycles: [
+        ...localSnapshot.cycles,
+        ..._tombstonesForMissingRemoteRecords(
+          remoteRecords: downloadResult.cycles,
+          localRecords: localSnapshot.cycles,
+          deletedAtUtc: now,
+          deviceId: deviceId,
+        ),
+      ],
+      notes: [
+        ...localSnapshot.notes,
+        ..._tombstonesForMissingRemoteRecords(
+          remoteRecords: downloadResult.notes,
+          localRecords: localSnapshot.notes,
+          deletedAtUtc: now,
+          deviceId: deviceId,
+        ),
+      ],
+      appSettings: [
+        ...localSnapshot.appSettings,
+        ..._tombstonesForMissingRemoteRecords(
+          remoteRecords: downloadResult.appSettings
+              .where((record) => !_isWrappedMasterKeyRecord(record))
+              .toList(growable: false),
+          localRecords: localSnapshot.appSettings,
+          deletedAtUtc: now,
+          deviceId: deviceId,
+        ),
+      ],
+      deviceId: deviceId,
+    );
+
+    await _authService.saveCursor(uploadResult.cursor);
+    await _database.into(_database.appSettings).insertOnConflictUpdate(
+      AppSettingsCompanion.insert(
+        id: 'default',
+        lastSyncAt: Value(now),
+      ),
+    );
+
+    return SyncRunResult(
+      uploadedCount: localSnapshot.totalCount,
+      downloadedCount: downloadResult.totalCount,
+      appliedCount: 0,
+      ignoredCount: uploadResult.ignoredCount ?? 0,
+      cursor: uploadResult.cursor,
+    );
+  }
+
+  Future<SyncDownloadResult> _downloadEncryptedRecordsWithoutImport({
+    required String deviceId,
+    String? cursor,
+    bool includeDeviceId = true,
+  }) async {
+    final token = await _authService.requireAccessToken();
+    final response = await _apiClient.getJson(
+      '/api/sync',
+      bearerToken: token,
+      queryParameters: {
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+        if (includeDeviceId && deviceId.isNotEmpty) 'deviceId': deviceId,
+      },
+    );
+    return SyncDownloadResult.fromJson(response);
   }
 
   Future<int> _applyNote(EncryptedSyncRecord record) async {
@@ -461,6 +648,44 @@ class SyncRepository {
     return record.id.toString() == _wrappedMasterKeyRecordId;
   }
 
+  Future<bool> _importWrappedMasterKeyFromDownload(
+    SyncDownloadResult result, {
+    required bool requireBundle,
+  }) async {
+    final wrappedMasterKeyBundle =
+        result.wrappedMasterKey ??
+        _extractWrappedMasterKeyBundle(result.appSettings);
+    if (wrappedMasterKeyBundle == null || wrappedMasterKeyBundle.isEmpty) {
+      if (!requireBundle) {
+        return false;
+      }
+      throw const ApiException(
+        isSyncKeyUnavailable: true,
+        message:
+            'Could not open this account sync data because its sync key is missing.',
+      );
+    }
+
+    try {
+      await _encryptionService.importWrappedMasterKeyBundle(
+        wrappedMasterKeyBundle,
+      );
+      return true;
+    } on SecretBoxAuthenticationError {
+      throw const ApiException(
+        isSyncKeyUnavailable: true,
+        message:
+            'Could not open this account sync data with the current login credentials.',
+      );
+    } on FormatException {
+      throw const ApiException(
+        isSyncKeyUnavailable: true,
+        message:
+            'Could not open this account sync data because its sync key is invalid.',
+      );
+    }
+  }
+
   Future<List<DeletedNoteTombstone>> _loadDeletedNoteTombstones() async {
     final raw = await _secureStorage.read(AppConstants.deletedNoteTombstonesKey);
     if (raw == null || raw.isEmpty) {
@@ -536,4 +761,6 @@ class _LocalSyncSnapshot {
 
   int get totalCount =>
       userSettings.length + cycles.length + notes.length + appSettings.length;
+
+  bool get isEmpty => cycles.isEmpty && notes.isEmpty;
 }

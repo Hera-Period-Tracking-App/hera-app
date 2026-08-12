@@ -15,8 +15,10 @@ import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart'
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
 import 'package:hera_app/features/profile/screens/edit_account_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
+import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/features/settings/screens/app_lock_disable_screen.dart';
 import 'package:hera_app/features/settings/screens/app_lock_setup_screen.dart';
+import 'package:hera_app/features/settings/screens/cycle_conflict_resolution_screen.dart';
 import 'package:hera_app/features/settings/screens/settings_screen.dart';
 
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
@@ -24,22 +26,31 @@ import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingState = ref.watch(onboardingProvider);
   final forceShowOnboarding = ref.watch(devShowOnboardingProvider);
+  final pendingCycleConflicts = ref.watch(pendingCycleConflictsProvider);
 
   return GoRouter(
     initialLocation: AppRoutePaths.onboarding,
     redirect: (context, state) {
       final isOnboardingRoute =
           state.matchedLocation == AppRoutePaths.onboarding;
+      final isAccountSetupRoute =
+          state.matchedLocation == AppRoutePaths.accountSetup;
+      final isCycleConflictRoute =
+          state.matchedLocation == AppRoutePaths.cycleConflicts;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return isOnboardingRoute || isAccountSetupRoute
+            ? null
+            : AppRoutePaths.onboarding;
       }
 
       final hasCompletedOnboarding =
           onboardingState.asData?.value.hasCompletedOnboarding ?? false;
 
       if (forceShowOnboarding) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return isOnboardingRoute || isAccountSetupRoute
+            ? null
+            : AppRoutePaths.onboarding;
       }
 
       if (!hasCompletedOnboarding) {
@@ -50,6 +61,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutePaths.home;
       }
 
+      if (isAccountSetupRoute) {
+        return null;
+      }
+
+      final hasPendingCycleConflicts = pendingCycleConflicts.maybeWhen(
+        data: (conflicts) => conflicts.isNotEmpty,
+        orElse: () => false,
+      );
+      if (hasPendingCycleConflicts && !isCycleConflictRoute) {
+        return AppRoutePaths.cycleConflicts;
+      }
+
       return null;
     },
     routes: [
@@ -57,6 +80,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutePaths.onboarding,
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutePaths.accountSetup,
+        name: 'account-setup',
+        builder: (context, state) =>
+            const OnboardingScreen(accountSetupOnly: true),
       ),
       GoRoute(
         path: AppRoutePaths.auth,
@@ -72,6 +101,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutePaths.authSignup,
         name: 'auth-signup',
         builder: (context, state) => const AuthScreen(mode: AuthScreenMode.signup),
+      ),
+      GoRoute(
+        path: AppRoutePaths.cycleConflicts,
+        name: 'cycle-conflicts',
+        builder: (context, state) => const CycleConflictResolutionScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

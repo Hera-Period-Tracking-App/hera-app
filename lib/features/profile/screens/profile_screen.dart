@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/networking/api_client.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/features/aiModelSummerize/providers/current_cycle_summary_provider.dart';
 import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/auth/repositories/auth_repository.dart';
+import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
+import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
+import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/features/settings/repositories/sync_repository.dart';
 import 'package:hera_app/shared/widgets/placeholder_feature_screen.dart';
 import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
@@ -174,7 +181,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
 
     try {
-      final result = await ref.read(syncRepositoryProvider).syncNow();
+      final result = await ref
+          .read(syncRepositoryProvider)
+          .syncNow(forceFullDownload: true);
+      _refreshSyncedProviders();
       if (!mounted) {
         return;
       }
@@ -186,12 +196,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       );
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      await _showSyncFailedDialog(error);
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      await showDialog<void>(
+      await _showSyncFailedDialog(error);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSyncing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showSyncFailedDialog(Object error) async {
+    final canReset =
+        error is ApiException && error.isSyncKeyUnavailable;
+
+    await showDialog<void>(
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
@@ -204,19 +234,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text('Close'),
               ),
+              if (canReset)
+                FilledButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    await _resetRemoteSyncFromLocal();
+                  },
+                  child: const Text('Reset sync data'),
+                ),
             ],
           );
         },
       );
+  }
+
+  Future<void> _resetRemoteSyncFromLocal() async {
+    setState(() => _isSyncing = true);
+    try {
+      await ref.read(syncRepositoryProvider).resetRemoteSyncFromLocal();
+      _refreshSyncedProviders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sync data reset.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        await _showSyncFailedDialog(error);
+      }
     } finally {
       if (mounted) {
-        setState(() {
-          _isSyncing = false;
-        });
+        setState(() => _isSyncing = false);
       }
     }
   }
 
+  void _refreshSyncedProviders() {
+    ref.invalidate(cyclesProvider);
+    ref.invalidate(notesProvider);
+    ref.invalidate(profileSettingsProvider);
+    ref.invalidate(settingsProvider);
+    ref.invalidate(upcomingCycleForecastProvider);
+    ref.invalidate(currentCycleSummaryProvider);
+    ref.invalidate(pendingCycleConflictsProvider);
+  }
 }
 
 final profileAuthSessionProvider = FutureProvider.autoDispose<AuthSession>((
