@@ -50,13 +50,13 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#12131A"
-  image: assets/images/logo/hera_logo.png
+  image: assets/images/logo/app-logo.png
   android: true
   ios: true
   web: false
   android_12:
     color: "#12131A"
-    image: assets/images/logo/hera_logo.png
+    image: assets/images/logo/app-logo.png
 
 flutter:
   uses-material-design: true
