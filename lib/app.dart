@@ -37,8 +37,16 @@ class _HeraAppState extends ConsumerState<HeraApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(autoSyncProvider).syncIfStale();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.inactive) {
+      // Android marks the app inactive while its native fingerprint dialog is
+      // open. Locking here cancels that dialog before authentication finishes.
+      if (ref
+          .read(appLockProvider.notifier)
+          .isAuthenticatingWithBiometrics) {
+        return;
+      }
+      ref.read(appLockProvider.notifier).lock();
+    } else if (state == AppLifecycleState.paused) {
       ref.read(appLockProvider.notifier).lock();
     }
   }
@@ -67,20 +75,19 @@ class _HeraAppState extends ConsumerState<HeraApp>
       orElse: () => false,
     );
 
-    if (shouldLock) {
-      return MaterialApp(
-        title: 'Hera',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.build(themeStyle),
-        home: const AppUnlockScreen(),
-      );
-    }
-
     return MaterialApp.router(
       title: 'Hera',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(themeStyle),
       routerConfig: router,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            if (shouldLock) const AppUnlockScreen(),
+          ],
+        );
+      },
     );
   }
 }

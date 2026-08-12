@@ -6,21 +6,25 @@ import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/constants/app_constants.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/features/notes/exceptions/duplicate_note_date_exception.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
 
 class AddNoteScreen extends ConsumerStatefulWidget {
   const AddNoteScreen({
     required this.date,
     this.note,
+    this.returnToNotes = false,
     super.key,
   });
 
   final DateTime date;
   final Note? note;
+  final bool returnToNotes;
 
   @override
   ConsumerState<AddNoteScreen> createState() => _AddNoteScreenState();
@@ -37,6 +41,13 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref
+            .read(shellNavigationVisibleProvider.notifier)
+            .setVisible(true);
+      }
+    });
     final note = widget.note;
     if (note != null) {
       _hydrateFromExistingNote(note.encryptedContent);
@@ -126,6 +137,19 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
       widget.date.month,
       widget.date.day,
     );
+    final noteInputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(
+        color: theme.colorScheme.outline,
+        width: 0.75,
+      ),
+    );
+    final focusedNoteInputBorder = noteInputBorder.copyWith(
+      borderSide: BorderSide(
+        color: theme.colorScheme.primary,
+        width: 0.75,
+      ),
+    );
     final notesEnabled = ref.watch(settingsProvider).maybeWhen(
           data: (settings) => settings.notesEnabled,
           orElse: () => true,
@@ -139,11 +163,6 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              _formatDateTitle(normalizedDate),
-              style: theme.textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
             const SizedBox(height: 16),
             if (!notesEnabled)
               Card(
@@ -162,8 +181,10 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                 minLines: 6,
                 maxLines: 10,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  border: noteInputBorder,
+                  enabledBorder: noteInputBorder,
+                  focusedBorder: focusedNoteInputBorder,
                   hintText: 'Write a private note...',
                 ),
               ),
@@ -212,6 +233,10 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.sun,
+                        foregroundColor: AppColors.twilight,
+                      ),
                       onPressed:
                           _isSaving ? null : () => _saveNote(normalizedDate),
                       child: _isSaving
@@ -260,7 +285,11 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
       }
 
       _showMessage(widget.note == null ? 'Note saved.' : 'Note updated.');
-      context.go('${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(date)}');
+      context.go(
+        widget.returnToNotes
+            ? AppRoutePaths.notes
+            : '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(date)}',
+      );
     } on DuplicateNoteDateException catch (error) {
       _showMessage(error.message);
     } catch (error) {
@@ -273,7 +302,11 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   }
 
   void _cancelNote(DateTime date) {
-    context.go('${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(date)}');
+    context.go(
+      widget.returnToNotes
+          ? AppRoutePaths.notes
+          : '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(date)}',
+    );
   }
 
   Future<void> _showSymptomsSheet() {
@@ -287,6 +320,22 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
     var isCustomSymptomInputVisible = false;
     var isEditingSymptoms = false;
 
+    void applyChangesImmediately() {
+      setState(() {
+        _selectedSymptoms
+          ..clear()
+          ..addAll(draftSymptoms);
+        _customSymptoms
+          ..clear()
+          ..addAll(draftCustomSymptoms);
+        _visibleCommonSymptoms
+          ..clear()
+          ..addAll(draftVisibleCommonSymptoms);
+        _selectedFlow = draftFlow;
+      });
+      _saveCustomSymptoms(draftCustomSymptoms);
+    }
+
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -296,13 +345,8 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
             return SafeArea(
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                 children: [
-                  Text(
-                    'Add symptoms',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -345,6 +389,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                     draftSymptoms.remove(symptom);
                                   }
                                 });
+                                applyChangesImmediately();
                               },
                             ),
                         ],
@@ -369,6 +414,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                   draftSymptoms.remove(symptom);
                                 }
                               });
+                              applyChangesImmediately();
                             },
                           ),
                       ],
@@ -421,6 +467,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                                   editCustomSymptomController
                                                       .clear();
                                                 });
+                                                applyChangesImmediately();
                                               },
                                               child: const Text('Cancel'),
                                             ),
@@ -450,6 +497,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                                   editCustomSymptomController
                                                       .clear();
                                                 });
+                                                applyChangesImmediately();
                                               },
                                               child: const Text('Save'),
                                             ),
@@ -493,6 +541,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                                   .clear();
                                             }
                                           });
+                                          applyChangesImmediately();
                                         },
                                       ),
                                     ],
@@ -519,39 +568,35 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                   draftSymptoms.remove(symptom);
                                 }
                               });
+                              applyChangesImmediately();
                             },
                           ),
-                        ActionChip(
-                          avatar: const Icon(Icons.add),
-                          label: const Text('Add a symptom'),
-                          onPressed: () {
-                            setSheetState(() {
-                              isCustomSymptomInputVisible = true;
-                            });
-                          },
-                        ),
+                        if (!isCustomSymptomInputVisible)
+                          ActionChip(
+                            avatar: const Icon(Icons.add),
+                            label: const Text('Add a symptom'),
+                            onPressed: () {
+                              setSheetState(() {
+                                isCustomSymptomInputVisible = true;
+                              });
+                            },
+                          ),
                       ],
                     ),
                     if (isCustomSymptomInputVisible) ...[
                       const SizedBox(height: 12),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Add a symptom',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                               TextField(
                                 controller: customSymptomController,
                                 autofocus: true,
                                 textCapitalization:
                                     TextCapitalization.sentences,
                                 decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
+                                  border: UnderlineInputBorder(),
                                   hintText: 'Symptom name',
                                 ),
                                 onSubmitted: (_) => _addCustomSymptom(
@@ -581,6 +626,10 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: FilledButton(
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: AppColors.sun,
+                                        foregroundColor: AppColors.twilight,
+                                      ),
                                       onPressed: () => _addCustomSymptom(
                                         controller: customSymptomController,
                                         symptoms: draftSymptoms,
@@ -595,8 +644,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                     ],
@@ -619,41 +667,9 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                             setSheetState(() {
                               draftFlow = selected ? flow : null;
                             });
+                            applyChangesImmediately();
                           },
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          child: const Text('Cancel'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () {
-                            setState(() {
-                              _selectedSymptoms
-                                ..clear()
-                                ..addAll(draftSymptoms);
-                              _customSymptoms
-                                ..clear()
-                                ..addAll(draftCustomSymptoms);
-                              _visibleCommonSymptoms
-                                ..clear()
-                                ..addAll(draftVisibleCommonSymptoms);
-                              _selectedFlow = draftFlow;
-                            });
-                            _saveCustomSymptoms(draftCustomSymptoms);
-                            Navigator.pop(sheetContext);
-                          },
-                          child: const Text('Add'),
-                        ),
-                      ),
                     ],
                   ),
                 ],
@@ -686,7 +702,10 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
       controller.clear();
       hideInput();
     });
-    setState(() => _customSymptoms.add(customSymptom));
+    setState(() {
+      _customSymptoms.add(customSymptom);
+      _selectedSymptoms.add(customSymptom);
+    });
     _saveCustomSymptoms(_customSymptoms);
   }
 
@@ -726,7 +745,13 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        backgroundColor: AppColors.twilight,
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
     );
   }
 }

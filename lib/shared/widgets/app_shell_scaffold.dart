@@ -28,30 +28,20 @@ class AppShellScaffold extends ConsumerWidget {
     return Scaffold(
       body: navigationShell,
       extendBody: true,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: hideNavigation
-          ? null
-          : FloatingActionButton(
-              onPressed: () =>
-                  _showAddMenu(context, notesEnabled: notesEnabled),
-              backgroundColor: AppColors.sun,
-              foregroundColor: AppColors.twilight,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add),
-            ),
       bottomNavigationBar: hideNavigation
           ? null
-          : BottomAppBar(
-        color: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 72,
-            child: Row(
+          : Stack(
+              clipBehavior: Clip.none,
+              children: [
+                BottomAppBar(
+                  color: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      height: 72,
+                      child: Row(
               children: [
                 _ShellTabButton(
                   icon: Icons.home_outlined,
@@ -98,11 +88,28 @@ class AppShellScaffold extends ConsumerWidget {
                     initialLocation: 3 == navigationShell.currentIndex,
                   ),
                 ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: -28,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: FloatingActionButton(
+                      onPressed: () =>
+                          _showAddMenu(context, notesEnabled: notesEnabled),
+                      backgroundColor: AppColors.sun,
+                      foregroundColor: AppColors.twilight,
+                      shape: const CircleBorder(),
+                      child: const Icon(Icons.add),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-        ),
-      ),
     );
   }
 

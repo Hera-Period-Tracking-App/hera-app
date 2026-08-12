@@ -91,6 +91,21 @@ class CycleRepository {
       menstruationLength: menstruationLength,
     );
 
+    final previousCycle = await _dataSource.previousCycleBefore(
+      startDateOnly,
+      excludeCycleId: id,
+    );
+    final previousCycleLength = previousCycle == null
+        ? null
+        : startDateOnly.difference(previousCycle.startDateLocal).inDays;
+
+    if (previousCycleLength != null &&
+        (previousCycleLength < 15 || previousCycleLength > 90)) {
+      throw CycleLengthException(
+        'The previous cycle would need to be between 15 and 90 days.',
+      );
+    }
+
     final hasDuplicate = await _dataSource.hasCycleWithStartDate(
       startDateOnly,
       excludeCycleId: id,
@@ -101,22 +116,13 @@ class CycleRepository {
       );
     }
 
-    final hasOverlap = await _dataSource.hasOverlappingCycle(
-      startDate: startDateOnly,
-      cycleLength: effectiveCycleLength,
-      excludeCycleId: id,
-    );
-    if (hasOverlap) {
-      throw OverlappingCycleException(
-        'The updated cycle overlaps with an existing cycle.',
-      );
-    }
-
-    return _dataSource.updateCycleEntry(
+    return _dataSource.updateCycleEntryAndPreviousBoundary(
       id: id,
       startDate: startDateOnly,
       cycleLength: effectiveCycleLength,
       menstruationLength: menstruationLength,
+      previousCycle: previousCycle,
+      previousCycleLength: previousCycleLength,
     );
   }
 

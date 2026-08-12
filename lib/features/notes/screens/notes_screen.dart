@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
@@ -9,9 +10,7 @@ import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/utils/cycle_phase_resolver.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
-import 'package:hera_app/features/notes/repositories/note_repository.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
-import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
 class NotesScreen extends ConsumerWidget {
@@ -40,7 +39,7 @@ class NotesScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Notes')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           children: [
             if (!notesEnabled)
               const Card(
@@ -114,8 +113,6 @@ class _NotesListState extends State<_NotesList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Saved notes', style: textTheme.titleLarge),
-        const SizedBox(height: 12),
         for (final group in groups) ...[
           _CycleNotesGroupCard(
             group: group,
@@ -166,24 +163,22 @@ class _CycleNotesGroupCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Material(
-      color: colorScheme.primaryContainer.withValues(alpha: 0.28),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: colorScheme.primary.withValues(alpha: 0.24),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: Colors.transparent,
       child: Theme(
         data: theme.copyWith(
           dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          splashFactory: NoSplash.splashFactory,
         ),
         child: ExpansionTile(
           key: PageStorageKey<String>(group.key),
           initiallyExpanded: isExpanded,
           onExpansionChanged: onExpansionChanged,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          backgroundColor: Colors.transparent,
+          collapsedBackgroundColor: Colors.transparent,
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: EdgeInsets.zero,
           title: Text(
             group.title,
             style: theme.textTheme.titleMedium?.copyWith(
@@ -191,25 +186,27 @@ class _CycleNotesGroupCard extends StatelessWidget {
               color: colorScheme.onPrimaryContainer,
             ),
           ),
-          subtitle: Text(
-            '${group.notes.length} ${group.notes.length == 1 ? 'note' : 'notes'}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onPrimaryContainer.withValues(alpha: 0.72),
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              _NotesPhaseLine(phaseContext: group.phaseContext),
+              const SizedBox(height: 8),
+              Text(
+                '${group.notes.length} ${group.notes.length == 1 ? 'note' : 'notes'}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onPrimaryContainer.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
           ),
           children: [
-            for (final entry in group.notes) ...[
+            for (final entry in group.notes)
               _NoteRow(entry: entry),
-              if (entry != group.notes.last)
-                Divider(
-                  height: 1,
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-                ),
             ],
-          ],
+          ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -223,100 +220,60 @@ class _NoteRow extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      width: double.infinity,
-      color: colorScheme.surface.withValues(alpha: 0.7),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push(
+        '${AppRoutePaths.calendarDateDetailsFor(entry.note.date)}?returnToNotes=true',
+      ),
+      child: Container(
+        width: double.infinity,
+        color: Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Container(
+                width: 2,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  _buildNoteTitleFromContext(
-                    date: entry.note.date,
-                    phaseContext: entry.phaseContext,
-                  ),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _buildNoteTitleFromContext(
+                        date: entry.note.date,
+                        phaseContext: entry.phaseContext,
+                      ),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      entry.note.encryptedContent.replaceAll('\n\n', '\n'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              IconButton(
-                onPressed: () => context.push(
-                  AppRoutePaths.calendarAddNoteFor(entry.note.date),
-                  extra: entry.note,
-                ),
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Edit note',
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant,
               ),
-              _DeleteNoteButton(note: entry.note),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            entry.note.encryptedContent,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+        ),
       ),
-    );
-  }
-}
-
-class _DeleteNoteButton extends ConsumerWidget {
-  const _DeleteNoteButton({required this.note});
-
-  final Note note;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return IconButton(
-      onPressed: () => _deleteNote(context, ref),
-      icon: const Icon(Icons.delete_outline),
-      tooltip: 'Delete note',
-    );
-  }
-
-  Future<void> _deleteNote(BuildContext context, WidgetRef ref) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Delete note?'),
-          content: const Text(
-            'This note will be permanently deleted from this device.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldDelete != true) {
-      return;
-    }
-
-    await ref.read(noteRepositoryProvider).deleteNote(note);
-    ref.read(autoSyncProvider).queueSync();
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Note deleted.')),
     );
   }
 }
@@ -327,12 +284,14 @@ class _NoteCycleGroup {
     required this.title,
     required this.notes,
     required this.isCurrentCycle,
+    required this.phaseContext,
   });
 
   final String key;
   final String title;
   final List<_NoteWithCycleContext> notes;
   final bool isCurrentCycle;
+  final CyclePhaseContext phaseContext;
 }
 
 class _NoteWithCycleContext {
@@ -380,9 +339,10 @@ List<_NoteCycleGroup> _groupNotesByCycle({
     return _NoteCycleGroup(
       key: entry.key,
       title:
-          '${_formatNoteDate(phaseContext.cycleStart)} - ${_formatNoteDate(phaseContext.cycleEnd)}',
+          _formatCycleRange(phaseContext.cycleStart, phaseContext.cycleEnd),
       notes: noteEntries,
       isCurrentCycle: _isCurrentCycle(phaseContext),
+      phaseContext: phaseContext,
     );
   }).toList()
     ..sort(
@@ -408,11 +368,92 @@ String _buildNoteTitleFromContext({
   required DateTime date,
   required CyclePhaseContext phaseContext,
 }) {
-  return '${_formatNoteDate(date)} - ${cyclePhaseLabel(phaseContext)}';
+  return '${_formatShortNoteDate(date)} - ${cyclePhaseLabel(phaseContext)}';
+}
+
+String _formatShortNoteDate(DateTime date) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${months[date.month - 1]} ${date.day}';
 }
 
 String _formatNoteDate(DateTime date) {
   return '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
+}
+
+class _NotesPhaseLine extends StatelessWidget {
+  const _NotesPhaseLine({required this.phaseContext});
+
+  final CyclePhaseContext phaseContext;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final phaseColors = theme.extension<CyclePhaseColors>();
+    final totalDays = phaseContext.ovulationDay
+        .difference(phaseContext.cycleStart)
+        .inDays
+        .clamp(0, phaseContext.cycleLength - 1)
+        .toInt() +
+        1;
+    final dotSize = (180 / totalDays).clamp(7.0, 15.0);
+
+    return Row(
+      children: [
+        for (var day = 1; day <= totalDays; day++)
+          Expanded(
+            child: Center(
+              child: Container(
+                width: dotSize,
+                height: dotSize,
+                decoration: BoxDecoration(
+                  color: day <= phaseContext.menstruationLength
+                      ? phaseColors?.menstrual ?? Colors.red
+                      : day == totalDays
+                          ? phaseColors?.ovulation ?? theme.colorScheme.primary
+                          : phaseColors?.follicular ??
+                              theme.colorScheme.secondary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+String _formatCycleRange(DateTime start, DateTime end) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final startLabel = '${months[start.month - 1]} ${start.day}';
+  final endLabel = '${months[end.month - 1]} ${end.day}';
+  final year = end.year;
+  return '$startLabel - $endLabel $year';
 }

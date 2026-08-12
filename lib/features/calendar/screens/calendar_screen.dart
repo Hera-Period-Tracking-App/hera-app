@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_legend_card.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_month_section.dart';
@@ -63,6 +64,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   bool _isCenteringMonth = false;
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
+  double? _pendingScrollOffset;
+  bool _isRestoringScrollOffset = false;
   DateTime? _selectedDate;
   DateTime? _pendingFocusDate;
   String? _editedCycleId;
@@ -86,7 +89,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       }
     });
     if (widget.isEditCurrentCycleFlow && restoredEditScrollOffset != null) {
-      _positionedAtCurrentMonth = true;
+      // PageStorage restores its own offset after the controller attaches.
+      // Keep the routed offset pending so it wins over a stale saved position.
+      _pendingScrollOffset = restoredEditScrollOffset;
     }
     _updateShellNavigationVisibility();
 
@@ -125,6 +130,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     if (enteringEditCurrentCycleFlow) {
       _editedCycleId = null;
       _editedMenstruationLength = null;
+      // CalendarScreen is kept alive by the shell between navigations, so
+      // initState does not run on a second edit attempt. Reapply the offset
+      // supplied by the route after the list attaches, ahead of PageStorage.
+      _pendingScrollOffset = widget.editScrollOffset ??
+          (_monthScrollController.hasClients
+              ? _monthScrollController.offset
+              : _lastCalendarScrollOffset);
+      _positionedAtCurrentMonth = false;
+      _forceRecenterOnBuild = false;
     }
 
     final shouldRecenter =
@@ -201,30 +215,37 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               child: const Text('Cancel'),
             )
           else ...[
-            cyclesAsync.maybeWhen(
-              data: (cycles) {
-                if (cycles.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-
-                return IconButton(
-                  tooltip: 'Edit current cycle start date',
-                  icon: const Icon(Icons.edit_calendar),
-                  onPressed: () {
-                    final scrollOffset = _monthScrollController.hasClients
-                        ? _monthScrollController.offset
-                        : _lastCalendarScrollOffset;
-                    final scrollQuery = scrollOffset == null
-                        ? ''
-                        : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
-                    context.go(
-                      '${AppRoutePaths.calendar}?editCurrentCycle=true$scrollQuery',
-                    );
-                  },
-                );
-              },
-              orElse: () => const SizedBox.shrink(),
+            IconButton(
+              tooltip: 'View predictions',
+              icon: const Icon(Icons.auto_graph_outlined),
+              onPressed: () => context.push(AppRoutePaths.calendarPredictions),
             ),
+            if (!widget.isEditCurrentCycleFlow)
+              cyclesAsync.maybeWhen(
+                data: (cycles) {
+                  if (cycles.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return IconButton(
+                    tooltip: 'Edit current cycle start date',
+                    icon: const Icon(Icons.edit_calendar),
+                    onPressed: () {
+                      final scrollOffset = _lastCalendarScrollOffset ??
+                          (_monthScrollController.hasClients
+                              ? _monthScrollController.offset
+                              : null);
+                      final scrollQuery = scrollOffset == null
+                          ? ''
+                          : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
+                      context.go(
+                        '${AppRoutePaths.calendar}?editCurrentCycle=true$scrollQuery',
+                      );
+                    },
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              ),
             IconButton(
               tooltip: _isLegendVisible
                   ? 'Hide calendar legend'

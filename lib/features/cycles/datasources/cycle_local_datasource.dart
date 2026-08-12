@@ -59,6 +59,22 @@ class CycleLocalDataSource {
     return next.isEmpty ? null : next.first.startDateLocal;
   }
 
+  Future<CycleEntry?> previousCycleBefore(
+    DateTime startDate, {
+    required String excludeCycleId,
+  }) {
+    final dayStart = DateTime(startDate.year, startDate.month, startDate.day);
+    return (_database.select(_database.cycleEntries)
+          ..where(
+            (entry) =>
+                entry.startDateLocal.isSmallerThanValue(dayStart) &
+                entry.id.equals(excludeCycleId).not(),
+          )
+          ..orderBy([(entry) => OrderingTerm.desc(entry.startDateLocal)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
   Future<bool> hasOverlappingCycle({
     required DateTime startDate,
     required int cycleLength,
@@ -129,5 +145,42 @@ class CycleLocalDataSource {
         updatedAt: Value(DateTime.now()),
       ),
     );
+  }
+
+  Future<void> updateCycleEntryAndPreviousBoundary({
+    required String id,
+    required DateTime startDate,
+    required int cycleLength,
+    required int menstruationLength,
+    CycleEntry? previousCycle,
+    int? previousCycleLength,
+  }) {
+    final startDateOnly = DateTime(startDate.year, startDate.month, startDate.day);
+    final now = DateTime.now();
+
+    return _database.transaction(() async {
+      if (previousCycle != null && previousCycleLength != null) {
+        await (_database.update(_database.cycleEntries)
+              ..where((entry) => entry.id.equals(previousCycle.id)))
+            .write(
+          CycleEntriesCompanion(
+            cycleLength: Value(previousCycleLength),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+
+      await (_database.update(_database.cycleEntries)
+            ..where((entry) => entry.id.equals(id)))
+          .write(
+        CycleEntriesCompanion(
+          startDate: Value(startDateOnly),
+          startDateLocal: Value(startDateOnly),
+          cycleLength: Value(cycleLength),
+          menstruationLength: Value(menstruationLength),
+          updatedAt: Value(now),
+        ),
+      );
+    });
   }
 }

@@ -20,6 +20,10 @@ class AppLockState {
 }
 
 class AppLockNotifier extends AsyncNotifier<AppLockState> {
+  bool _isAuthenticatingWithBiometrics = false;
+
+  bool get isAuthenticatingWithBiometrics => _isAuthenticatingWithBiometrics;
+
   @override
   Future<AppLockState> build() async {
     final storage = ref.read(secureStorageDataSourceProvider);
@@ -36,16 +40,21 @@ class AppLockNotifier extends AsyncNotifier<AppLockState> {
 
   Future<bool> unlockWithBiometrics() async {
     final current = state.asData?.value;
-    if (current == null || !current.biometricsEnabled) {
+    if (current == null ||
+        !current.biometricsEnabled ||
+        _isAuthenticatingWithBiometrics) {
       return false;
     }
 
+    _isAuthenticatingWithBiometrics = true;
     bool authenticated;
     try {
       authenticated =
           await ref.read(biometricAuthDataSourceProvider).authenticate();
     } catch (_) {
       authenticated = false;
+    } finally {
+      _isAuthenticatingWithBiometrics = false;
     }
     if (authenticated) {
       _setUnlocked(current);
@@ -71,15 +80,13 @@ class AppLockNotifier extends AsyncNotifier<AppLockState> {
   }
 
   void _setUnlocked(AppLockState current) {
-    Future<void>.delayed(Duration.zero, () {
-      state = AsyncData(
-        AppLockState(
-          enabled: current.enabled,
-          biometricsEnabled: current.biometricsEnabled,
-          locked: false,
-        ),
-      );
-    });
+    state = AsyncData(
+      AppLockState(
+        enabled: current.enabled,
+        biometricsEnabled: current.biometricsEnabled,
+        locked: false,
+      ),
+    );
   }
 
   void lock() {

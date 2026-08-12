@@ -8,6 +8,7 @@ class AppRoutePaths {
   static const authSignup = '/auth/signup';
   static const home = '/home';
   static const calendar = '/calendar';
+  static const calendarPredictions = '/calendar/predictions';
   static const calendarDateDetails = '/calendar/date/:date';
   static const calendarAddNote = '/calendar/note/new/:date';
   static const addEntry = '/add';

@@ -7,6 +7,7 @@ import 'package:hera_app/features/auth/screens/auth_screen.dart';
 import 'package:hera_app/features/calendar/screens/add_note_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_screen.dart';
+import 'package:hera_app/features/cyclePrediction/screens/cycle_prediction_screen.dart';
 import 'package:hera_app/features/home/screens/home_screen.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/screens/notes_screen.dart';
@@ -124,6 +125,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
               GoRoute(
+                path: AppRoutePaths.calendarPredictions,
+                name: 'calendar-predictions',
+                builder: (context, state) => const CyclePredictionScreen(),
+              ),
+              GoRoute(
                 path: AppRoutePaths.calendarDateDetails,
                 name: 'calendar-date-details',
                 pageBuilder: (context, state) {
@@ -132,9 +138,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   if (date == null) {
                     return const MaterialPage(child: CalendarScreen());
                   }
+                  final returnToNotes =
+                      state.uri.queryParameters['returnToNotes'] == 'true';
                   return NoTransitionPage<void>(
                     key: state.pageKey,
-                    child: CalendarDateDetailsScreen(date: date),
+                    child: CalendarDateDetailsScreen(
+                      date: date,
+                      returnToNotes: returnToNotes,
+                    ),
                   );
                 },
               ),
@@ -150,6 +161,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return AddNoteScreen(
                     date: date,
                     note: state.extra is Note ? state.extra as Note : null,
+                    returnToNotes:
+                        state.uri.queryParameters['returnToNotes'] == 'true',
                   );
                 },
               ),

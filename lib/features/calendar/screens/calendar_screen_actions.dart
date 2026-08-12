@@ -281,19 +281,21 @@ extension _CalendarScreenActions on _CalendarScreenState {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        backgroundColor: AppColors.twilight,
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+      ),
     );
   }
 
   void _showCycleUpdatedFeedback() {
-    final theme = Theme.of(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(milliseconds: 900),
-          backgroundColor: theme.cardColor,
+          backgroundColor: AppColors.twilight,
           content: Row(
             children: [
               const Icon(
@@ -303,7 +305,8 @@ extension _CalendarScreenActions on _CalendarScreenState {
               const SizedBox(width: 10),
               Text(
                 'Cycle updated!',
-                style: theme.textTheme.titleSmall?.copyWith(
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
                   fontWeight: FontWeight.w800,
                 ),
               ),
