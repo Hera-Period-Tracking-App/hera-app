@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
 
 class EditAccountScreen extends ConsumerStatefulWidget {
@@ -68,7 +71,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                       description:
                           'Change the email address connected to your account.',
                       children: [
-                        TextField(
+                        AppTextField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
@@ -78,7 +81,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                           onChanged: (_) => _clearEmailError(),
                         ),
                         const SizedBox(height: 16),
-                        TextField(
+                        AppTextField(
                           controller: _emailCurrentPasswordController,
                           obscureText: true,
                           decoration: const InputDecoration(
@@ -105,7 +108,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                       title: 'Update password',
                       description: 'Choose a new password for this account.',
                       children: [
-                        TextField(
+                        AppTextField(
                           controller: _passwordCurrentPasswordController,
                           obscureText: true,
                           decoration: const InputDecoration(
@@ -114,7 +117,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                           onChanged: (_) => _clearPasswordError(),
                         ),
                         const SizedBox(height: 16),
-                        TextField(
+                        AppTextField(
                           controller: _newPasswordController,
                           obscureText: true,
                           decoration: const InputDecoration(
@@ -123,7 +126,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                           onChanged: (_) => _clearPasswordError(),
                         ),
                         const SizedBox(height: 16),
-                        TextField(
+                        AppTextField(
                           controller: _confirmNewPasswordController,
                           obscureText: true,
                           decoration: const InputDecoration(
@@ -312,10 +315,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                 }
                 Navigator.of(dialogContext).pop();
                 if (mounted) {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Account deleted.')),
-                  );
+                  context.go(AppRoutePaths.profile);
                 }
               } catch (error) {
                 if (!dialogContext.mounted) {
@@ -338,7 +338,7 @@ class _EditAccountScreenState extends ConsumerState<EditAccountScreen> {
                     'This deletes your account and encrypted sync records. This cannot be undone.',
                   ),
                   const SizedBox(height: 16),
-                  TextField(
+                  AppTextField(
                     controller: passwordController,
                     obscureText: true,
                     decoration: const InputDecoration(

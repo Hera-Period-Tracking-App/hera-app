@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/features/auth/models/auth_credentials.dart';
 import 'package:hera_app/features/auth/models/auth_session.dart';
+import 'package:hera_app/features/auth/repositories/account_switch_repository.dart';
 import 'package:hera_app/features/auth/repositories/auth_repository.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
+import 'package:hera_app/features/settings/repositories/settings_repository.dart';
 
 final authSessionProvider =
     AsyncNotifierProvider<AuthSessionNotifier, AuthSession>(
@@ -19,14 +23,22 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     required String password,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).signup(
+    try {
+      final session = await ref.read(authRepositoryProvider).signup(
             AuthCredentials(
               email: email.trim(),
               password: password,
             ),
-          ),
-    );
+          );
+      await ref
+          .read(accountSwitchRepositoryProvider)
+          .prepareForAuthenticatedAccount(session);
+      await ref.read(settingsRepositoryProvider).setAutoSyncEnabled(true);
+      ref.invalidate(settingsProvider);
+      state = AsyncData(session);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+    }
   }
 
   Future<void> login({
@@ -34,14 +46,22 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
     required String password,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).login(
+    try {
+      final session = await ref.read(authRepositoryProvider).login(
             AuthCredentials(
               email: email.trim(),
               password: password,
             ),
-      ),
-    );
+          );
+      await ref
+          .read(accountSwitchRepositoryProvider)
+          .prepareForAuthenticatedAccount(session);
+      await ref.read(settingsRepositoryProvider).setAutoSyncEnabled(true);
+      ref.invalidate(settingsProvider);
+      state = AsyncData(session);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+    }
   }
 
   Future<AuthSession> updateAccount({
@@ -76,6 +96,8 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
       await ref
           .read(authRepositoryProvider)
           .deleteAccount(currentPassword: currentPassword);
+      await ref.read(accountSwitchRepositoryProvider).clearAfterAccountDeletion();
+      ref.invalidate(pendingCycleConflictsProvider);
       state = const AsyncData(AuthSession(isAuthenticated: false));
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);

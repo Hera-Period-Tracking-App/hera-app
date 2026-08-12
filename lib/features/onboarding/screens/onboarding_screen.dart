@@ -10,6 +10,7 @@ import 'package:hera_app/core/theme/theme_style_provider.dart';
 import 'package:hera_app/features/auth/models/auth_credentials.dart';
 import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
+import 'package:hera_app/features/auth/repositories/account_switch_repository.dart';
 import 'package:hera_app/features/auth/repositories/auth_repository.dart';
 import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/duplicate_cycle_exception.dart';
@@ -28,6 +29,9 @@ import 'package:hera_app/features/onboarding/screens/register_onboarding_screen.
 import 'package:hera_app/features/onboarding/screens/welcome_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_footer.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_progress_header.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
+import 'package:hera_app/features/settings/repositories/settings_repository.dart';
 import 'package:hera_app/features/settings/repositories/sync_repository.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
 import 'package:hera_app/shared/screens/startup_loading_screen.dart';
@@ -368,6 +372,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           );
           return;
         }
+        await ref
+            .read(accountSwitchRepositoryProvider)
+            .prepareForAuthenticatedAccount(session);
+        await ref.read(settingsRepositoryProvider).setAutoSyncEnabled(true);
+        ref.invalidate(settingsProvider);
         _onboardingAuthSession = session;
       } catch (error) {
         debugPrint('Onboarding signup failed: $error');
@@ -440,6 +449,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           _showAccountError('Could not log in. Please check your credentials.');
           return;
         }
+        await ref
+            .read(accountSwitchRepositoryProvider)
+            .prepareForAuthenticatedAccount(session);
+        await ref.read(settingsRepositoryProvider).setAutoSyncEnabled(true);
+        ref.invalidate(settingsProvider);
         _onboardingAuthSession = session;
       } catch (error) {
         debugPrint('Onboarding login failed: $error');
@@ -506,7 +520,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _syncAfterLogin() async {
     try {
-      await ref.read(syncRepositoryProvider).syncNow();
+      await ref
+          .read(syncRepositoryProvider)
+          .syncNow(forceFullDownload: true);
+      ref.invalidate(pendingCycleConflictsProvider);
     } catch (error) {
       debugPrint('Onboarding login sync failed: $error');
     }

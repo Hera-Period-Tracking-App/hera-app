@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/constants/app_constants.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/features/notes/exceptions/duplicate_note_date_exception.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
@@ -156,7 +157,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                 ),
               )
             else ...[
-              TextField(
+              AppTextField(
                 controller: _noteController,
                 autofocus: true,
                 minLines: 6,
@@ -260,7 +261,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
       }
 
       _showMessage(widget.note == null ? 'Note saved.' : 'Note updated.');
-      context.go('${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(date)}');
+      _closeNoteEditor(date);
     } on DuplicateNoteDateException catch (error) {
       _showMessage(error.message);
     } catch (error) {
@@ -273,6 +274,15 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
   }
 
   void _cancelNote(DateTime date) {
+    _closeNoteEditor(date);
+  }
+
+  void _closeNoteEditor(DateTime date) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+
     context.go('${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(date)}');
   }
 
@@ -398,7 +408,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      TextField(
+                                      AppTextField(
                                         controller:
                                             editCustomSymptomController,
                                         autofocus: true,
@@ -545,7 +555,7 @@ class _AddNoteScreenState extends ConsumerState<AddNoteScreen> {
                                 style: Theme.of(context).textTheme.titleSmall,
                               ),
                               const SizedBox(height: 8),
-                              TextField(
+                              AppTextField(
                                 controller: customSymptomController,
                                 autofocus: true,
                                 textCapitalization:

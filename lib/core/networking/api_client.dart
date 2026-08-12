@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/core/constants/app_constants.dart';
@@ -16,6 +18,8 @@ class ApiClient {
 
   final String baseUrl;
   final http.Client _client;
+  static const _networkUnavailableMessage =
+      'No internet connection. Check your connection and try again.';
 
   Future<Map<String, dynamic>> getJson(
     String path, {
@@ -23,9 +27,12 @@ class ApiClient {
     String? bearerToken,
   }) async {
     final uri = _buildUri(path, queryParameters: queryParameters);
-    final response = await _client.get(
+    final response = await _sendJsonRequest(
       uri,
-      headers: _headers(bearerToken: bearerToken),
+      () => _client.get(
+        uri,
+        headers: _headers(bearerToken: bearerToken),
+      ),
     );
 
     return _decodeResponse(response, uri: uri);
@@ -38,10 +45,13 @@ class ApiClient {
     String? bearerToken,
   }) async {
     final uri = _buildUri(path, queryParameters: queryParameters);
-    final response = await _client.post(
+    final response = await _sendJsonRequest(
       uri,
-      headers: _headers(bearerToken: bearerToken),
-      body: jsonEncode(body),
+      () => _client.post(
+        uri,
+        headers: _headers(bearerToken: bearerToken),
+        body: jsonEncode(body),
+      ),
     );
 
     return _decodeResponse(response, uri: uri);
@@ -54,10 +64,13 @@ class ApiClient {
     String? bearerToken,
   }) async {
     final uri = _buildUri(path, queryParameters: queryParameters);
-    final response = await _client.put(
+    final response = await _sendJsonRequest(
       uri,
-      headers: _headers(bearerToken: bearerToken),
-      body: jsonEncode(body),
+      () => _client.put(
+        uri,
+        headers: _headers(bearerToken: bearerToken),
+        body: jsonEncode(body),
+      ),
     );
 
     return _decodeResponse(response, uri: uri);
@@ -70,14 +83,47 @@ class ApiClient {
     String? bearerToken,
   }) async {
     final uri = _buildUri(path, queryParameters: queryParameters);
-    final response = await _client.delete(
+    final response = await _sendJsonRequest(
       uri,
-      headers: _headers(bearerToken: bearerToken),
-      body: jsonEncode(body),
+      () => _client.delete(
+        uri,
+        headers: _headers(bearerToken: bearerToken),
+        body: jsonEncode(body),
+      ),
     );
 
     return _decodeResponse(response, uri: uri);
   }
+
+  Future<http.Response> _sendJsonRequest(
+    Uri uri,
+    Future<http.Response> Function() request,
+  ) async {
+    try {
+      return await request();
+    } on SocketException {
+      throw ApiException.networkUnavailable(uri: uri);
+    } on TimeoutException {
+      throw ApiException.networkUnavailable(uri: uri);
+    } on http.ClientException catch (error) {
+      if (_isNetworkUnavailableClientException(error)) {
+        throw ApiException.networkUnavailable(uri: uri);
+      }
+      rethrow;
+    }
+  }
+
+  bool _isNetworkUnavailableClientException(http.ClientException error) {
+    final message = error.message.toLowerCase();
+    return message.contains('failed host lookup') ||
+        message.contains('network is unreachable') ||
+        message.contains('connection failed') ||
+        message.contains('connection refused') ||
+        message.contains('connection reset') ||
+        message.contains('connection closed') ||
+        message.contains('no address associated with hostname');
+  }
+
   Uri _buildUri(
     String path, {
     Map<String, String>? queryParameters,
@@ -161,16 +207,33 @@ class ApiException implements Exception {
     this.body,
     this.uri,
     this.rawBody,
+    this.isNetworkUnavailable = false,
+    this.isSyncKeyUnavailable = false,
   });
+
+  const ApiException.networkUnavailable({Uri? uri})
+      : message = ApiClient._networkUnavailableMessage,
+        statusCode = null,
+        body = null,
+        rawBody = null,
+        uri = uri,
+        isNetworkUnavailable = true,
+        isSyncKeyUnavailable = false;
 
   final String message;
   final int? statusCode;
   final Map<String, dynamic>? body;
   final Uri? uri;
   final String? rawBody;
+  final bool isNetworkUnavailable;
+  final bool isSyncKeyUnavailable;
 
   @override
   String toString() {
+    if (isNetworkUnavailable) {
+      return message;
+    }
+
     if (statusCode == null && uri == null) {
       return message;
     }

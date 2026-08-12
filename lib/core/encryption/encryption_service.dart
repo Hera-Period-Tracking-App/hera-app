@@ -246,6 +246,13 @@ class EncryptionService {
     await _secureStorage.delete(AppConstants.syncEncryptionKey);
   }
 
+  Future<void> clearAccountScopedSyncKeys() async {
+    _cachedMasterKeyBytes = null;
+    await _secureStorage.delete(AppConstants.syncMasterKey);
+    await _secureStorage.delete(AppConstants.syncWrappedMasterKey);
+    await _secureStorage.delete(AppConstants.syncEncryptionKey);
+  }
+
   Map<String, dynamic>? _tryParseEncryptedPayload(String value) {
     Object? decoded;
     try {

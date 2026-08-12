@@ -16,6 +16,7 @@ class AppRoutePaths {
   static const profile = '/profile';
   static const editAccount = '/profile/account/edit';
   static const settings = '/profile/settings';
+  static const cycleConflicts = '/profile/settings/cycle-conflicts';
   static const appLockSetup = '/profile/settings/app-lock';
   static const appLockDisable = '/profile/settings/app-lock/disable';
 

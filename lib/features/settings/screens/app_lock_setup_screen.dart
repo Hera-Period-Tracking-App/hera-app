@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/core/datasources/biometric_auth_data_source.dart';
 import 'package:hera_app/features/settings/providers/app_lock_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
@@ -69,7 +70,7 @@ class _AppLockSetupScreenState extends ConsumerState<AppLockSetupScreen> {
               ),
             ],
             const SizedBox(height: 20),
-            TextField(
+            AppTextField(
               controller: _pinController,
               keyboardType: TextInputType.number,
               obscureText: true,
@@ -77,7 +78,7 @@ class _AppLockSetupScreenState extends ConsumerState<AppLockSetupScreen> {
               onChanged: (_) => _clearError(),
             ),
             const SizedBox(height: 16),
-            TextField(
+            AppTextField(
               controller: _confirmPinController,
               keyboardType: TextInputType.number,
               obscureText: true,
