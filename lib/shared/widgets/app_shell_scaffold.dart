@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
-import 'package:hera_app/features/settings/providers/settings_provider.dart';
-import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
-class AppShellScaffold extends ConsumerWidget {
+class AppShellScaffold extends StatelessWidget {
   const AppShellScaffold({
     required this.navigationShell,
     this.hideNavigation = false,
@@ -17,118 +15,113 @@ class AppShellScaffold extends ConsumerWidget {
   final bool hideNavigation;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notesEnabled = ref.watch(settingsProvider).maybeWhen(
-          data: (settings) => settings.notesEnabled,
-          orElse: () => true,
-        );
-    final hideNavigation =
-        this.hideNavigation || !ref.watch(shellNavigationVisibleProvider);
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: navigationShell,
       extendBody: true,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: hideNavigation
-          ? null
-          : FloatingActionButton(
-              onPressed: () =>
-                  _showAddMenu(context, notesEnabled: notesEnabled),
-              backgroundColor: AppColors.sun,
-              foregroundColor: AppColors.twilight,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add),
-            ),
       bottomNavigationBar: hideNavigation
           ? null
-          : BottomAppBar(
-        color: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 72,
-            child: Row(
+          : Stack(
+              clipBehavior: Clip.none,
               children: [
-                _ShellTabButton(
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home,
-                  label: 'Home',
-                  isSelected: navigationShell.currentIndex == 0,
-                  onTap: () => navigationShell.goBranch(
-                    0,
-                    initialLocation: 0 == navigationShell.currentIndex,
+                BottomAppBar(
+                  color: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      height: 72,
+                      child: Row(
+                        children: [
+                          _ShellTabButton(
+                            icon: Icons.home_outlined,
+                            activeIcon: Icons.home,
+                            label: l10n.home,
+                            isSelected: navigationShell.currentIndex == 0,
+                            onTap: () => navigationShell.goBranch(
+                              0,
+                              initialLocation:
+                                  0 == navigationShell.currentIndex,
+                            ),
+                          ),
+                          _ShellTabButton(
+                            icon: Icons.calendar_today_outlined,
+                            activeIcon: Icons.calendar_today,
+                            label: l10n.calendar,
+                            isSelected: navigationShell.currentIndex == 1,
+                            onTap: () => navigationShell.goBranch(
+                              1,
+                              initialLocation:
+                                  1 == navigationShell.currentIndex,
+                            ),
+                          ),
+                          const SizedBox(width: 56),
+                          _ShellTabButton(
+                            icon: Icons.edit_note_outlined,
+                            activeIcon: Icons.edit_note,
+                            label: l10n.notes,
+                            isSelected: navigationShell.currentIndex == 2,
+                            onTap: () => navigationShell.goBranch(
+                              2,
+                              initialLocation:
+                                  2 == navigationShell.currentIndex,
+                            ),
+                          ),
+                          _ShellTabButton(
+                            icon: Icons.person_outline,
+                            activeIcon: Icons.person,
+                            label: l10n.profile,
+                            isSelected: navigationShell.currentIndex == 3,
+                            onTap: () => navigationShell.goBranch(
+                              3,
+                              initialLocation:
+                                  3 == navigationShell.currentIndex,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                _ShellTabButton(
-                  icon: Icons.calendar_today_outlined,
-                  activeIcon: Icons.calendar_today,
-                  label: 'Calendar',
-                  isSelected: navigationShell.currentIndex == 1,
-                  onTap: () {
-                    final focusToday = DateTime.now().millisecondsSinceEpoch;
-                    context.go(
-                      '${AppRoutePaths.calendar}?focusToday=$focusToday',
-                    );
-                  },
-                ),
-                const SizedBox(width: 56),
-                _ShellTabButton(
-                  icon: Icons.edit_note_outlined,
-                  activeIcon: Icons.edit_note,
-                  label: 'Notes',
-                  isSelected: navigationShell.currentIndex == 2,
-                  onTap: notesEnabled
-                      ? () => navigationShell.goBranch(
-                            2,
-                            initialLocation: 2 == navigationShell.currentIndex,
-                          )
-                      : null,
-                ),
-                _ShellTabButton(
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  label: 'Profile',
-                  isSelected: navigationShell.currentIndex == 3,
-                  onTap: () => navigationShell.goBranch(
-                    3,
-                    initialLocation: 3 == navigationShell.currentIndex,
+                Positioned(
+                  top: -28,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: FloatingActionButton(
+                      onPressed: () => _showAddMenu(context),
+                      backgroundColor: AppColors.sun,
+                      foregroundColor: AppColors.twilight,
+                      shape: const CircleBorder(),
+                      child: const Icon(Icons.add),
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
     );
   }
 
-  void _showAddMenu(
-    BuildContext context, {
-    required bool notesEnabled,
-  }) {
+  void _showAddMenu(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).cardColor,
       builder: (sheetContext) {
-        return Material(
-          color: Theme.of(context).cardColor,
-          surfaceTintColor: Colors.transparent,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 ListTile(
                   leading: const Icon(Icons.playlist_add_circle_outlined),
-                  title: const Text('Start new cycle'),
-                  subtitle:
-                      const Text('Begin tracking a fresh cycle start date.'),
+                  title: Text(l10n.startNewCycle),
+                  subtitle: Text(l10n.startNewCycleDescription),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     final focusToday = DateTime.now().millisecondsSinceEpoch;
@@ -137,23 +130,7 @@ class AppShellScaffold extends ConsumerWidget {
                     );
                   },
                 ),
-                if (notesEnabled)
-                  ListTile(
-                    leading: const Icon(Icons.note_add_outlined),
-                    title: const Text('Add note'),
-                    subtitle:
-                        const Text('Pick a date and write a private note.'),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      final focusAddNote =
-                          DateTime.now().millisecondsSinceEpoch;
-                      context.go(
-                        '${AppRoutePaths.calendar}?addNote=true&focusAddNote=$focusAddNote',
-                      );
-                    },
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
         );

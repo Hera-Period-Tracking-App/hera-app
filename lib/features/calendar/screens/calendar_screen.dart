@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_legend_card.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_month_section.dart';
@@ -21,6 +22,7 @@ import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
 import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
 
 part 'calendar_screen_actions.dart';
@@ -63,6 +65,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   bool _isCenteringMonth = false;
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
+  double? _pendingScrollOffset;
+  bool _isRestoringScrollOffset = false;
   DateTime? _selectedDate;
   DateTime? _pendingFocusDate;
   String? _editedCycleId;
@@ -86,7 +90,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       }
     });
     if (widget.isEditCurrentCycleFlow && restoredEditScrollOffset != null) {
-      _positionedAtCurrentMonth = true;
+      // PageStorage restores its own offset after the controller attaches.
+      // Keep the routed offset pending so it wins over a stale saved position.
+      _pendingScrollOffset = restoredEditScrollOffset;
     }
     _updateShellNavigationVisibility();
 
@@ -125,6 +131,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     if (enteringEditCurrentCycleFlow) {
       _editedCycleId = null;
       _editedMenstruationLength = null;
+      // CalendarScreen is kept alive by the shell between navigations, so
+      // initState does not run on a second edit attempt. Reapply the offset
+      // supplied by the route after the list attaches, ahead of PageStorage.
+      _pendingScrollOffset = widget.editScrollOffset ??
+          (_monthScrollController.hasClients
+              ? _monthScrollController.offset
+              : _lastCalendarScrollOffset);
+      _positionedAtCurrentMonth = false;
+      _forceRecenterOnBuild = false;
     }
 
     final shouldRecenter =
@@ -138,6 +153,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _positionedAtCurrentMonth = false;
       _forceRecenterOnBuild = true;
       _isCenteringMonth = focusTokenChanged || exitingFlow;
+      if (exitingFlow && widget.editScrollOffset != null) {
+        _pendingScrollOffset = widget.editScrollOffset;
+        _forceRecenterOnBuild = false;
+      }
       if (focusDateChanged) {
         _pendingFocusDate = widget.focusDate;
       }
@@ -184,6 +203,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       orElse: () => const <Note>[],
     );
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isFlowActive = widget.isStartNewCycleFlow ||
         widget.isAddNoteFlow ||
         widget.isEditCurrentCycleFlow;
@@ -193,42 +213,49 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       appBar: AppBar(
         backgroundColor: theme.scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Calendar'),
+        title: Text(l10n.calendarTitle),
         actions: [
           if (isFlowActive && !widget.isEditCurrentCycleFlow)
             TextButton(
               onPressed: isBusy ? null : _cancelCalendarFlow,
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             )
           else ...[
-            cyclesAsync.maybeWhen(
-              data: (cycles) {
-                if (cycles.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-
-                return IconButton(
-                  tooltip: 'Edit current cycle start date',
-                  icon: const Icon(Icons.edit_calendar),
-                  onPressed: () {
-                    final scrollOffset = _monthScrollController.hasClients
-                        ? _monthScrollController.offset
-                        : _lastCalendarScrollOffset;
-                    final scrollQuery = scrollOffset == null
-                        ? ''
-                        : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
-                    context.go(
-                      '${AppRoutePaths.calendar}?editCurrentCycle=true$scrollQuery',
-                    );
-                  },
-                );
-              },
-              orElse: () => const SizedBox.shrink(),
+            IconButton(
+              tooltip: l10n.viewPredictions,
+              icon: const Icon(Icons.auto_graph_outlined),
+              onPressed: () => context.push(AppRoutePaths.calendarPredictions),
             ),
+            if (!widget.isEditCurrentCycleFlow)
+              cyclesAsync.maybeWhen(
+                data: (cycles) {
+                  if (cycles.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return IconButton(
+                    tooltip: l10n.editCurrentCycleStartDate,
+                    icon: const Icon(Icons.edit_calendar),
+                    onPressed: () {
+                      final scrollOffset = _lastCalendarScrollOffset ??
+                          (_monthScrollController.hasClients
+                              ? _monthScrollController.offset
+                              : null);
+                      final scrollQuery = scrollOffset == null
+                          ? ''
+                          : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
+                      context.go(
+                        '${AppRoutePaths.calendar}?editCurrentCycle=true$scrollQuery',
+                      );
+                    },
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              ),
             IconButton(
               tooltip: _isLegendVisible
-                  ? 'Hide calendar legend'
-                  : 'Show calendar legend',
+                  ? l10n.hideCalendarLegend
+                  : l10n.showCalendarLegend,
               icon: Icon(
                 _isLegendVisible
                     ? Icons.info_rounded
@@ -250,8 +277,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           child: cyclesAsync.when(
             data: (cycles) {
               if (widget.isAddNoteFlow && !notesEnabled) {
-                return const Center(
-                  child: Text('Notes are disabled in Settings.'),
+                return Center(
+                  child: Text(l10n.notesDisabledInSettings),
                 );
               }
 
@@ -269,7 +296,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Center(
-                    child: Text('Could not load notes: $error'),
+                    child: Text(l10n.couldNotLoadNotes(error.toString())),
                   ),
                 );
               }
@@ -310,13 +337,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(
-                  child: Text('Could not load profile settings: $error'),
+                  child: Text(
+                    l10n.couldNotLoadProfileSettings(error.toString()),
+                  ),
                 ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Center(
-              child: Text('Could not load calendar: $error'),
+              child: Text(l10n.couldNotLoadCalendar(error.toString())),
             ),
           ),
         ),

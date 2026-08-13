@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/features/settings/providers/app_lock_provider.dart';
 
 class AppUnlockScreen extends ConsumerStatefulWidget {
@@ -12,7 +13,6 @@ class AppUnlockScreen extends ConsumerStatefulWidget {
 class _AppUnlockScreenState extends ConsumerState<AppUnlockScreen> {
   final _pinController = TextEditingController();
   String? _errorMessage;
-  bool _biometricPrompted = false;
 
   @override
   void dispose() {
@@ -24,17 +24,6 @@ class _AppUnlockScreenState extends ConsumerState<AppUnlockScreen> {
   Widget build(BuildContext context) {
     final lockState = ref.watch(appLockProvider).asData?.value;
     final canUseBiometrics = lockState?.biometricsEnabled ?? false;
-
-    if (canUseBiometrics && !_biometricPrompted) {
-      _biometricPrompted = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future<void>.delayed(const Duration(milliseconds: 700), () {
-          if (mounted) {
-            _unlockWithBiometrics(showFailureMessage: false);
-          }
-        });
-      });
-    }
 
     return Scaffold(
       body: SafeArea(
@@ -70,7 +59,7 @@ class _AppUnlockScreenState extends ConsumerState<AppUnlockScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 28),
-                  TextField(
+                  AppTextField(
                     controller: _pinController,
                     keyboardType: TextInputType.number,
                     obscureText: true,
@@ -118,11 +107,13 @@ class _AppUnlockScreenState extends ConsumerState<AppUnlockScreen> {
     bool showFailureMessage = true,
   }) async {
     final startedAt = DateTime.now();
-    final unlocked =
-        await ref.read(appLockProvider.notifier).unlockWithBiometrics();
+    final appLock = ref.read(appLockProvider.notifier);
+    final unlocked = await appLock.unlockWithBiometrics();
+    if (!mounted) {
+      return;
+    }
     final elapsed = DateTime.now().difference(startedAt);
     if (!unlocked &&
-        mounted &&
         showFailureMessage &&
         elapsed > const Duration(seconds: 2)) {
       setState(() {

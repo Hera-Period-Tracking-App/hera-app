@@ -7,6 +7,7 @@ import 'package:hera_app/features/auth/screens/auth_screen.dart';
 import 'package:hera_app/features/calendar/screens/add_note_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_screen.dart';
+import 'package:hera_app/features/cyclePrediction/screens/cycle_prediction_screen.dart';
 import 'package:hera_app/features/home/screens/home_screen.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/screens/notes_screen.dart';
@@ -16,7 +17,9 @@ import 'package:hera_app/features/profile/screens/edit_account_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
 import 'package:hera_app/features/settings/screens/app_lock_disable_screen.dart';
 import 'package:hera_app/features/settings/screens/app_lock_setup_screen.dart';
+import 'package:hera_app/features/settings/screens/cycle_conflict_resolution_screen.dart';
 import 'package:hera_app/features/settings/screens/settings_screen.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
 import 'package:hera_app/shared/widgets/app_shell_scaffold.dart';
 
@@ -29,16 +32,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isOnboardingRoute =
           state.matchedLocation == AppRoutePaths.onboarding;
+      final isAccountSetupRoute =
+          state.matchedLocation == AppRoutePaths.accountSetup;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return isOnboardingRoute || isAccountSetupRoute
+            ? null
+            : AppRoutePaths.onboarding;
       }
 
       final hasCompletedOnboarding =
           onboardingState.asData?.value.hasCompletedOnboarding ?? false;
 
       if (forceShowOnboarding) {
-        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
+        return isOnboardingRoute || isAccountSetupRoute
+            ? null
+            : AppRoutePaths.onboarding;
       }
 
       if (!hasCompletedOnboarding) {
@@ -49,6 +58,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutePaths.home;
       }
 
+      if (isAccountSetupRoute) {
+        return null;
+      }
+
       return null;
     },
     routes: [
@@ -56,6 +69,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutePaths.onboarding,
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutePaths.accountSetup,
+        name: 'account-setup',
+        builder: (context, state) =>
+            const OnboardingScreen(accountSetupOnly: true),
       ),
       GoRoute(
         path: AppRoutePaths.auth,
@@ -71,6 +90,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutePaths.authSignup,
         name: 'auth-signup',
         builder: (context, state) => const AuthScreen(mode: AuthScreenMode.signup),
+      ),
+      GoRoute(
+        path: AppRoutePaths.cycleConflicts,
+        name: 'cycle-conflicts',
+        builder: (context, state) => const CycleConflictResolutionScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -124,6 +148,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
               GoRoute(
+                path: AppRoutePaths.calendarPredictions,
+                name: 'calendar-predictions',
+                builder: (context, state) => const CyclePredictionScreen(),
+              ),
+              GoRoute(
                 path: AppRoutePaths.calendarDateDetails,
                 name: 'calendar-date-details',
                 pageBuilder: (context, state) {
@@ -132,9 +161,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   if (date == null) {
                     return const MaterialPage(child: CalendarScreen());
                   }
+                  final returnToNotes =
+                      state.uri.queryParameters['returnToNotes'] == 'true';
                   return NoTransitionPage<void>(
                     key: state.pageKey,
-                    child: CalendarDateDetailsScreen(date: date),
+                    child: CalendarDateDetailsScreen(
+                      date: date,
+                      returnToNotes: returnToNotes,
+                    ),
                   );
                 },
               ),
@@ -150,6 +184,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return AddNoteScreen(
                     date: date,
                     note: state.extra is Note ? state.extra as Note : null,
+                    returnToNotes:
+                        state.uri.queryParameters['returnToNotes'] == 'true',
                   );
                 },
               ),
@@ -197,9 +233,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     errorBuilder: (context, state) {
+      final l10n = AppLocalizations.of(context);
       return Scaffold(
         body: Center(
-          child: Text('Route not found: ${state.uri}'),
+          child: Text(l10n.routeNotFound(state.uri.toString())),
         ),
       );
     },

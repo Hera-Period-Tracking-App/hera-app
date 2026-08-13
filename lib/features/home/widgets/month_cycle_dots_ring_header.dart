@@ -87,7 +87,7 @@ class _DateStripItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final locale = Localizations.localeOf(context).toString();
 
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: isCenter
@@ -110,7 +110,7 @@ class _DateStripItem extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           style: labelStyle ?? const TextStyle(),
-          child: Text(weekdayLabels[date.weekday - 1].toUpperCase()),
+          child: Text(DateFormat.E(locale).format(date).toUpperCase()),
         ),
         const SizedBox(height: 2),
         AnimatedDefaultTextStyle(

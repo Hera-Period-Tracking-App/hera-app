@@ -4,12 +4,14 @@ class PlaceholderFeatureScreen extends StatelessWidget {
   const PlaceholderFeatureScreen({
     this.title,
     this.description,
+    this.actions = const [],
     required this.cards,
     super.key,
   });
 
   final String? title;
   final String? description;
+  final List<Widget> actions;
   final List<Widget> cards;
 
   @override
@@ -21,7 +23,12 @@ class PlaceholderFeatureScreen extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         children: [
           if (title != null) ...[
-            Text(title!, style: textTheme.headlineLarge),
+            Row(
+              children: [
+                Expanded(child: Text(title!, style: textTheme.titleLarge)),
+                ...actions,
+              ],
+            ),
             const SizedBox(height: 12),
           ],
           if (description != null) ...[

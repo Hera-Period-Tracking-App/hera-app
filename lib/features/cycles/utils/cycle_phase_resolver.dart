@@ -12,6 +12,7 @@ class CyclePhaseContext {
     required this.phase,
     required this.dayOfCycle,
     required this.cycleLength,
+    required this.menstruationLength,
     required this.isPredictedOvulationDay,
     required this.cycleStart,
     required this.cycleEnd,
@@ -23,6 +24,7 @@ class CyclePhaseContext {
   final CyclePhase phase;
   final int dayOfCycle;
   final int cycleLength;
+  final int menstruationLength;
   final bool isPredictedOvulationDay;
   final DateTime cycleStart;
   final DateTime cycleEnd;
@@ -49,6 +51,7 @@ CyclePhaseContext cyclePhaseContextForDate(
       dayOfCycle: 1,
       cycleLength:
           fallbackCycleLength > 0 ? fallbackCycleLength : defaultCycleLength,
+      menstruationLength: defaultMenstruationLength,
       isPredictedOvulationDay: false,
       cycleStart: selected,
       cycleEnd: selected,
@@ -177,6 +180,7 @@ CyclePhaseContext _phaseForDate({
     phase: phase,
     dayOfCycle: dayOfCycle,
     cycleLength: cycleLength,
+    menstruationLength: menstruationLength,
     isPredictedOvulationDay: date.year == ovulationDay.year &&
         date.month == ovulationDay.month &&
         date.day == ovulationDay.day,

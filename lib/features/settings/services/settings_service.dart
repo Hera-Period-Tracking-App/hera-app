@@ -5,6 +5,7 @@ import 'package:hera_app/core/database/app_database.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:hera_app/core/services/privacy_mode_manager.dart';
 import 'package:hera_app/features/settings/models/settings_state.dart';
+import 'package:hera_app/shared/models/privacy_mode.dart';
 
 final settingsServiceProvider = Provider<SettingsService>(
   (ref) => SettingsService(ref),
@@ -54,6 +55,23 @@ class SettingsService {
             syncEnabled: Value(enabled),
           ),
         );
+
+    return loadSettings();
+  }
+
+  Future<SettingsState> setPrivacyMode(PrivacyMode mode) async {
+    final database = _ref.read(appDatabaseProvider);
+    final userSettings = await _readOrCreateUserSettings();
+
+    await (database.update(database.userSettings)
+          ..where((row) => row.id.equals(userSettings.id)))
+        .write(
+      UserSettingsCompanion(
+        privacyMode: Value(mode.name),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    await _ref.read(privacyModeManagerProvider.notifier).setMode(mode);
 
     return loadSettings();
   }

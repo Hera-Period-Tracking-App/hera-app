@@ -10,12 +10,14 @@ import 'package:hera_app/core/theme/theme_style_provider.dart';
 import 'package:hera_app/features/auth/models/auth_credentials.dart';
 import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
+import 'package:hera_app/features/auth/repositories/account_switch_repository.dart';
 import 'package:hera_app/features/auth/repositories/auth_repository.dart';
 import 'package:hera_app/features/cycles/exceptions/cycle_length_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/duplicate_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/future_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/menstruation_length_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/overlapping_cycle_exception.dart';
+import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
 import 'package:hera_app/features/onboarding/models/onboarding_step.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
@@ -28,12 +30,20 @@ import 'package:hera_app/features/onboarding/screens/register_onboarding_screen.
 import 'package:hera_app/features/onboarding/screens/welcome_onboarding_screen.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_footer.dart';
 import 'package:hera_app/features/onboarding/widgets/onboarding_progress_header.dart';
+import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
+import 'package:hera_app/features/settings/repositories/settings_repository.dart';
 import 'package:hera_app/features/settings/repositories/sync_repository.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
 import 'package:hera_app/shared/screens/startup_loading_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({
+    this.accountSetupOnly = false,
+    super.key,
+  });
+
+  final bool accountSetupOnly;
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -59,7 +69,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String? _accountErrorMessage;
   AuthSession? _onboardingAuthSession;
 
+  static const List<OnboardingStep> _accountSetupSteps = [
+    OnboardingStep.cycleLength(),
+    OnboardingStep.menstruationLength(),
+    OnboardingStep.lastCycleStart(),
+  ];
+
   List<OnboardingStep> get _steps {
+    if (widget.accountSetupOnly) {
+      return _accountSetupSteps;
+    }
+
     return [
       const OnboardingStep.welcome(),
       const OnboardingStep.privacy(),
@@ -132,11 +152,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return const StartupLoadingScreen();
     }
 
-    if (!forceShowOnboarding && loadedStatus?.hasCompletedOnboarding == true) {
+    if (!widget.accountSetupOnly &&
+        !forceShowOnboarding &&
+        loadedStatus?.hasCompletedOnboarding == true) {
       return const StartupLoadingScreen();
     }
 
-    if (!_welcomeAssetsReady) {
+    if (!widget.accountSetupOnly && !_welcomeAssetsReady) {
       return const StartupLoadingScreen();
     }
 
@@ -144,7 +166,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return const StartupLoadingScreen();
     }
 
-    _selectedPrivacyMode ??= loadedStatus?.selectedPrivacyMode;
+    _selectedPrivacyMode ??= widget.accountSetupOnly
+        ? PrivacyMode.secureSync
+        : loadedStatus?.selectedPrivacyMode;
 
     final step = _steps[_currentStep];
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
@@ -368,6 +392,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           );
           return;
         }
+        await ref
+            .read(accountSwitchRepositoryProvider)
+            .prepareForAuthenticatedAccount(session);
+        await ref.read(settingsRepositoryProvider).setAutoSyncEnabled(true);
+        ref.invalidate(settingsProvider);
         _onboardingAuthSession = session;
       } catch (error) {
         debugPrint('Onboarding signup failed: $error');
@@ -393,13 +422,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() {
       _submitted = false;
       _accountErrorMessage = null;
-      if (_isLoginFlow) {
-        _isLoginFlow = false;
-        // Registration is always the third screen in the secure-sync flow.
-        _currentStep = 2;
-      } else {
-        _currentStep -= 1;
+    if (_isLoginFlow) {
+      _isLoginFlow = false;
+      // Registration is always the third screen in the secure-sync flow.
+      _currentStep = 2;
+    } else {
+      if (_currentStep == 0) {
+        return;
       }
+      _currentStep -= 1;
+    }
       if (_currentStep == 0) {
         _welcomeAnimationCompleted = false;
       }
@@ -412,6 +444,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
 
     final isLoginStep = _steps[_currentStep].type == OnboardingStepType.login;
+    if (widget.accountSetupOnly &&
+        _steps[_currentStep].type != OnboardingStepType.lastCycleStart) {
+      _goNext();
+      return;
+    }
 
     if (isLoginStep && !_isValidSyncAccount()) {
       setState(() {
@@ -440,6 +477,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           _showAccountError('Could not log in. Please check your credentials.');
           return;
         }
+        await ref
+            .read(accountSwitchRepositoryProvider)
+            .prepareForAuthenticatedAccount(session);
+        await ref.read(settingsRepositoryProvider).setAutoSyncEnabled(true);
+        ref.invalidate(settingsProvider);
         _onboardingAuthSession = session;
       } catch (error) {
         debugPrint('Onboarding login failed: $error');
@@ -450,11 +492,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     if (!isLoginStep) {
       try {
-        await ref.read(cycleRepositoryProvider).addCycle(
-              startDate: _lastCycleStart,
-              cycleLength: _cycleLength.round(),
-              menstruationLength: _menstruationLength.round(),
-            );
+        await _saveCycleSetup();
       } on FutureCycleException catch (error) {
         _showSaveError(error.message);
       } on CycleLengthException catch (error) {
@@ -477,7 +515,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
       await ref.read(themeStyleProvider.notifier).setStyle(AppThemeStyle.dark);
       await ref.read(onboardingProvider.notifier).completeOnboarding(
-            privacyMode: _selectedPrivacyMode!,
+            privacyMode: widget.accountSetupOnly
+                ? PrivacyMode.secureSync
+                : _selectedPrivacyMode!,
         averageCycleLength: _cycleLength.round(),
         averageMenstruationLength: _menstruationLength.round(),
           );
@@ -500,13 +540,58 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (onboardingAuthSession != null) {
       ref.read(authSessionProvider.notifier).setSession(onboardingAuthSession);
     }
+
+    if (!widget.accountSetupOnly) {
+      await _requestNotificationPermission();
+    }
+
     setState(() => _isSaving = false);
     context.go(AppRoutePaths.home);
   }
 
+  Future<void> _requestNotificationPermission() async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isSaving = false);
+
+    await ref.read(settingsProvider.notifier).setNotificationsEnabled(true);
+  }
+
+  Future<void> _saveCycleSetup() async {
+    final repository = ref.read(cycleRepositoryProvider);
+    final cycleLength = _cycleLength.round();
+    final menstruationLength = _menstruationLength.round();
+
+    if (widget.accountSetupOnly) {
+      final cycles = await ref.read(cyclesProvider.future);
+      if (cycles.isNotEmpty) {
+        await repository.updateCycle(
+          id: cycles.first.id,
+          startDate: _lastCycleStart,
+          cycleLength: cycleLength,
+          menstruationLength: menstruationLength,
+        );
+        ref.invalidate(cyclesProvider);
+        return;
+      }
+    }
+
+    await repository.addCycle(
+      startDate: _lastCycleStart,
+      cycleLength: cycleLength,
+      menstruationLength: menstruationLength,
+    );
+    ref.invalidate(cyclesProvider);
+  }
+
   Future<void> _syncAfterLogin() async {
     try {
-      await ref.read(syncRepositoryProvider).syncNow();
+      await ref
+          .read(syncRepositoryProvider)
+          .syncNow(forceFullDownload: true);
+      ref.invalidate(pendingCycleConflictsProvider);
     } catch (error) {
       debugPrint('Onboarding login sync failed: $error');
     }

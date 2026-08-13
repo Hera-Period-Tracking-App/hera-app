@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 
 class RegisterOnboardingScreen extends StatelessWidget {
   const RegisterOnboardingScreen({
@@ -91,7 +92,7 @@ class RegisterOnboardingScreen extends StatelessWidget {
                   children: [
                     const _FieldLabel(label: 'EMAIL ADDRESS'),
                     const SizedBox(height: 6),
-                    TextField(
+                    AppTextField(
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: _inputDecoration(
@@ -106,7 +107,7 @@ class RegisterOnboardingScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     const _FieldLabel(label: 'PASSWORD'),
                     const SizedBox(height: 6),
-                    TextField(
+                    AppTextField(
                       controller: passwordController,
                       obscureText: true,
                       decoration: _inputDecoration(
@@ -120,7 +121,7 @@ class RegisterOnboardingScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       const _FieldLabel(label: 'CONFIRM PASSWORD'),
                       const SizedBox(height: 6),
-                      TextField(
+                      AppTextField(
                         controller: confirmPasswordController,
                         obscureText: true,
                         decoration: _inputDecoration(

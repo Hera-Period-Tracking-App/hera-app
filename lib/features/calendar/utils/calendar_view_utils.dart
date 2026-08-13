@@ -95,8 +95,9 @@ class CalendarViewUtils {
         latestCycle.startDate.month,
         latestCycle.startDate.day,
       );
-      final firstPredictedCycleStart = latestCycleStart.add(
-        Duration(days: forecast.cycleLength),
+      final firstPredictedCycleStart = _addCalendarDays(
+        latestCycleStart,
+        forecast.cycleLength,
       );
       final predictionHorizonEnd = DateTime(
         firstPredictedCycleStart.year,
@@ -118,8 +119,9 @@ class CalendarViewUtils {
           fertileWindowDates: predictedFertileWindowDates,
         );
 
-        predictedCycleStart = predictedCycleStart.add(
-          Duration(days: forecast.cycleLength),
+        predictedCycleStart = _addCalendarDays(
+          predictedCycleStart,
+          forecast.cycleLength,
         );
       }
     }
@@ -207,11 +209,11 @@ class CalendarViewUtils {
     final safeCycleLength = cycleLength.clamp(15, 90);
     final safeMenstruationLength = menstruationLength.clamp(1, safeCycleLength);
     final safeOvulationDay = ovulationDayNumber.clamp(1, safeCycleLength);
-    final ovulationDate = cycleStart.add(Duration(days: safeOvulationDay - 1));
-    final fertileStart = ovulationDate.subtract(const Duration(days: 5));
+    final ovulationDate = _addCalendarDays(cycleStart, safeOvulationDay - 1);
+    final fertileStart = _addCalendarDays(ovulationDate, -5);
 
     for (var i = 0; i < safeMenstruationLength; i++) {
-      final date = cycleStart.add(Duration(days: i));
+      final date = _addCalendarDays(cycleStart, i);
       if (!date.isBefore(monthStart) && !date.isAfter(monthEnd)) {
         menstruationDates.add(dateKey(date));
       }
@@ -222,10 +224,14 @@ class CalendarViewUtils {
     }
 
     for (var i = 0; i < 6; i++) {
-      final date = fertileStart.add(Duration(days: i));
+      final date = _addCalendarDays(fertileStart, i);
       if (!date.isBefore(monthStart) && !date.isAfter(monthEnd)) {
         fertileWindowDates.add(dateKey(date));
       }
     }
+  }
+
+  static DateTime _addCalendarDays(DateTime date, int days) {
+    return DateTime(date.year, date.month, date.day + days);
   }
 }

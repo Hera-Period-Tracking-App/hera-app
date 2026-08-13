@@ -7,6 +7,30 @@ extension _CalendarScreenScroll on _CalendarScreenState {
     required int focusedMonthIndex,
     required bool forceRecenter,
   }) {
+    final pendingScrollOffset = _pendingScrollOffset;
+    if (pendingScrollOffset != null) {
+      if (_isRestoringScrollOffset) {
+        return;
+      }
+
+      _isRestoringScrollOffset = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_monthScrollController.hasClients) {
+          _isRestoringScrollOffset = false;
+          return;
+        }
+
+        final maxOffset = _monthScrollController.position.maxScrollExtent;
+        final restoredOffset = pendingScrollOffset.clamp(0.0, maxOffset);
+        _monthScrollController.jumpTo(restoredOffset);
+        _lastCalendarScrollOffset = restoredOffset;
+        _pendingScrollOffset = null;
+        _isRestoringScrollOffset = false;
+        _markCurrentMonthPositioned();
+      });
+      return;
+    }
+
     if (_positionedAtCurrentMonth && !forceRecenter) {
       return;
     }
@@ -26,7 +50,9 @@ extension _CalendarScreenScroll on _CalendarScreenState {
       final viewport = _monthScrollController.position.viewportDimension;
       final centeredOffset =
           targetOffset - ((viewport - currentMonthSectionHeight) / 2);
-      _monthScrollController.jumpTo(centeredOffset.clamp(0.0, maxOffset));
+      final positionedOffset = centeredOffset.clamp(0.0, maxOffset);
+      _monthScrollController.jumpTo(positionedOffset);
+      _lastCalendarScrollOffset = positionedOffset;
       if (mounted) {
         _markCurrentMonthPositioned();
       }

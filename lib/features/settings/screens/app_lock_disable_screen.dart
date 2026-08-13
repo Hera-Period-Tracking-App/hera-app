@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hera_app/core/widgets/app_text_field.dart';
 import 'package:hera_app/features/settings/providers/app_lock_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 
@@ -47,7 +48,7 @@ class _AppLockDisableScreenState extends ConsumerState<AppLockDisableScreen> {
               const SizedBox(height: 8),
               const Text('Confirm your PIN to disable app lock.'),
               const SizedBox(height: 24),
-              TextField(
+              AppTextField(
                 controller: _pinController,
                 keyboardType: TextInputType.number,
                 obscureText: true,
@@ -86,6 +87,9 @@ class _AppLockDisableScreenState extends ConsumerState<AppLockDisableScreen> {
         await ref.read(appLockProvider.notifier).unlockWithPin(
               _pinController.text,
             );
+    if (!mounted) {
+      return;
+    }
     if (!unlocked) {
       setState(() => _errorMessage = 'Incorrect PIN.');
       return;
@@ -101,6 +105,9 @@ class _AppLockDisableScreenState extends ConsumerState<AppLockDisableScreen> {
           enabled: false,
           biometricsEnabled: false,
         );
+    if (!mounted) {
+      return;
+    }
     ref.read(appLockProvider.notifier).setConfiguration(
           enabled: false,
           biometricsEnabled: false,

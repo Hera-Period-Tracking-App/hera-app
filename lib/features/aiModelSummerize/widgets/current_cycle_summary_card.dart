@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/features/aiModelSummerize/models/current_cycle_summary.dart';
 import 'package:hera_app/features/aiModelSummerize/providers/current_cycle_summary_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
 
 class CurrentCycleSummaryCard extends ConsumerStatefulWidget {
@@ -20,16 +21,17 @@ class _CurrentCycleSummaryCardState
   @override
   Widget build(BuildContext context) {
     final summaryAsync = ref.watch(currentCycleSummaryProvider);
+    final l10n = AppLocalizations.of(context);
 
     return summaryAsync.when(
       data: (summary) => _SummaryCard(summary: _modelSummary ?? summary),
-      loading: () => const SectionPlaceholderCard(
-        title: 'Current cycle summary',
-        body: 'Building a summary from your cycle data and notes...',
+      loading: () => SectionPlaceholderCard(
+        title: l10n.currentCycleSummary,
+        body: l10n.buildingCurrentCycleSummary,
       ),
-      error: (error, _) => const SectionPlaceholderCard(
-        title: 'Current cycle summary',
-        body: 'Could not build the current cycle summary.',
+      error: (error, _) => SectionPlaceholderCard(
+        title: l10n.currentCycleSummary,
+        body: l10n.couldNotBuildCurrentCycleSummary,
       ),
     );
   }
@@ -45,6 +47,12 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final title = switch (summary.title) {
+      'Current cycle summary' => l10n.currentCycleSummary,
+      'Current cycle summary unavailable' => l10n.currentCycleSummaryUnavailable,
+      _ => summary.title,
+    };
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -65,7 +73,7 @@ class _SummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
             Text(
-              summary.title.toUpperCase(),
+              title.toUpperCase(),
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.1,
@@ -76,22 +84,6 @@ class _SummaryCard extends StatelessWidget {
               summary.body,
               style: theme.textTheme.bodyMedium,
             ),
-            if (summary.noteHighlights.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Text(
-                'Recent notes in this cycle',
-                style: theme.textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              for (final item in summary.noteHighlights)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    item,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
               ],
             ),
           ),
