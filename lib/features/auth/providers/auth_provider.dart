@@ -6,6 +6,7 @@ import 'package:hera_app/features/auth/repositories/auth_repository.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/features/settings/repositories/settings_repository.dart';
+import 'package:hera_app/shared/models/privacy_mode.dart';
 
 final authSessionProvider =
     AsyncNotifierProvider<AuthSessionNotifier, AuthSession>(
@@ -97,6 +98,11 @@ class AuthSessionNotifier extends AsyncNotifier<AuthSession> {
           .read(authRepositoryProvider)
           .deleteAccount(currentPassword: currentPassword);
       await ref.read(accountSwitchRepositoryProvider).clearAfterAccountDeletion();
+      await ref
+          .read(settingsRepositoryProvider)
+          .setPrivacyMode(PrivacyMode.localOnly);
+      await ref.read(settingsRepositoryProvider).setAutoSyncEnabled(false);
+      ref.invalidate(settingsProvider);
       ref.invalidate(pendingCycleConflictsProvider);
       state = const AsyncData(AuthSession(isAuthenticated: false));
     } catch (error, stackTrace) {

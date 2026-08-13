@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/features/settings/models/settings_state.dart';
 import 'package:hera_app/features/settings/services/settings_service.dart';
+import 'package:hera_app/shared/models/privacy_mode.dart';
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(settingsServiceProvider)),
@@ -29,6 +30,10 @@ class SettingsRepository {
 
   Future<SettingsState> setAutoSyncEnabled(bool enabled) {
     return _service.setAutoSyncEnabled(enabled);
+  }
+
+  Future<SettingsState> setPrivacyMode(PrivacyMode mode) {
+    return _service.setPrivacyMode(mode);
   }
 
   Future<SettingsState> setAppLock({

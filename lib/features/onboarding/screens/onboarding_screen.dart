@@ -17,6 +17,7 @@ import 'package:hera_app/features/cycles/exceptions/duplicate_cycle_exception.da
 import 'package:hera_app/features/cycles/exceptions/future_cycle_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/menstruation_length_exception.dart';
 import 'package:hera_app/features/cycles/exceptions/overlapping_cycle_exception.dart';
+import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
 import 'package:hera_app/features/onboarding/models/onboarding_step.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
@@ -68,12 +69,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String? _accountErrorMessage;
   AuthSession? _onboardingAuthSession;
 
+  static const List<OnboardingStep> _accountSetupSteps = [
+    OnboardingStep.cycleLength(),
+    OnboardingStep.menstruationLength(),
+    OnboardingStep.lastCycleStart(),
+  ];
+
   List<OnboardingStep> get _steps {
     if (widget.accountSetupOnly) {
-      return const [
-        OnboardingStep.cycleLength(),
-        OnboardingStep.menstruationLength(),
-      ];
+      return _accountSetupSteps;
     }
 
     return [
@@ -440,6 +444,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
 
     final isLoginStep = _steps[_currentStep].type == OnboardingStepType.login;
+    if (widget.accountSetupOnly &&
+        _steps[_currentStep].type != OnboardingStepType.lastCycleStart) {
+      _goNext();
+      return;
+    }
 
     if (isLoginStep && !_isValidSyncAccount()) {
       setState(() {
@@ -481,13 +490,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
     }
 
-    if (!isLoginStep && !widget.accountSetupOnly) {
+    if (!isLoginStep) {
       try {
-        await ref.read(cycleRepositoryProvider).addCycle(
-              startDate: _lastCycleStart,
-              cycleLength: _cycleLength.round(),
-              menstruationLength: _menstruationLength.round(),
-            );
+        await _saveCycleSetup();
       } on FutureCycleException catch (error) {
         _showSaveError(error.message);
       } on CycleLengthException catch (error) {
@@ -503,13 +508,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         _showSaveError(
           'Could not save your cycle right now. Please try again.',
         );
-        return;
-      }
-    }
-
-    if (!widget.accountSetupOnly) {
-      final canContinue = await _askForNotificationPermission();
-      if (!canContinue) {
         return;
       }
     }
@@ -542,49 +540,50 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (onboardingAuthSession != null) {
       ref.read(authSessionProvider.notifier).setSession(onboardingAuthSession);
     }
+
+    if (!widget.accountSetupOnly) {
+      await _requestNotificationPermission();
+    }
+
     setState(() => _isSaving = false);
     context.go(AppRoutePaths.home);
   }
 
-  Future<bool> _askForNotificationPermission() async {
+  Future<void> _requestNotificationPermission() async {
     if (!mounted) {
-      return false;
+      return;
     }
 
     setState(() => _isSaving = false);
 
-    final shouldEnable = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) {
-            return AlertDialog(
-              title: const Text('Enable notifications?'),
-              content: const Text(
-                'Hera can remind you about upcoming menstruation, ovulation, and cycle changes.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Not now'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Enable'),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
+    await ref.read(settingsProvider.notifier).setNotificationsEnabled(true);
+  }
 
-    if (!mounted) {
-      return false;
+  Future<void> _saveCycleSetup() async {
+    final repository = ref.read(cycleRepositoryProvider);
+    final cycleLength = _cycleLength.round();
+    final menstruationLength = _menstruationLength.round();
+
+    if (widget.accountSetupOnly) {
+      final cycles = await ref.read(cyclesProvider.future);
+      if (cycles.isNotEmpty) {
+        await repository.updateCycle(
+          id: cycles.first.id,
+          startDate: _lastCycleStart,
+          cycleLength: cycleLength,
+          menstruationLength: menstruationLength,
+        );
+        ref.invalidate(cyclesProvider);
+        return;
+      }
     }
 
-    setState(() => _isSaving = true);
-    await ref
-        .read(settingsProvider.notifier)
-        .setNotificationsEnabled(shouldEnable);
-    return true;
+    await repository.addCycle(
+      startDate: _lastCycleStart,
+      cycleLength: cycleLength,
+      menstruationLength: menstruationLength,
+    );
+    ref.invalidate(cyclesProvider);
   }
 
   Future<void> _syncAfterLogin() async {

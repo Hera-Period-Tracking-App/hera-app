@@ -163,6 +163,7 @@
   "syncNow": "Sync now",
   "syncComplete": "Sync complete. Uploaded {uploaded}, downloaded {downloaded}, applied {applied}.",
   "@syncComplete": {"placeholders": {"uploaded": {"type": "int"}, "downloaded": {"type": "int"}, "applied": {"type": "int"}}},
+  "syncCompleteShort": "Sync complete",
   "syncFailed": "Sync failed",
   "close": "Close",
   "resetSyncData": "Reset sync data",
@@ -206,4 +207,12 @@
   "currentCycleSummaryUnavailable": "Current cycle summary unavailable",
   "buildingCurrentCycleSummary": "Building a summary from your cycle data and notes...",
   "couldNotBuildCurrentCycleSummary": "Could not build the current cycle summary."
+  ,
+  "privacyModeTitle": "Privacy mode",
+  "secureSyncModeTitle": "Secure sync",
+  "secureSyncModeDescription": "You are currently using secure sync, so your data is also stored on the server. Do not worry, it is encrypted before it leaves this device.",
+  "localOnlyModeTitle": "Local only",
+  "localOnlyModeDescription": "You are currently using local only mode, so your data stays on this device and is not synced to the server.",
+  "loadingPrivacyMode": "Loading privacy mode...",
+  "couldNotLoadPrivacyMode": "Could not load privacy mode."
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/networking/api_client.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/features/aiModelSummerize/providers/current_cycle_summary_provider.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/cyclePrediction/providers/cycle_prediction_provider.dart';
@@ -98,6 +99,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.sun,
+                      foregroundColor: AppColors.twilight,
+                    ),
                     onPressed: isBusy
                         ? null
                         : () => _submit(

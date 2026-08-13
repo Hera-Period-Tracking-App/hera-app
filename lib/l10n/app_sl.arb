@@ -163,6 +163,7 @@
   "syncNow": "Sinhroniziraj zdaj",
   "syncComplete": "Sinhronizacija končana. Naloženo {uploaded}, preneseno {downloaded}, uporabljeno {applied}.",
   "@syncComplete": {"placeholders": {"uploaded": {"type": "int"}, "downloaded": {"type": "int"}, "applied": {"type": "int"}}},
+  "syncCompleteShort": "Sinhronizacija končana",
   "syncFailed": "Sinhronizacija ni uspela",
   "close": "Zapri",
   "resetSyncData": "Ponastavi sinhronizirane podatke",
@@ -206,4 +207,12 @@
   "currentCycleSummaryUnavailable": "Povzetek trenutnega cikla ni na voljo",
   "buildingCurrentCycleSummary": "Ustvarjam povzetek iz podatkov cikla in zapisov...",
   "couldNotBuildCurrentCycleSummary": "Povzetka trenutnega cikla ni bilo mogoče ustvariti."
+  ,
+  "privacyModeTitle": "Način zasebnosti",
+  "secureSyncModeTitle": "Varna sinhronizacija",
+  "secureSyncModeDescription": "Trenutno uporabljaš varno sinhronizacijo, zato so tvoji podatki shranjeni tudi na strežniku. Brez skrbi, šifrirani so, preden zapustijo to napravo.",
+  "localOnlyModeTitle": "Samo lokalno",
+  "localOnlyModeDescription": "Trenutno uporabljaš samo lokalni način, zato tvoji podatki ostanejo na tej napravi in se ne sinhronizirajo s strežnikom.",
+  "loadingPrivacyMode": "Nalagam način zasebnosti...",
+  "couldNotLoadPrivacyMode": "Načina zasebnosti ni bilo mogoče naložiti."
 }

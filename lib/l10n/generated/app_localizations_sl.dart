@@ -490,6 +490,9 @@ class AppLocalizationsSl extends AppLocalizations {
   }
 
   @override
+  String get syncCompleteShort => 'Sinhronizacija končana';
+
+  @override
   String get syncFailed => 'Sinhronizacija ni uspela';
 
   @override
@@ -621,4 +624,28 @@ class AppLocalizationsSl extends AppLocalizations {
   @override
   String get couldNotBuildCurrentCycleSummary =>
       'Povzetka trenutnega cikla ni bilo mogoče ustvariti.';
+
+  @override
+  String get privacyModeTitle => 'Način zasebnosti';
+
+  @override
+  String get secureSyncModeTitle => 'Varna sinhronizacija';
+
+  @override
+  String get secureSyncModeDescription =>
+      'Trenutno uporabljaš varno sinhronizacijo, zato so tvoji podatki shranjeni tudi na strežniku. Brez skrbi, šifrirani so, preden zapustijo to napravo.';
+
+  @override
+  String get localOnlyModeTitle => 'Samo lokalno';
+
+  @override
+  String get localOnlyModeDescription =>
+      'Trenutno uporabljaš samo lokalni način, zato tvoji podatki ostanejo na tej napravi in se ne sinhronizirajo s strežnikom.';
+
+  @override
+  String get loadingPrivacyMode => 'Nalagam način zasebnosti...';
+
+  @override
+  String get couldNotLoadPrivacyMode =>
+      'Načina zasebnosti ni bilo mogoče naložiti.';
 }

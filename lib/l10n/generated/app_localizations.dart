@@ -914,6 +914,12 @@ abstract class AppLocalizations {
   /// **'Sync complete. Uploaded {uploaded}, downloaded {downloaded}, applied {applied}.'**
   String syncComplete(int uploaded, int downloaded, int applied);
 
+  /// No description provided for @syncCompleteShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync complete'**
+  String get syncCompleteShort;
+
   /// No description provided for @syncFailed.
   ///
   /// In en, this message translates to:
@@ -1153,6 +1159,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not build the current cycle summary.'**
   String get couldNotBuildCurrentCycleSummary;
+
+  /// No description provided for @privacyModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy mode'**
+  String get privacyModeTitle;
+
+  /// No description provided for @secureSyncModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure sync'**
+  String get secureSyncModeTitle;
+
+  /// No description provided for @secureSyncModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You are currently using secure sync, so your data is also stored on the server. Do not worry, it is encrypted before it leaves this device.'**
+  String get secureSyncModeDescription;
+
+  /// No description provided for @localOnlyModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Local only'**
+  String get localOnlyModeTitle;
+
+  /// No description provided for @localOnlyModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You are currently using local only mode, so your data stays on this device and is not synced to the server.'**
+  String get localOnlyModeDescription;
+
+  /// No description provided for @loadingPrivacyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading privacy mode...'**
+  String get loadingPrivacyMode;
+
+  /// No description provided for @couldNotLoadPrivacyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load privacy mode.'**
+  String get couldNotLoadPrivacyMode;
 }
 
 class _AppLocalizationsDelegate

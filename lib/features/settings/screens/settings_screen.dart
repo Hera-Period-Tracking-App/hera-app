@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/localization/app_language_provider.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
 import 'package:hera_app/features/auth/repositories/auth_repository.dart';
@@ -31,97 +32,94 @@ class SettingsScreen extends ConsumerWidget {
       body: SafeArea(
         child: settings.when(
           data: (value) => ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.zero,
             children: [
-              Card(
-                child: SwitchListTile(
-                  secondary: const Icon(Icons.notifications_active_outlined),
-                  title: Text(l10n.cycleNotifications),
-                  subtitle: Text(l10n.cycleNotificationsDescription),
-                  value: value.notificationsEnabled,
-                  onChanged: (enabled) => ref
-                      .read(settingsProvider.notifier)
-                      .setNotificationsEnabled(enabled),
-                ),
+              SwitchListTile(
+                activeThumbColor: AppColors.sun,
+                activeTrackColor: AppColors.sun.withValues(alpha: 0.35),
+                secondary: const Icon(Icons.notifications_active_outlined),
+                title: Text(l10n.cycleNotifications),
+                subtitle: Text(l10n.cycleNotificationsDescription),
+                value: value.notificationsEnabled,
+                onChanged: (enabled) => ref
+                    .read(settingsProvider.notifier)
+                    .setNotificationsEnabled(enabled),
               ),
               const SizedBox(height: 12),
-              Card(
-                child: SwitchListTile(
-                  secondary: const Icon(Icons.lock_outline),
-                  title: Text(l10n.appLock),
-                  subtitle: Text(
-                    value.biometricsEnabled
-                        ? l10n.appLockBiometricsDescription
-                        : value.pinEnabled
-                            ? l10n.appLockPinDescription
-                            : l10n.appLockDisabledDescription,
-                  ),
-                  value: value.pinEnabled,
-                  onChanged: (enabled) async {
-                    if (!enabled) {
-                      context.push(AppRoutePaths.appLockDisable);
-                      return;
-                    }
-                    context.push(AppRoutePaths.appLockSetup);
-                  },
+              SwitchListTile(
+                activeThumbColor: AppColors.sun,
+                activeTrackColor: AppColors.sun.withValues(alpha: 0.35),
+                secondary: const Icon(Icons.lock_outline),
+                title: Text(l10n.appLock),
+                subtitle: Text(
+                  value.biometricsEnabled
+                      ? l10n.appLockBiometricsDescription
+                      : value.pinEnabled
+                          ? l10n.appLockPinDescription
+                          : l10n.appLockDisabledDescription,
                 ),
+                value: value.pinEnabled,
+                onChanged: (enabled) async {
+                  if (!enabled) {
+                    context.push(AppRoutePaths.appLockDisable);
+                    return;
+                  }
+                  context.push(AppRoutePaths.appLockSetup);
+                },
               ),
               const SizedBox(height: 12),
-              Card(
-                child: SwitchListTile(
-                  secondary: const Icon(Icons.edit_note_outlined),
-                  title: Text(l10n.notes),
-                  subtitle: Text(l10n.notesDescription),
-                  value: value.notesEnabled,
-                  onChanged: (enabled) => ref
-                      .read(settingsProvider.notifier)
-                      .setNotesEnabled(enabled),
-                ),
+              SwitchListTile(
+                activeThumbColor: AppColors.sun,
+                activeTrackColor: AppColors.sun.withValues(alpha: 0.35),
+                secondary: const Icon(Icons.edit_note_outlined),
+                title: Text(l10n.notes),
+                subtitle: Text(l10n.notesDescription),
+                value: value.notesEnabled,
+                onChanged: (enabled) =>
+                    ref.read(settingsProvider.notifier).setNotesEnabled(enabled),
               ),
               const SizedBox(height: 12),
-              Card(
-                child: SwitchListTile(
-                  secondary: const Icon(Icons.auto_awesome),
-                  title: Text(l10n.aiSummaries),
-                  subtitle: Text(l10n.aiSummariesDescription),
-                  value: value.aiSummariesEnabled,
-                  onChanged: (enabled) => ref
-                      .read(settingsProvider.notifier)
-                      .setAiSummariesEnabled(enabled),
-                ),
+              SwitchListTile(
+                activeThumbColor: AppColors.sun,
+                activeTrackColor: AppColors.sun.withValues(alpha: 0.35),
+                secondary: const Icon(Icons.auto_awesome),
+                title: Text(l10n.aiSummaries),
+                subtitle: Text(l10n.aiSummariesDescription),
+                value: value.aiSummariesEnabled,
+                onChanged: (enabled) => ref
+                    .read(settingsProvider.notifier)
+                    .setAiSummariesEnabled(enabled),
               ),
               const SizedBox(height: 12),
-              Card(
-                child: SwitchListTile(
-                  secondary: const Icon(Icons.sync),
-                  title: Text(l10n.automaticSync),
-                  subtitle: Text(
-                    isSignedIn
-                        ? l10n.automaticSyncSignedInDescription
-                        : l10n.automaticSyncSignedOutDescription,
-                  ),
-                  value: isSignedIn && value.autoSyncEnabled,
-                  onChanged: isSignedIn
-                      ? (enabled) async {
-                          await ref
-                              .read(settingsProvider.notifier)
-                              .setAutoSyncEnabled(enabled);
-                          if (enabled) {
-                            ref.read(autoSyncProvider).syncOnStartup();
-                          }
+              SwitchListTile(
+                activeThumbColor: AppColors.sun,
+                activeTrackColor: AppColors.sun.withValues(alpha: 0.35),
+                secondary: const Icon(Icons.sync),
+                title: Text(l10n.automaticSync),
+                subtitle: Text(
+                  isSignedIn
+                      ? l10n.automaticSyncSignedInDescription
+                      : l10n.automaticSyncSignedOutDescription,
+                ),
+                value: isSignedIn && value.autoSyncEnabled,
+                onChanged: isSignedIn
+                    ? (enabled) async {
+                        await ref
+                            .read(settingsProvider.notifier)
+                            .setAutoSyncEnabled(enabled);
+                        if (enabled) {
+                          ref.read(autoSyncProvider).syncOnStartup();
                         }
-                      : null,
-                ),
+                      }
+                    : null,
               ),
               const SizedBox(height: 12),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.language),
-                  title: Text(l10n.language),
-                  subtitle: Text('${l10n.languageDescription} $languageLabel'),
-                  trailing: const Icon(Icons.expand_more),
-                  onTap: () => _showLanguagePicker(context, ref, language),
-                ),
+              ListTile(
+                leading: const Icon(Icons.language),
+                title: Text(l10n.language),
+                subtitle: Text('${l10n.languageDescription} $languageLabel'),
+                trailing: const Icon(Icons.expand_more),
+                onTap: () => _showLanguagePicker(context, ref, language),
               ),
             ],
           ),

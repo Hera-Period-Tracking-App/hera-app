@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/networking/api_client.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
+import 'package:hera_app/core/theme/app_colors.dart';
 import 'package:hera_app/features/aiModelSummerize/providers/current_cycle_summary_provider.dart';
 import 'package:hera_app/features/auth/models/auth_session.dart';
 import 'package:hera_app/features/auth/providers/auth_provider.dart';
@@ -15,6 +16,7 @@ import 'package:hera_app/features/settings/providers/settings_provider.dart';
 import 'package:hera_app/features/settings/repositories/cycle_conflict_repository.dart';
 import 'package:hera_app/features/settings/repositories/sync_repository.dart';
 import 'package:hera_app/l10n/generated/app_localizations.dart';
+import 'package:hera_app/shared/models/privacy_mode.dart';
 import 'package:hera_app/shared/widgets/placeholder_feature_screen.dart';
 import 'package:hera_app/shared/widgets/section_placeholder_card.dart';
 
@@ -31,149 +33,119 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(profileSettingsProvider);
+    final appSettings = ref.watch(settingsProvider);
     final authState = ref.watch(profileAuthSessionProvider);
     final session = authState.asData?.value;
     final isSignedIn = session?.isAuthenticated ?? false;
     final l10n = AppLocalizations.of(context);
 
-    return PlaceholderFeatureScreen(
-      title: l10n.profile,
-      description: l10n.profileDescription,
-      cards: [
-        settings.when(
-          data: (value) {
-            final averageCycleLength = value.averageCycleLength;
-            final averageMenstruationLength = value.averageMenstruationLength;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.profile),
+        actions: [
+          IconButton(
+            tooltip: l10n.syncNow,
+            onPressed: !isSignedIn || _isSyncing ? null : _syncNow,
+            icon: _isSyncing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.sync),
+          ),
+          IconButton(
+            tooltip: l10n.openSettings,
+            onPressed: () => context.push(AppRoutePaths.settings),
+            icon: const Icon(Icons.settings_outlined),
+          ),
+        ],
+      ),
+      body: PlaceholderFeatureScreen(
+        cards: [
+          settings.when(
+            data: (value) {
+              final averageCycleLength = value.averageCycleLength;
+              final averageMenstruationLength = value.averageMenstruationLength;
 
-            if (averageCycleLength == null &&
-                averageMenstruationLength == null) {
+              if (averageCycleLength == null &&
+                  averageMenstruationLength == null) {
+                return SectionPlaceholderCard(
+                  title: l10n.averageCycleSettings,
+                  body: l10n.noAverageCycleSettings,
+                );
+              }
+
               return SectionPlaceholderCard(
                 title: l10n.averageCycleSettings,
-                body: l10n.noAverageCycleSettings,
+                body: l10n.averageCycleSettingsBody(
+                  averageCycleLength?.toString() ?? '-',
+                  averageMenstruationLength?.toString() ?? '-',
+                ),
               );
-            }
-
-            return SectionPlaceholderCard(
-              title: l10n.averageCycleSettings,
-              body: l10n.averageCycleSettingsBody(
-                averageCycleLength?.toString() ?? '-',
-                averageMenstruationLength?.toString() ?? '-',
-              ),
-            );
-          },
-          loading: () => SectionPlaceholderCard(
-            title: l10n.averageCycleSettings,
-            body: l10n.loadingSavedAverages,
-          ),
-          error: (error, stackTrace) => SectionPlaceholderCard(
-            title: l10n.averageCycleSettings,
-            body: l10n.couldNotLoadSavedAverages,
-          ),
-        ),
-        SectionPlaceholderCard(
-          title: l10n.settingsTitle,
-          body: l10n.profileSettingsDescription,
-          footer: Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: () => context.push(AppRoutePaths.settings),
-              icon: const Icon(Icons.settings),
-              label: Text(l10n.openSettings),
-            ),
-          ),
-        ),
-        SectionPlaceholderCard(
-          title: l10n.account,
-          body: authState.when(
-            data: (session) {
-              if (!session.isAuthenticated) {
-                return l10n.signedOutAccountDescription;
-              }
-
-              final email = session.email?.trim();
-              if (email == null || email.isEmpty) {
-                return l10n.signedInAccountDescription;
-              }
-              return l10n.signedInAsAccountDescription(email);
             },
-            loading: () => l10n.checkingAccountStatus,
-            error: (error, stackTrace) => l10n.couldNotLoadAccountStatus,
+            loading: () => SectionPlaceholderCard(
+              title: l10n.averageCycleSettings,
+              body: l10n.loadingSavedAverages,
+            ),
+            error: (error, stackTrace) => SectionPlaceholderCard(
+              title: l10n.averageCycleSettings,
+              body: l10n.couldNotLoadSavedAverages,
+            ),
           ),
-          footer: Align(
-            alignment: Alignment.centerLeft,
-            child: authState.when(
-              data: (session) => session.isAuthenticated
-                  ? Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              context.push(AppRoutePaths.editAccount),
-                          icon: const Icon(Icons.edit),
-                          label: Text(l10n.editAccount),
-                        ),
-                        FilledButton.icon(
-                          onPressed: () async {
-                            await ref
-                                .read(authSessionProvider.notifier)
-                                .logout();
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(l10n.signedOutMessage)),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.logout),
-                          label: Text(l10n.signOut),
-                        ),
-                      ],
-                    )
-                  : Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: () =>
-                              context.push(AppRoutePaths.authSignup),
-                          icon: const Icon(Icons.person_add),
-                          label: Text(l10n.createAccount),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              context.push(AppRoutePaths.authLogin),
-                          icon: const Icon(Icons.login),
-                          label: Text(l10n.logIn),
-                        ),
-                      ],
+          appSettings.when(
+            data: (value) => _PrivacyModeCard(
+              title:
+                  '${l10n.privacyModeTitle} - ${_privacyModeTitle(l10n, value.privacyMode)}'
+                      .toUpperCase(),
+              description: _privacyModeDescription(l10n, value.privacyMode),
+              showAccountPrompt: !isSignedIn,
+              showManageAccountPrompt:
+                  isSignedIn && value.privacyMode == PrivacyMode.secureSync,
+              accountPrompt: 'HAVE AN ACCOUNT?',
+              createAccountLabel: l10n.createAccount,
+              loginLabel: l10n.logIn,
+              manageAccountPrompt: 'MANAGE ACCOUNT',
+              email: session?.email?.trim(),
+              editAccountLabel: l10n.editAccount,
+              logoutLabel: l10n.signOut,
+              onLogout: () async {
+                await ref.read(authSessionProvider.notifier).logout();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.signedOutMessage),
                     ),
-              loading: () => FilledButton(
-                onPressed: null,
-                child: Text(l10n.checking),
-              ),
-              error: (error, stackTrace) => OutlinedButton.icon(
-                onPressed: () => ref.invalidate(authSessionProvider),
-                icon: const Icon(Icons.refresh),
-                label: Text(l10n.tryAgain),
-              ),
+                  );
+                }
+              },
+            ),
+            loading: () => SectionPlaceholderCard(
+              title: l10n.privacyModeTitle,
+              body: l10n.loadingPrivacyMode,
+            ),
+            error: (error, stackTrace) => SectionPlaceholderCard(
+              title: l10n.privacyModeTitle,
+              body: l10n.couldNotLoadPrivacyMode,
             ),
           ),
-        ),
-        SectionPlaceholderCard(
-          title: l10n.sync,
-          body: isSignedIn
-              ? l10n.syncSignedInDescription
-              : l10n.syncSignedOutDescription,
-          footer: Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton(
-              onPressed: !isSignedIn || _isSyncing ? null : _syncNow,
-              child: Text(_isSyncing ? l10n.syncing : l10n.syncNow),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  String _privacyModeTitle(AppLocalizations l10n, PrivacyMode mode) {
+    return switch (mode) {
+      PrivacyMode.secureSync => l10n.secureSyncModeTitle,
+      PrivacyMode.localOnly => l10n.localOnlyModeTitle,
+    };
+  }
+
+  String _privacyModeDescription(AppLocalizations l10n, PrivacyMode mode) {
+    return switch (mode) {
+      PrivacyMode.secureSync => l10n.secureSyncModeDescription,
+      PrivacyMode.localOnly => l10n.localOnlyModeDescription,
+    };
   }
 
   Future<void> _syncNow() async {
@@ -192,12 +164,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          backgroundColor: AppColors.twilight,
           content: Text(
-            AppLocalizations.of(context).syncComplete(
-              result.uploadedCount,
-              result.downloadedCount,
-              result.appliedCount,
-            ),
+            AppLocalizations.of(context).syncCompleteShort,
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       );
@@ -297,3 +267,123 @@ final profileAuthSessionProvider = FutureProvider.autoDispose<AuthSession>((
   }
   return ref.read(authRepositoryProvider).getCurrentSession();
 });
+
+class _PrivacyModeCard extends StatelessWidget {
+  const _PrivacyModeCard({
+    required this.title,
+    required this.description,
+    required this.showAccountPrompt,
+    required this.showManageAccountPrompt,
+    required this.accountPrompt,
+    required this.createAccountLabel,
+    required this.loginLabel,
+    required this.manageAccountPrompt,
+    required this.email,
+    required this.editAccountLabel,
+    required this.logoutLabel,
+    required this.onLogout,
+  });
+
+  final String title;
+  final String description;
+  final bool showAccountPrompt;
+  final bool showManageAccountPrompt;
+  final String accountPrompt;
+  final String createAccountLabel;
+  final String loginLabel;
+  final String manageAccountPrompt;
+  final String? email;
+  final String editAccountLabel;
+  final String logoutLabel;
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: textTheme.labelSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: textTheme.bodyMedium,
+          ),
+          if (showAccountPrompt) ...[
+            const SizedBox(height: 20),
+            Text(
+              accountPrompt,
+              style: textTheme.labelSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => context.push(AppRoutePaths.authSignup),
+                  icon: const Icon(Icons.person_add),
+                  label: Text(createAccountLabel),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutePaths.authLogin),
+                  icon: const Icon(Icons.login),
+                  label: Text(loginLabel),
+                ),
+              ],
+            ),
+          ],
+          if (showManageAccountPrompt) ...[
+            const SizedBox(height: 20),
+            Text(
+              manageAccountPrompt,
+              style: textTheme.labelSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            if (email != null && email!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'E-mail: $email',
+                style: textTheme.bodyMedium,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutePaths.editAccount),
+                  icon: const Icon(Icons.edit),
+                  label: Text(editAccountLabel),
+                ),
+                FilledButton.icon(
+                  onPressed: onLogout,
+                  icon: const Icon(Icons.logout),
+                  label: Text(logoutLabel),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

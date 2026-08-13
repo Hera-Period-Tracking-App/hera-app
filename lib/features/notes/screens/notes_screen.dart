@@ -96,12 +96,13 @@ class _NotesListState extends State<_NotesList> {
     final l10n = AppLocalizations.of(context);
 
     if (widget.notes.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Center(
           child: Text(
             l10n.noNotesYet,
             style: textTheme.bodyLarge,
+            textAlign: TextAlign.center,
           ),
         ),
       );

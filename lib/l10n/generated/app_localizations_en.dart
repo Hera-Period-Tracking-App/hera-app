@@ -487,6 +487,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get syncCompleteShort => 'Sync complete';
+
+  @override
   String get syncFailed => 'Sync failed';
 
   @override
@@ -620,4 +623,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get couldNotBuildCurrentCycleSummary =>
       'Could not build the current cycle summary.';
+
+  @override
+  String get privacyModeTitle => 'Privacy mode';
+
+  @override
+  String get secureSyncModeTitle => 'Secure sync';
+
+  @override
+  String get secureSyncModeDescription =>
+      'You are currently using secure sync, so your data is also stored on the server. Do not worry, it is encrypted before it leaves this device.';
+
+  @override
+  String get localOnlyModeTitle => 'Local only';
+
+  @override
+  String get localOnlyModeDescription =>
+      'You are currently using local only mode, so your data stays on this device and is not synced to the server.';
+
+  @override
+  String get loadingPrivacyMode => 'Loading privacy mode...';
+
+  @override
+  String get couldNotLoadPrivacyMode => 'Could not load privacy mode.';
 }

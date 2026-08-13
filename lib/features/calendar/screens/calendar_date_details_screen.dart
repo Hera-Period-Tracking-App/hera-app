@@ -130,13 +130,14 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
               noteAsync.when(
                 data: (note) {
                   if (note == null) {
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text(
-                          'No note for this date.',
-                          style: theme.textTheme.bodyMedium,
-                        ),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'No note for this date.',
+                        style: theme.textTheme.bodyMedium,
                       ),
                     );
                   }
