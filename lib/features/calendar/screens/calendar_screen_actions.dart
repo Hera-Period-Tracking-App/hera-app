@@ -1,10 +1,6 @@
 part of 'calendar_screen.dart';
 
 extension _CalendarScreenActions on _CalendarScreenState {
-  void _cancelStartNewCycle() {
-    _cancelCalendarFlow();
-  }
-
   void _cancelCalendarFlow() {
     _clearCalendarFlowState();
     final focusToday = DateTime.now().millisecondsSinceEpoch;
@@ -24,8 +20,7 @@ extension _CalendarScreenActions on _CalendarScreenState {
 
     final latestCycle = cycles.isNotEmpty ? cycles.first : null;
     final cycleLength = profileCycleLength ?? latestCycle?.cycleLength;
-    final menstruationLength =
-        profileMenstruationLength ?? latestCycle?.menstruationLength;
+    final menstruationLength = profileMenstruationLength ?? latestCycle?.menstruationLength;
 
     if (cycleLength == null || menstruationLength == null) {
       _showMessage(
@@ -41,7 +36,6 @@ extension _CalendarScreenActions on _CalendarScreenState {
             cycleLength: cycleLength,
             menstruationLength: menstruationLength,
           );
-      ref.read(autoSyncProvider).queueSync();
 
       if (!mounted) {
         return;
@@ -50,20 +44,10 @@ extension _CalendarScreenActions on _CalendarScreenState {
       _showMessage('New cycle started successfully.');
       _focusDateAfterFlow(selectedDate);
       context.go(
-        '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(selectedDate)}',
+        '${AppRoutePaths.calendar}?focusDate=${DateTimeFormatter.toIsoDate(selectedDate)}',
       );
-    } on FutureCycleException catch (error) {
-      _showMessage(error.message);
-    } on CycleLengthException catch (error) {
-      _showMessage(error.message);
-    } on MenstruationLengthException catch (error) {
-      _showMessage(error.message);
-    } on DuplicateCycleException catch (error) {
-      _showMessage(error.message);
-    } on OverlappingCycleException catch (error) {
-      _showMessage(error.message);
     } catch (error) {
-      _showMessage('Could not create cycle: $error');
+      _showMessage(_cycleErrorMessage(error, 'Could not create cycle'));
     } finally {
       if (mounted) {
         _setSavingCycle(false);
@@ -74,21 +58,12 @@ extension _CalendarScreenActions on _CalendarScreenState {
   Future<void> _updateCurrentCycle({
     required List<CycleSummary> cycles,
   }) async {
-    final currentCycle = _editedCycleId == null
-        ? (cycles.isNotEmpty ? cycles.first : null)
-        : cycles.cast<CycleSummary?>().firstWhere(
-              (cycle) => cycle?.id == _editedCycleId,
-              orElse: () => null,
-            );
+    final currentCycle = currentOrEditedCycle(cycles, _editedCycleId);
     final selectedDate = _selectedDate ?? currentCycle?.startDate;
     final cycleLength = currentCycle?.cycleLength;
-    final menstruationLength =
-        _editedMenstruationLength ?? currentCycle?.menstruationLength;
+    final menstruationLength = _editedMenstruationLength ?? currentCycle?.menstruationLength;
 
-    if (currentCycle == null ||
-        selectedDate == null ||
-        cycleLength == null ||
-        menstruationLength == null) {
+    if (currentCycle == null || selectedDate == null || cycleLength == null || menstruationLength == null) {
       _showMessage('No current cycle is available to edit.');
       return;
     }
@@ -101,7 +76,6 @@ extension _CalendarScreenActions on _CalendarScreenState {
             cycleLength: cycleLength,
             menstruationLength: menstruationLength,
           );
-      ref.read(autoSyncProvider).queueSync();
 
       if (!mounted) {
         return;
@@ -112,27 +86,14 @@ extension _CalendarScreenActions on _CalendarScreenState {
       if (!mounted) {
         return;
       }
-      final scrollOffset = _monthScrollController.hasClients
-          ? _monthScrollController.offset
-          : _lastCalendarScrollOffset;
-      final scrollQuery = scrollOffset == null
-          ? ''
-          : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
+      final scrollOffset =
+          _monthScrollController.hasClients ? _monthScrollController.offset : _lastCalendarScrollOffset;
+      final scrollQuery = scrollOffset == null ? '' : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
       context.go(
-        '${AppRoutePaths.calendar}?focusDate=${_formatRouteDate(selectedDate)}$scrollQuery',
+        '${AppRoutePaths.calendar}?focusDate=${DateTimeFormatter.toIsoDate(selectedDate)}$scrollQuery',
       );
-    } on FutureCycleException catch (error) {
-      _showMessage(error.message);
-    } on CycleLengthException catch (error) {
-      _showMessage(error.message);
-    } on MenstruationLengthException catch (error) {
-      _showMessage(error.message);
-    } on DuplicateCycleException catch (error) {
-      _showMessage(error.message);
-    } on OverlappingCycleException catch (error) {
-      _showMessage(error.message);
     } catch (error) {
-      _showMessage('Could not update cycle: $error');
+      _showMessage(_cycleErrorMessage(error, 'Could not update cycle'));
     } finally {
       if (mounted) {
         _setSavingCycle(false);
@@ -147,85 +108,36 @@ extension _CalendarScreenActions on _CalendarScreenState {
     final selectedDate = DateUtils.dateOnly(date);
     final currentCycle = _editableCycleForDate(cycles, selectedDate);
     final cycleLength = currentCycle?.cycleLength;
-    final menstruationLength =
-        currentCycle?.id == _editedCycleId
-            ? _editedMenstruationLength ?? currentCycle?.menstruationLength
-            : currentCycle?.menstruationLength;
+    final menstruationLength = currentCycle?.id == _editedCycleId
+        ? _editedMenstruationLength ?? currentCycle?.menstruationLength
+        : currentCycle?.menstruationLength;
 
-    if (currentCycle == null ||
-        cycleLength == null ||
-        menstruationLength == null) {
+    if (currentCycle == null || cycleLength == null || menstruationLength == null) {
       _showMessage('No current cycle is available to edit.');
       return;
     }
 
     final startDate = DateUtils.dateOnly(
-      currentCycle.id == _editedCycleId
-          ? _selectedDate ?? currentCycle.startDate
-          : currentCycle.startDate,
+      currentCycle.id == _editedCycleId ? _selectedDate ?? currentCycle.startDate : currentCycle.startDate,
     );
-    final dayOffset = selectedDate.difference(startDate).inDays;
-    final lastPeriodOffset = menstruationLength - 1;
-
-    if (dayOffset == -1) {
-      _setEditedCycle(
-        cycleId: currentCycle.id,
-        startDate: selectedDate,
-        menstruationLength: menstruationLength + 1,
-      );
-      return;
-    }
-
-    if (dayOffset == 0) {
-      if (menstruationLength == 1) {
-        _showMessage('The period must have at least one day.');
-        return;
-      }
-
-      _setEditedCycle(
-        cycleId: currentCycle.id,
-        startDate: startDate.add(const Duration(days: 1)),
-        menstruationLength: menstruationLength - 1,
-      );
-      return;
-    }
-
-    if (dayOffset == lastPeriodOffset) {
-      if (menstruationLength == 1) {
-        _showMessage('The period must have at least one day.');
-        return;
-      }
-
-      _setEditedCycle(
-        cycleId: currentCycle.id,
-        startDate: startDate,
-        menstruationLength: menstruationLength - 1,
-      );
-      return;
-    }
-
-    if (dayOffset == menstruationLength) {
-      if (dayOffset >= cycleLength || menstruationLength >= 14) {
-        _showMessage('Period length must stay within the cycle and 14 days.');
-        return;
-      }
-
-      _setEditedCycle(
-        cycleId: currentCycle.id,
-        startDate: startDate,
-        menstruationLength: menstruationLength + 1,
-      );
-      return;
-    }
-
-    if (dayOffset < lastPeriodOffset && dayOffset > 0) {
-      _showMessage('Only the first or last period day can be removed.');
-      return;
-    }
-
-    if (dayOffset < -1 || dayOffset > menstruationLength) {
-      _showMessage('Period length must stay within the cycle and 14 days.');
-      return;
+    final result = editPeriodBoundary(
+      selectedDate: selectedDate,
+      startDate: startDate,
+      cycleLength: cycleLength,
+      menstruationLength: menstruationLength,
+    );
+    switch (result) {
+      case UpdatedPeriodBoundary(
+          :final startDate,
+          :final menstruationLength,
+        ):
+        _setEditedCycle(
+          cycleId: currentCycle.id,
+          startDate: startDate,
+          menstruationLength: menstruationLength,
+        );
+      case InvalidPeriodBoundaryEdit(:final message):
+        _showMessage(message);
     }
   }
 
@@ -236,24 +148,20 @@ extension _CalendarScreenActions on _CalendarScreenState {
     final selectedDate = DateUtils.dateOnly(date);
 
     if (_editedCycleId != null) {
-      final editedCycle = cycles.cast<CycleSummary?>().firstWhere(
-            (cycle) => cycle?.id == _editedCycleId,
-            orElse: () => null,
-          );
+      final editedCycle = findCycleById(cycles, _editedCycleId);
       if (editedCycle != null &&
-          _isEditablePeriodBoundary(
+          isEditablePeriodBoundary(
             cycle: editedCycle,
             date: selectedDate,
             startDate: _selectedDate ?? editedCycle.startDate,
-            menstruationLength:
-                _editedMenstruationLength ?? editedCycle.menstruationLength,
+            menstruationLength: _editedMenstruationLength ?? editedCycle.menstruationLength,
           )) {
         return editedCycle;
       }
     }
 
     for (final cycle in cycles) {
-      if (_isEditablePeriodBoundary(
+      if (isEditablePeriodBoundary(
         cycle: cycle,
         date: selectedDate,
         startDate: cycle.startDate,
@@ -266,24 +174,6 @@ extension _CalendarScreenActions on _CalendarScreenState {
     return null;
   }
 
-  bool _isEditablePeriodBoundary({
-    required CycleSummary cycle,
-    required DateTime date,
-    required DateTime startDate,
-    required int? menstruationLength,
-  }) {
-    if (cycle.cycleLength == null || menstruationLength == null) {
-      return false;
-    }
-
-    final start = DateUtils.dateOnly(startDate);
-    final dayOffset = DateUtils.dateOnly(date).difference(start).inDays;
-    return dayOffset == -1 ||
-        dayOffset == 0 ||
-        dayOffset == menstruationLength - 1 ||
-        dayOffset == menstruationLength;
-  }
-
   void _showMessage(String message) {
     if (!mounted) {
       return;
@@ -294,6 +184,17 @@ extension _CalendarScreenActions on _CalendarScreenState {
         content: Text(message, style: const TextStyle(color: Colors.white)),
       ),
     );
+  }
+
+  String _cycleErrorMessage(Object error, String fallback) {
+    return switch (error) {
+      FutureCycleException() => error.message,
+      CycleLengthException() => error.message,
+      MenstruationLengthException() => error.message,
+      DuplicateCycleException() => error.message,
+      OverlappingCycleException() => error.message,
+      _ => '$fallback: $error',
+    };
   }
 
   void _showCycleUpdatedFeedback() {
@@ -314,9 +215,9 @@ extension _CalendarScreenActions on _CalendarScreenState {
               Text(
                 'Cycle updated!',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
             ],
           ),

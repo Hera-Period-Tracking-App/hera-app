@@ -49,8 +49,7 @@ CyclePhaseContext cyclePhaseContextForDate(
     return CyclePhaseContext(
       phase: CyclePhase.follicular,
       dayOfCycle: 1,
-      cycleLength:
-          fallbackCycleLength > 0 ? fallbackCycleLength : defaultCycleLength,
+      cycleLength: fallbackCycleLength > 0 ? fallbackCycleLength : defaultCycleLength,
       menstruationLength: defaultMenstruationLength,
       isPredictedOvulationDay: false,
       cycleStart: selected,
@@ -61,8 +60,7 @@ CyclePhaseContext cyclePhaseContextForDate(
     );
   }
 
-  final sortedCycles = [...cycles]
-    ..sort((a, b) => a.startDate.compareTo(b.startDate));
+  final sortedCycles = [...cycles]..sort((a, b) => a.startDate.compareTo(b.startDate));
   final latestCycle = sortedCycles.last;
   final latestCycleStart = DateTime(
     latestCycle.startDate.year,
@@ -89,8 +87,7 @@ CyclePhaseContext cyclePhaseContextForDate(
     anchorCycle.startDate.day,
   );
 
-  final useForecastForLatestCycle =
-      forecast != null && !selected.isBefore(latestCycleStart);
+  final useForecastForLatestCycle = forecast != null && !selected.isBefore(latestCycleStart);
   final cycleLength = useForecastForLatestCycle
       ? forecast.cycleLength
       : (anchorCycle.cycleLength != null && anchorCycle.cycleLength! > 0)
@@ -99,23 +96,18 @@ CyclePhaseContext cyclePhaseContextForDate(
 
   final menstruationLength = useForecastForLatestCycle
       ? forecast.menstruationLength
-      : (anchorCycle.menstruationLength != null &&
-              anchorCycle.menstruationLength! > 0)
+      : (anchorCycle.menstruationLength != null && anchorCycle.menstruationLength! > 0)
           ? anchorCycle.menstruationLength!
           : defaultMenstruationLength;
 
-  final safeMenstruationLength =
-      menstruationLength.clamp(1, cycleLength).toInt();
+  final safeMenstruationLength = menstruationLength.clamp(1, cycleLength).toInt();
   final ovulationDayNumber = useForecastForLatestCycle
       ? forecast.ovulationDay.clamp(1, cycleLength).toInt()
       : (cycleLength - lutealPhaseLength + 1).clamp(1, cycleLength).toInt();
 
   final dayDelta = selected.difference(anchorStart).inDays;
-  final cycleOffset = dayDelta >= 0
-      ? dayDelta ~/ cycleLength
-      : ((dayDelta - (cycleLength - 1)) ~/ cycleLength);
-  final effectiveStart =
-      anchorStart.add(Duration(days: cycleOffset * cycleLength));
+  final cycleOffset = dayDelta >= 0 ? dayDelta ~/ cycleLength : ((dayDelta - (cycleLength - 1)) ~/ cycleLength);
+  final effectiveStart = anchorStart.add(Duration(days: cycleOffset * cycleLength));
   final dayOfCycle = selected.difference(effectiveStart).inDays + 1;
 
   return _phaseForDate(
@@ -165,8 +157,7 @@ CyclePhaseContext _phaseForDate({
   CyclePhase phase;
   if (!date.isBefore(startDate) && !date.isAfter(menstruationEnd)) {
     phase = CyclePhase.menstruation;
-  } else if (!date.isBefore(fertileWindowStart) &&
-      !date.isAfter(fertileWindowEnd)) {
+  } else if (!date.isBefore(fertileWindowStart) && !date.isAfter(fertileWindowEnd)) {
     phase = CyclePhase.ovulation;
   } else if (!date.isBefore(follicularStart) && !date.isAfter(follicularEnd)) {
     phase = CyclePhase.follicular;
@@ -181,9 +172,8 @@ CyclePhaseContext _phaseForDate({
     dayOfCycle: dayOfCycle,
     cycleLength: cycleLength,
     menstruationLength: menstruationLength,
-    isPredictedOvulationDay: date.year == ovulationDay.year &&
-        date.month == ovulationDay.month &&
-        date.day == ovulationDay.day,
+    isPredictedOvulationDay:
+        date.year == ovulationDay.year && date.month == ovulationDay.month && date.day == ovulationDay.day,
     cycleStart: startDate,
     cycleEnd: cycleEnd,
     predictedNextPeriod: predictedNextPeriod,

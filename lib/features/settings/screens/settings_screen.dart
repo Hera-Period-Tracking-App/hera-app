@@ -4,10 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/localization/app_language_provider.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
-import 'package:hera_app/features/auth/models/auth_session.dart';
-import 'package:hera_app/features/auth/providers/auth_provider.dart';
-import 'package:hera_app/features/auth/repositories/auth_repository.dart';
-import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 import 'package:hera_app/l10n/generated/app_localizations.dart';
 
@@ -17,8 +13,6 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final authState = ref.watch(settingsAuthSessionProvider);
-    final isSignedIn = authState.asData?.value.isAuthenticated ?? false;
     final language =
         ref.watch(appLanguageProvider).asData?.value ?? AppLanguage.english;
     final l10n = AppLocalizations.of(context);
@@ -91,29 +85,6 @@ class SettingsScreen extends ConsumerWidget {
                     .setAiSummariesEnabled(enabled),
               ),
               const SizedBox(height: 12),
-              SwitchListTile(
-                activeThumbColor: AppColors.sun,
-                activeTrackColor: AppColors.sun.withValues(alpha: 0.35),
-                secondary: const Icon(Icons.sync),
-                title: Text(l10n.automaticSync),
-                subtitle: Text(
-                  isSignedIn
-                      ? l10n.automaticSyncSignedInDescription
-                      : l10n.automaticSyncSignedOutDescription,
-                ),
-                value: isSignedIn && value.autoSyncEnabled,
-                onChanged: isSignedIn
-                    ? (enabled) async {
-                        await ref
-                            .read(settingsProvider.notifier)
-                            .setAutoSyncEnabled(enabled);
-                        if (enabled) {
-                          ref.read(autoSyncProvider).syncOnStartup();
-                        }
-                      }
-                    : null,
-              ),
-              const SizedBox(height: 12),
               ListTile(
                 leading: const Icon(Icons.language),
                 title: Text(l10n.language),
@@ -174,13 +145,3 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
-
-final settingsAuthSessionProvider = FutureProvider.autoDispose<AuthSession>((
-  ref,
-) async {
-  final authSession = ref.watch(authSessionProvider).asData?.value;
-  if (authSession?.isAuthenticated == true) {
-    return authSession!;
-  }
-  return ref.read(authRepositoryProvider).getCurrentSession();
-});

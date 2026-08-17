@@ -12,73 +12,30 @@ extension _CalendarScreenContent on _CalendarScreenState {
   }) {
     final l10n = AppLocalizations.of(context);
     final legendOverlayHeight = _isLegendVisible ? 108.0 : 0.0;
-    final now = DateTime.now();
-    final nowMonth = DateTime(now.year, now.month);
-    final earliestCycleMonth =
-        CalendarViewUtils.earliestCycleMonth(cycles) ?? nowMonth;
-    final firstMonth = DateTime(
-      earliestCycleMonth.year,
-      earliestCycleMonth.month -
-          _CalendarScreenState._monthsBeforeEarliestCycle,
-    );
-    final lastMonth = DateTime(
-      nowMonth.year,
-      nowMonth.month + _CalendarScreenState._monthsAfterCurrent,
-    );
-    final monthCount = (lastMonth.year - firstMonth.year) * 12 +
-        (lastMonth.month - firstMonth.month) +
-        1;
-    final targetFocusDate = _pendingFocusDate ?? widget.focusDate;
-    final focusedMonth = targetFocusDate == null
-        ? nowMonth
-        : DateTime(targetFocusDate.year, targetFocusDate.month);
-    final focusedMonthIndex = (focusedMonth.year - firstMonth.year) * 12 +
-        (focusedMonth.month - firstMonth.month);
-    final safeFocusedMonthIndex = focusedMonthIndex.clamp(0, monthCount - 1);
-    final safeFocusedMonth = DateTime(
-      firstMonth.year,
-      firstMonth.month + safeFocusedMonthIndex,
-    );
-    final noteDateKeys = notesEnabled
-        ? notes.map((note) => CalendarViewUtils.dateKey(note.date)).toSet()
-        : const <String>{};
-    final isFlowActive = widget.isStartNewCycleFlow ||
-        widget.isAddNoteFlow ||
-        widget.isEditCurrentCycleFlow;
-    final isCycleDateFlow =
-        widget.isStartNewCycleFlow || widget.isEditCurrentCycleFlow;
-    final editedCycle = _editedCycleId == null
-        ? null
-        : cycles.cast<CycleSummary?>().firstWhere(
-              (cycle) => cycle?.id == _editedCycleId,
-              orElse: () => null,
-            );
-    final editedCycles = widget.isEditCurrentCycleFlow && editedCycle != null
-        ? cycles
-            .map(
-              (cycle) => cycle.id == editedCycle.id
-                  ? CycleSummary(
-                      id: cycle.id,
-                      startDate: _selectedDate ?? cycle.startDate,
-                      cycleLength: cycle.cycleLength,
-                      menstruationLength:
-                          _editedMenstruationLength ?? cycle.menstruationLength,
-                    )
-                  : cycle,
-            )
-            .toList(growable: false)
-        : cycles;
+    final isFlowActive = widget.isStartNewCycleFlow || widget.isAddNoteFlow || widget.isEditCurrentCycleFlow;
+    final isCycleDateFlow = widget.isStartNewCycleFlow || widget.isEditCurrentCycleFlow;
+    final viewData = CalendarViewData.create(
+        cycles: cycles,
+        notes: notes,
+        notesEnabled: notesEnabled,
+        focusDate: _pendingFocusDate ?? widget.focusDate,
+        isEditingCycle: widget.isEditCurrentCycleFlow,
+        editedCycleId: _editedCycleId,
+        editedStartDate: _selectedDate,
+        editedMenstruationLength: _editedMenstruationLength,
+        monthsBeforeEarliestCycle: _CalendarScreenState._monthsBeforeEarliestCycle,
+        monthsAfterCurrent: _CalendarScreenState._monthsAfterCurrent);
     _precachePhaseDates(
-      cycles: editedCycles,
+      cycles: viewData.cycles,
       forecast: forecast,
-      firstMonth: firstMonth,
-      monthCount: monthCount,
+      firstMonth: viewData.firstMonth,
+      monthCount: viewData.monthCount,
     );
 
     _ensureCurrentMonthInitialPosition(
-      firstMonth: firstMonth,
-      focusedMonth: safeFocusedMonth,
-      focusedMonthIndex: safeFocusedMonthIndex,
+      firstMonth: viewData.firstMonth,
+      focusedMonth: viewData.focusedMonth,
+      focusedMonthIndex: viewData.focusedMonthIndex,
       forceRecenter: _forceRecenterOnBuild,
     );
 
@@ -108,17 +65,13 @@ extension _CalendarScreenContent on _CalendarScreenState {
             )
           else
             Text(
-              widget.isStartNewCycleFlow
-                  ? l10n.selectNewCycleStartDate
-                  : l10n.selectNoteDate,
+              widget.isStartNewCycleFlow ? l10n.selectNewCycleStartDate : l10n.selectNoteDate,
               style: theme.textTheme.titleMedium,
             ),
           if (!widget.isEditCurrentCycleFlow) ...[
             const SizedBox(height: 8),
             Text(
-              widget.isStartNewCycleFlow
-                  ? l10n.newCycleDateRules
-                  : l10n.noteDateRules,
+              widget.isStartNewCycleFlow ? l10n.newCycleDateRules : l10n.noteDateRules,
               style: theme.textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
@@ -128,7 +81,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                l10n.selectedDate(_formatRouteDate(_selectedDate!)),
+                l10n.selectedDate(DateTimeFormatter.toIsoDate(_selectedDate!)),
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -154,22 +107,24 @@ extension _CalendarScreenContent on _CalendarScreenState {
                 physics: const ClampingScrollPhysics(),
                 padding: EdgeInsets.only(bottom: legendOverlayHeight + 8),
                 scrollCacheExtent: const ScrollCacheExtent.pixels(300),
-                itemCount: monthCount,
+                itemCount: viewData.monthCount,
                 itemBuilder: (context, index) {
-                  final month = DateTime(firstMonth.year, firstMonth.month + index);
+                  final month = DateTime(
+                    viewData.firstMonth.year,
+                    viewData.firstMonth.month + index,
+                  );
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 24),
                     child: CalendarMonthSection(
                       month: month,
                       phaseDates: _phaseDatesForMonth(
-                        cycles: editedCycles,
+                        cycles: viewData.cycles,
                         month: month,
                         forecast: forecast,
                       ),
-                      noteDateKeys: noteDateKeys,
-                      selectedDate: widget.isStartNewCycleFlow
-                          ? _selectedDate
-                          : null,
+                      cycles: viewData.cycles,
+                      noteDateKeys: viewData.noteDateKeys,
+                      selectedDate: widget.isStartNewCycleFlow ? _selectedDate : null,
                       onDatePressed: (date) {
                         if (widget.isEditCurrentCycleFlow) {
                           _toggleCurrentPeriodDay(
@@ -220,7 +175,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _isSavingCycle ? null : _cancelStartNewCycle,
+                    onPressed: _isSavingCycle ? null : _cancelCalendarFlow,
                     child: Text(l10n.cancel),
                   ),
                 ),
@@ -240,8 +195,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
                             : () => _startNewCycle(
                                   cycles: cycles,
                                   profileCycleLength: profileCycleLength,
-                                  profileMenstruationLength:
-                                      profileMenstruationLength,
+                                  profileMenstruationLength: profileMenstruationLength,
                                 ),
                     child: _isSavingCycle
                         ? const SizedBox(
@@ -250,9 +204,7 @@ extension _CalendarScreenContent on _CalendarScreenState {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
-                            widget.isEditCurrentCycleFlow
-                                ? l10n.saveChanges
-                                : l10n.startNewCycle,
+                            widget.isEditCurrentCycleFlow ? l10n.saveChanges : l10n.startNewCycle,
                           ),
                   ),
                 ),

@@ -12,19 +12,6 @@ class OnboardingStep {
           subtitle: 'A private cycle companion shaped around your body and data.',
         );
 
-  const OnboardingStep.privacy()
-      : this._(
-          type: OnboardingStepType.privacy,
-          title: 'Choose your privacy mode',
-          subtitle: '',
-        );
-
-  const OnboardingStep.register()
-      : this._(
-          type: OnboardingStepType.register,
-          title: 'Create your sync account',
-          subtitle: 'Secure sync uses your Gmail and password to prepare backup.',
-        );
 
   const OnboardingStep.cycleLength()
       : this._(
@@ -47,12 +34,6 @@ class OnboardingStep {
           subtitle: 'Choose the date your most recent cycle began.',
         );
 
-  const OnboardingStep.login()
-      : this._(
-          type: OnboardingStepType.login,
-          title: 'Log in to your sync account',
-          subtitle: 'Use your existing email address and password to continue.',
-        );
 
   final OnboardingStepType type;
   final String title;
@@ -61,10 +42,7 @@ class OnboardingStep {
 
 enum OnboardingStepType {
   welcome,
-  privacy,
-  register,
   cycleLength,
   menstruationLength,
   lastCycleStart,
-  login,
 }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/core/constants/app_constants.dart';
 import 'package:hera_app/core/database/app_database.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
-import 'package:hera_app/core/services/privacy_mode_manager.dart';
 import 'package:hera_app/features/settings/models/settings_state.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
 
@@ -17,19 +16,18 @@ class SettingsService {
   final Ref _ref;
 
   Future<SettingsState> loadSettings() async {
-    final privacyMode = await _ref.read(privacyModeManagerProvider.future);
     final appSettings = await _readOrCreateAppSettings();
     final userSettings = await _readOrCreateUserSettings();
 
     return SettingsState(
-      privacyMode: privacyMode,
+      privacyMode: PrivacyMode.localOnly,
       biometricsEnabled:
           await _readBool(AppConstants.biometricsEnabledKey),
       pinEnabled: await _readBool(AppConstants.pinEnabledKey),
       notificationsEnabled: appSettings.notificationsEnabled,
       notesEnabled: userSettings.notesEnabled,
       aiSummariesEnabled: userSettings.aiEnabled,
-      autoSyncEnabled: appSettings.syncEnabled,
+      autoSyncEnabled: false,
     );
   }
 
@@ -46,35 +44,6 @@ class SettingsService {
     return loadSettings();
   }
 
-  Future<SettingsState> setAutoSyncEnabled(bool enabled) async {
-    final database = _ref.read(appDatabaseProvider);
-
-    await database.into(database.appSettings).insertOnConflictUpdate(
-          AppSettingsCompanion.insert(
-            id: 'default',
-            syncEnabled: Value(enabled),
-          ),
-        );
-
-    return loadSettings();
-  }
-
-  Future<SettingsState> setPrivacyMode(PrivacyMode mode) async {
-    final database = _ref.read(appDatabaseProvider);
-    final userSettings = await _readOrCreateUserSettings();
-
-    await (database.update(database.userSettings)
-          ..where((row) => row.id.equals(userSettings.id)))
-        .write(
-      UserSettingsCompanion(
-        privacyMode: Value(mode.name),
-        updatedAt: Value(DateTime.now()),
-      ),
-    );
-    await _ref.read(privacyModeManagerProvider.notifier).setMode(mode);
-
-    return loadSettings();
-  }
 
   Future<SettingsState> setAiSummariesEnabled(bool enabled) async {
     final database = _ref.read(appDatabaseProvider);
@@ -172,11 +141,10 @@ class SettingsService {
       return existing;
     }
 
-    final privacyMode = await _ref.read(privacyModeManagerProvider.future);
     final now = DateTime.now();
     final companion = UserSettingsCompanion.insert(
       id: 'default',
-      privacyMode: privacyMode.name,
+      privacyMode: 'localOnly',
       createdAt: now,
       updatedAt: Value(now),
     );

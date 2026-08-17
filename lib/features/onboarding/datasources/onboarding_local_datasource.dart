@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hera_app/core/constants/app_constants.dart';
 import 'package:hera_app/core/database/app_database.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
-import 'package:hera_app/core/services/privacy_mode_manager.dart';
 import 'package:hera_app/features/onboarding/models/onboarding_status.dart';
 import 'package:hera_app/shared/models/privacy_mode.dart';
 
@@ -18,16 +17,12 @@ class OnboardingLocalDataSource {
 
   Future<OnboardingStatus> loadStatus() async {
     final storage = _ref.read(secureStorageDataSourceProvider);
-    final privacyMode =
-        await _ref.read(privacyModeManagerProvider.future).catchError(
-              (_) => PrivacyMode.localOnly,
-            );
     final hasCompletedOnboarding =
         await storage.read(AppConstants.onboardingCompletedKey) == 'true';
 
     return OnboardingStatus(
       hasCompletedOnboarding: hasCompletedOnboarding,
-      selectedPrivacyMode: privacyMode,
+      selectedPrivacyMode: PrivacyMode.localOnly,
     );
   }
 
@@ -50,7 +45,6 @@ class OnboardingLocalDataSource {
       ),
     );
 
-    await _ref.read(privacyModeManagerProvider.notifier).setMode(privacyMode);
     await storage.write(AppConstants.onboardingCompletedKey, 'true');
 
     return OnboardingStatus(

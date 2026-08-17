@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
+import 'package:hera_app/core/utils/date_time_formatter.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
+import 'package:hera_app/features/calendar/models/calendar_view_data.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_legend_card.dart';
 import 'package:hera_app/features/calendar/widgets/calendar_month_section.dart';
 import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
@@ -17,10 +19,11 @@ import 'package:hera_app/features/cycles/exceptions/overlapping_cycle_exception.
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/cycles/providers/cycles_provider.dart';
 import 'package:hera_app/features/cycles/repositories/cycle_repository.dart';
+import 'package:hera_app/features/cycles/utils/cycle_selection.dart';
+import 'package:hera_app/features/cycles/utils/period_boundary_editor.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/providers/notes_provider.dart';
 import 'package:hera_app/features/profile/providers/profile_provider.dart';
-import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
 import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.dart';
@@ -28,8 +31,6 @@ import 'package:hera_app/shared/providers/shell_navigation_visibility_provider.d
 part 'calendar_screen_actions.dart';
 part 'calendar_screen_content.dart';
 part 'calendar_screen_scroll.dart';
-
-double? _lastCalendarScrollOffset;
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({
@@ -66,6 +67,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   bool _positionedAtCurrentMonth = false;
   bool _forceRecenterOnBuild = false;
   double? _pendingScrollOffset;
+  double? _lastCalendarScrollOffset;
   bool _isRestoringScrollOffset = false;
   DateTime? _selectedDate;
   DateTime? _pendingFocusDate;
@@ -77,12 +79,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    final restoredEditScrollOffset =
-        widget.editScrollOffset ?? _lastCalendarScrollOffset;
+    final restoredEditScrollOffset = widget.editScrollOffset ?? _lastCalendarScrollOffset;
     _monthScrollController = ScrollController(
-      initialScrollOffset: widget.isEditCurrentCycleFlow
-          ? restoredEditScrollOffset ?? 0.0
-          : 0.0,
+      initialScrollOffset: widget.isEditCurrentCycleFlow ? restoredEditScrollOffset ?? 0.0 : 0.0,
     );
     _monthScrollController.addListener(() {
       if (_monthScrollController.hasClients) {
@@ -95,7 +94,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _pendingScrollOffset = restoredEditScrollOffset;
     }
     _updateShellNavigationVisibility();
-
   }
 
   @override
@@ -103,27 +101,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     super.didUpdateWidget(oldWidget);
     _updateShellNavigationVisibility();
 
-    final enteringStartCycleFlow =
-        !oldWidget.isStartNewCycleFlow && widget.isStartNewCycleFlow;
-    final enteringAddNoteFlow =
-        !oldWidget.isAddNoteFlow && widget.isAddNoteFlow;
-    final enteringEditCurrentCycleFlow =
-        !oldWidget.isEditCurrentCycleFlow && widget.isEditCurrentCycleFlow;
+    final enteringStartCycleFlow = !oldWidget.isStartNewCycleFlow && widget.isStartNewCycleFlow;
+    final enteringAddNoteFlow = !oldWidget.isAddNoteFlow && widget.isAddNoteFlow;
+    final enteringEditCurrentCycleFlow = !oldWidget.isEditCurrentCycleFlow && widget.isEditCurrentCycleFlow;
     final exitingFlow =
-        (oldWidget.isStartNewCycleFlow ||
-                oldWidget.isAddNoteFlow ||
-                oldWidget.isEditCurrentCycleFlow) &&
+        (oldWidget.isStartNewCycleFlow || oldWidget.isAddNoteFlow || oldWidget.isEditCurrentCycleFlow) &&
             !widget.isStartNewCycleFlow &&
             !widget.isAddNoteFlow &&
             !widget.isEditCurrentCycleFlow;
-    final focusTokenChanged =
-        oldWidget.focusTodayToken != widget.focusTodayToken &&
-            widget.focusTodayToken != null;
+    final focusTokenChanged = oldWidget.focusTodayToken != widget.focusTodayToken && widget.focusTodayToken != null;
     final addNoteFocusTokenChanged =
-        oldWidget.focusAddNoteToken != widget.focusAddNoteToken &&
-            widget.focusAddNoteToken != null;
-    final focusDateChanged =
-        oldWidget.focusDate != widget.focusDate && widget.focusDate != null;
+        oldWidget.focusAddNoteToken != widget.focusAddNoteToken && widget.focusAddNoteToken != null;
+    final focusDateChanged = oldWidget.focusDate != widget.focusDate && widget.focusDate != null;
 
     // Editing should keep the month the user was already viewing.  Only the
     // selected cycle date is needed for the edit form; it must not reposition
@@ -135,15 +124,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       // initState does not run on a second edit attempt. Reapply the offset
       // supplied by the route after the list attaches, ahead of PageStorage.
       _pendingScrollOffset = widget.editScrollOffset ??
-          (_monthScrollController.hasClients
-              ? _monthScrollController.offset
-              : _lastCalendarScrollOffset);
+          (_monthScrollController.hasClients ? _monthScrollController.offset : _lastCalendarScrollOffset);
       _positionedAtCurrentMonth = false;
       _forceRecenterOnBuild = false;
     }
 
-    final shouldRecenter =
-        enteringStartCycleFlow ||
+    final shouldRecenter = enteringStartCycleFlow ||
         enteringAddNoteFlow ||
         focusTokenChanged ||
         addNoteFocusTokenChanged ||
@@ -180,9 +166,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   void _updateShellNavigationVisibility() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref
-            .read(shellNavigationVisibleProvider.notifier)
-            .setVisible(!widget.isEditCurrentCycleFlow);
+        ref.read(shellNavigationVisibleProvider.notifier).setVisible(!widget.isEditCurrentCycleFlow);
       }
     });
   }
@@ -204,9 +188,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final isFlowActive = widget.isStartNewCycleFlow ||
-        widget.isAddNoteFlow ||
-        widget.isEditCurrentCycleFlow;
+    final isFlowActive = widget.isStartNewCycleFlow || widget.isAddNoteFlow || widget.isEditCurrentCycleFlow;
     final isBusy = _isSavingCycle;
 
     return Scaffold(
@@ -238,12 +220,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     icon: const Icon(Icons.edit_calendar),
                     onPressed: () {
                       final scrollOffset = _lastCalendarScrollOffset ??
-                          (_monthScrollController.hasClients
-                              ? _monthScrollController.offset
-                              : null);
-                      final scrollQuery = scrollOffset == null
-                          ? ''
-                          : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
+                          (_monthScrollController.hasClients ? _monthScrollController.offset : null);
+                      final scrollQuery =
+                          scrollOffset == null ? '' : '&editScrollOffset=${scrollOffset.toStringAsFixed(1)}';
                       context.go(
                         '${AppRoutePaths.calendar}?editCurrentCycle=true$scrollQuery',
                       );
@@ -253,13 +232,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 orElse: () => const SizedBox.shrink(),
               ),
             IconButton(
-              tooltip: _isLegendVisible
-                  ? l10n.hideCalendarLegend
-                  : l10n.showCalendarLegend,
+              tooltip: _isLegendVisible ? l10n.hideCalendarLegend : l10n.showCalendarLegend,
               icon: Icon(
-                _isLegendVisible
-                    ? Icons.info_rounded
-                    : Icons.info_outline_rounded,
+                _isLegendVisible ? Icons.info_rounded : Icons.info_outline_rounded,
               ),
               onPressed: () {
                 setState(() => _isLegendVisible = !_isLegendVisible);
@@ -293,8 +268,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     profileMenstruationLength: null,
                     forecast: forecastAsync.value,
                   ),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Center(
                     child: Text(l10n.couldNotLoadNotes(error.toString())),
                   ),
@@ -454,11 +428,4 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _phaseDatesCacheVersion = cacheVersion;
     }
   }
-}
-
-String _formatRouteDate(DateTime date) {
-  final normalized = DateTime(date.year, date.month, date.day);
-  return '${normalized.year.toString().padLeft(4, '0')}-'
-      '${normalized.month.toString().padLeft(2, '0')}-'
-      '${normalized.day.toString().padLeft(2, '0')}';
 }
