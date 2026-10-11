@@ -64,17 +64,6 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
     );
   }
 
-  Future<void> setAutoSyncEnabled(bool enabled) async {
-    final previous = state.asData?.value;
-    if (previous != null) {
-      state = AsyncData(previous.copyWith(autoSyncEnabled: enabled));
-    }
-
-    state = await AsyncValue.guard(
-      () => ref.read(settingsRepositoryProvider).setAutoSyncEnabled(enabled),
-    );
-  }
-
   Future<void> setAppLock({
     required bool enabled,
     required bool biometricsEnabled,

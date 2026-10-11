@@ -130,7 +130,7 @@ class NoteRepository {
       content = await _decryptNoteContent(row.encryptedContent);
     } catch (_) {
       content = _looksEncrypted(row.encryptedContent)
-          ? 'This note could not be decrypted. Try syncing again after logging in.'
+          ? 'This note could not be decrypted on this device.'
           : row.encryptedContent;
     }
 

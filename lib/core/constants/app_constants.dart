@@ -2,7 +2,6 @@ class AppConstants {
   const AppConstants._();
 
   static const appName = 'Hera';
-  static const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8080');
   static const secureStorageDataSource = 'secure_storage_service';
   static const onboardingCompletedKey = 'onboarding_completed';
   static const notificationPermissionPromptedKey =
@@ -18,14 +17,7 @@ class AppConstants {
   static const biometricsEnabledKey = 'biometrics_enabled';
   static const pinEnabledKey = 'pin_enabled';
   static const appLockPinKey = 'app_lock_pin';
-  static const authAccessTokenKey = 'auth_access_token';
-  static const authSessionKey = 'auth_session';
-  static const authDeviceIdKey = 'auth_device_id';
-  static const lastAuthAccountKey = 'last_auth_account';
-  static const pendingAuthAccountSwitchKey = 'pending_auth_account_switch';
   static const deletedNoteTombstonesKey = 'deleted_note_tombstones';
-  static const pendingCycleConflictsKey = 'pending_cycle_conflicts';
   static const customSymptomsKey = 'custom_symptoms';
-  static const syncCursorKey = 'sync_cursor';
   static const appLanguageCodeKey = 'app_language_code';
 }

@@ -43,7 +43,7 @@ class CalendarLegendCard extends StatelessWidget {
               const SizedBox(height: 10),
 
               CalendarLegendItem(
-                color: (phaseColors?.follicular ??
+                color: (phaseColors?.ovulation ??
                         theme.colorScheme.secondary)
                     .withValues(alpha: 0.85),
                 label: l10n.fertile,

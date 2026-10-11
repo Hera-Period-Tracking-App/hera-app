@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/dev/dev_flags.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
-import 'package:hera_app/features/auth/screens/auth_screen.dart';
 import 'package:hera_app/features/calendar/screens/add_note_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_date_details_screen.dart';
 import 'package:hera_app/features/calendar/screens/calendar_screen.dart';
@@ -13,11 +12,9 @@ import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/screens/notes_screen.dart';
 import 'package:hera_app/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hera_app/features/onboarding/screens/onboarding_screen.dart';
-import 'package:hera_app/features/profile/screens/edit_account_screen.dart';
 import 'package:hera_app/features/profile/screens/profile_screen.dart';
 import 'package:hera_app/features/settings/screens/app_lock_disable_screen.dart';
 import 'package:hera_app/features/settings/screens/app_lock_setup_screen.dart';
-import 'package:hera_app/features/settings/screens/cycle_conflict_resolution_screen.dart';
 import 'package:hera_app/features/settings/screens/settings_screen.dart';
 import 'package:hera_app/l10n/generated/app_localizations.dart';
 
@@ -32,22 +29,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isOnboardingRoute =
           state.matchedLocation == AppRoutePaths.onboarding;
-      final isAccountSetupRoute =
-          state.matchedLocation == AppRoutePaths.accountSetup;
 
       if (onboardingState.isLoading || onboardingState.hasError) {
-        return isOnboardingRoute || isAccountSetupRoute
-            ? null
-            : AppRoutePaths.onboarding;
+        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
       }
 
       final hasCompletedOnboarding =
           onboardingState.asData?.value.hasCompletedOnboarding ?? false;
 
       if (forceShowOnboarding) {
-        return isOnboardingRoute || isAccountSetupRoute
-            ? null
-            : AppRoutePaths.onboarding;
+        return isOnboardingRoute ? null : AppRoutePaths.onboarding;
       }
 
       if (!hasCompletedOnboarding) {
@@ -58,10 +49,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutePaths.home;
       }
 
-      if (isAccountSetupRoute) {
-        return null;
-      }
-
       return null;
     },
     routes: [
@@ -69,32 +56,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutePaths.onboarding,
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: AppRoutePaths.accountSetup,
-        name: 'account-setup',
-        builder: (context, state) =>
-            const OnboardingScreen(accountSetupOnly: true),
-      ),
-      GoRoute(
-        path: AppRoutePaths.auth,
-        name: 'auth',
-        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.login),
-      ),
-      GoRoute(
-        path: AppRoutePaths.authLogin,
-        name: 'auth-login',
-        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.login),
-      ),
-      GoRoute(
-        path: AppRoutePaths.authSignup,
-        name: 'auth-signup',
-        builder: (context, state) => const AuthScreen(mode: AuthScreenMode.signup),
-      ),
-      GoRoute(
-        path: AppRoutePaths.cycleConflicts,
-        name: 'cycle-conflicts',
-        builder: (context, state) => const CycleConflictResolutionScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -206,11 +167,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: AppRoutePaths.profile,
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
-              ),
-              GoRoute(
-                path: AppRoutePaths.editAccount,
-                name: 'edit-account',
-                builder: (context, state) => const EditAccountScreen(),
               ),
               GoRoute(
                 path: AppRoutePaths.settings,

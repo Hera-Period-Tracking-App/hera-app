@@ -7,7 +7,6 @@ import 'package:hera_app/core/theme/app_theme_style.dart';
 import 'package:hera_app/core/theme/theme_style_provider.dart';
 import 'package:hera_app/features/cycle_notifications/providers/cycle_notification_sync_provider.dart';
 import 'package:hera_app/features/settings/providers/app_lock_provider.dart';
-import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
 import 'package:hera_app/features/settings/screens/app_unlock_screen.dart';
 import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:hera_app/shared/providers/app_startup_provider.dart';
@@ -25,7 +24,6 @@ class _HeraAppState extends ConsumerState<HeraApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    Future.microtask(() => ref.read(autoSyncProvider).syncOnStartup());
   }
 
   @override
@@ -36,9 +34,7 @@ class _HeraAppState extends ConsumerState<HeraApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.read(autoSyncProvider).syncIfStale();
-    } else if (state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.inactive) {
       // Android marks the app inactive while its native fingerprint dialog is
       // open. Locking here cancels that dialog before authentication finishes.
       if (ref.read(appLockProvider.notifier).isAuthenticatingWithBiometrics) {
@@ -59,7 +55,6 @@ class _HeraAppState extends ConsumerState<HeraApp> with WidgetsBindingObserver {
     final startupReady = ref.watch(appStartupReadyProvider);
     final appLock = ref.watch(appLockProvider);
     ref.watch(cycleNotificationSyncProvider);
-    ref.watch(autoSyncProvider);
 
     if (!startupReady.hasValue) {
       return MaterialApp(

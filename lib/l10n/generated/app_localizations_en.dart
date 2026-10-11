@@ -22,40 +22,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appLock => 'App lock';
 
   @override
-  String get appLockBiometricsDescription =>
-      'Unlock Hera with biometrics, with PIN as backup.';
+  String get appLockBiometricsDescription => 'Unlock Hera with biometrics, with PIN as backup.';
 
   @override
   String get appLockPinDescription => 'Unlock Hera with your PIN.';
 
   @override
-  String get appLockDisabledDescription =>
-      'Require biometrics or a backup PIN when opening the app.';
+  String get appLockDisabledDescription => 'Require biometrics or a backup PIN when opening the app.';
 
   @override
   String get notes => 'Notes';
 
   @override
-  String get notesDescription =>
-      'Show saved notes and allow adding new notes from the app.';
+  String get notesDescription => 'Show saved notes and allow adding new notes from the app.';
 
   @override
   String get aiSummaries => 'AI summaries';
 
   @override
-  String get aiSummariesDescription =>
-      'Allow Hera to generate cycle summaries from your local cycle data and notes.';
+  String get aiSummariesDescription => 'Allow Hera to generate cycle summaries from your local cycle data and notes.';
 
   @override
   String get automaticSync => 'Automatic sync';
 
   @override
-  String get automaticSyncSignedInDescription =>
-      'Automatically sync encrypted data with the server when the app runs.';
+  String get automaticSyncSignedInDescription => 'Automatically sync encrypted data with the server when the app runs.';
 
   @override
-  String get automaticSyncSignedOutDescription =>
-      'Sign in to enable automatic server sync.';
+  String get automaticSyncSignedOutDescription => 'Sign in to enable automatic server sync.';
 
   @override
   String get language => 'Language';
@@ -82,8 +76,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startNewCycle => 'Start new cycle';
 
   @override
-  String get startNewCycleDescription =>
-      'Begin tracking a fresh cycle start date.';
+  String get startNewCycleDescription => 'Begin tracking a fresh cycle start date.';
 
   @override
   String couldNotLoadSettings(String error) {
@@ -150,19 +143,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get editCycleInstruction =>
-      'Tap on days you want your period to be added or removed.';
+  String get editCycleInstruction => 'Tap on days you want your period to be added or removed.';
 
   @override
-  String get selectNewCycleStartDate =>
-      'Select a start date for your new cycle.';
+  String get selectNewCycleStartDate => 'Select a start date for your new cycle.';
 
   @override
   String get selectNoteDate => 'Select a date for your note.';
 
   @override
-  String get newCycleDateRules =>
-      'Future dates are disabled. Existing cycle rules are applied when saving.';
+  String get newCycleDateRules => 'Future dates are disabled. Existing cycle rules are applied when saving.';
 
   @override
   String get noteDateRules => 'Each date can have one note.';
@@ -199,14 +189,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveNote => 'Save note';
 
   @override
-  String get writeNoteOrSymptomsBeforeSaving =>
-      'Write a note or add symptoms before saving.';
+  String get writeNoteOrSymptomsBeforeSaving => 'Write a note or add symptoms before saving.';
 
   @override
   String get noteSaved => 'Note saved.';
 
   @override
   String get noteUpdated => 'Note updated.';
+
+  @override
+  String get deleteNote => 'Delete note';
+
+  @override
+  String get deleteNoteQuestion => 'Delete note?';
+
+  @override
+  String get deleteNoteWarning => 'This note will be permanently deleted from this device.';
+
+  @override
+  String get noteDeleted => 'Note deleted.';
 
   @override
   String couldNotSaveNote(String error) {
@@ -313,16 +314,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get addCycleFirstForPredictions =>
-      'Add a cycle first to see predictions.';
+  String get addCycleFirstForPredictions => 'Add a cycle first to see predictions.';
 
   @override
   String get forecastExplanation =>
       'These forecast settings are calculated from your saved previous cycles. Your latest cycle only sets the starting point for the first predicted date.';
 
   @override
-  String get predictionDisclaimer =>
-      'Predictions are estimates and may be inaccurate. They are not medical advice.';
+  String get predictionDisclaimer => 'Predictions are estimates and may be inaccurate. They are not medical advice.';
 
   @override
   String get forecastSettings => 'FORECAST SETTINGS';
@@ -363,8 +362,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get predictedFullCyclePhaseTimeline =>
-      'Predicted full cycle phase timeline';
+  String get predictedFullCyclePhaseTimeline => 'Predicted full cycle phase timeline';
 
   @override
   String get phaseMenstruation => 'Menstruation';
@@ -394,8 +392,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get current => 'CURRENT';
 
   @override
-  String get profileDescription =>
-      'Basic user details, privacy controls, and app settings are grouped here.';
+  String get profileDescription => 'Basic user details, privacy controls, and app settings are grouped here.';
 
   @override
   String get averageCycleSettings => 'Average cycle settings';
@@ -416,8 +413,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotLoadSavedAverages => 'Could not load your saved averages.';
 
   @override
-  String get profileSettingsDescription =>
-      'Manage notifications, AI summaries, and other app preferences.';
+  String get profileSettingsDescription => 'Manage notifications, AI summaries, and other app preferences.';
 
   @override
   String get openSettings => 'Open settings';
@@ -426,8 +422,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account => 'Account';
 
   @override
-  String get signedOutAccountDescription =>
-      'You are not signed in. Create an account or log in to use secure sync.';
+  String get signedOutAccountDescription => 'You are not signed in. Create an account or log in to use secure sync.';
 
   @override
   String get signedInAccountDescription => 'You are signed in.';
@@ -472,8 +467,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Upload encrypted local records, then pull newer encrypted changes from the API into the local database.';
 
   @override
-  String get syncSignedOutDescription =>
-      'Sign in first to sync local encrypted data with the API.';
+  String get syncSignedOutDescription => 'Sign in first to sync local encrypted data with the API.';
 
   @override
   String get syncing => 'Syncing...';
@@ -505,8 +499,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateEmail => 'Update email';
 
   @override
-  String get updateEmailDescription =>
-      'Change the email address connected to your account.';
+  String get updateEmailDescription => 'Change the email address connected to your account.';
 
   @override
   String get newEmail => 'New email';
@@ -524,8 +517,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updatePassword => 'Update password';
 
   @override
-  String get updatePasswordDescription =>
-      'Choose a new password for this account.';
+  String get updatePasswordDescription => 'Choose a new password for this account.';
 
   @override
   String get newPassword => 'New password';
@@ -549,8 +541,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emailUpdated => 'Email updated.';
 
   @override
-  String get newPasswordTooShort =>
-      'New password must be at least 8 characters.';
+  String get newPasswordTooShort => 'New password must be at least 8 characters.';
 
   @override
   String get newPasswordsDoNotMatch => 'New passwords do not match.';
@@ -565,12 +556,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAccountQuestion => 'Delete account?';
 
   @override
-  String get deleteAccountWarning =>
-      'This deletes your account and encrypted sync records. This cannot be undone.';
+  String get deleteAccountWarning => 'This deletes your account and encrypted sync records. This cannot be undone.';
 
   @override
-  String get deleteAccountDescription =>
-      'Permanently delete your account and encrypted sync records.';
+  String get deleteAccountDescription => 'Permanently delete your account and encrypted sync records.';
 
   @override
   String get deleting => 'Deleting...';
@@ -582,8 +571,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingCycleData => 'Loading cycle data...';
 
   @override
-  String get couldNotLoadCycleMonthRing =>
-      'Could not load cycle data for the month ring.';
+  String get couldNotLoadCycleMonthRing => 'Could not load cycle data for the month ring.';
 
   @override
   String dayOfCycle(int day, int length) {
@@ -613,16 +601,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currentCycleSummary => 'Current cycle summary';
 
   @override
-  String get currentCycleSummaryUnavailable =>
-      'Current cycle summary unavailable';
+  String get currentCycleSummaryUnavailable => 'Current cycle summary unavailable';
 
   @override
-  String get buildingCurrentCycleSummary =>
-      'Building a summary from your cycle data and notes...';
+  String get buildingCurrentCycleSummary => 'Building a summary from your cycle data and notes...';
 
   @override
-  String get couldNotBuildCurrentCycleSummary =>
-      'Could not build the current cycle summary.';
+  String get couldNotBuildCurrentCycleSummary => 'Could not build the current cycle summary.';
 
   @override
   String get privacyModeTitle => 'Privacy mode';

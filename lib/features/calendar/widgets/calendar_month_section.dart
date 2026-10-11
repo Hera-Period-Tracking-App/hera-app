@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hera_app/core/theme/cycle_phase_colors.dart';
 import 'package:hera_app/features/calendar/utils/calendar_view_utils.dart';
+import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +10,7 @@ class CalendarMonthSection extends StatelessWidget {
     required this.month,
     required this.phaseDates,
     required this.noteDateKeys,
+    required this.cycles,
     required this.onDatePressed,
     this.selectedDate,
     super.key,
@@ -17,6 +19,7 @@ class CalendarMonthSection extends StatelessWidget {
   final DateTime month;
   final CalendarPhaseDates phaseDates;
   final Set<String> noteDateKeys;
+  final List<CycleSummary> cycles;
   final ValueChanged<DateTime> onDatePressed;
   final DateTime? selectedDate;
 
@@ -32,6 +35,13 @@ class CalendarMonthSection extends StatelessWidget {
     final selectedKey =
         selectedDate == null ? null : CalendarViewUtils.dateKey(selectedDate!);
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
+    CycleSummary? cycle;
+    for (final value in cycles) {
+      if (value.startDate.year == month.year && value.startDate.month == month.month) {
+        cycle = value;
+        break;
+      }
+    }
     final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
     final leadingEmptyCells = firstDayOfMonth.weekday % 7;
     final totalCells = ((leadingEmptyCells + daysInMonth + 6) ~/ 7) * 7;
@@ -59,15 +69,17 @@ class CalendarMonthSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isCurrentMonth)
+                if (cycle != null)
                   Text(
-                    l10n.current,
+                    '${cycle.cycleLength ?? 28} day cycle · ${cycle.menstruationLength ?? 5} day period',
+                    textAlign: TextAlign.right,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
                     ),
-                  ),
+                  )
+                else if (isCurrentMonth)
+                  Text(l10n.current, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700, letterSpacing: 1)),
               ],
             ),
           ),
@@ -113,7 +125,7 @@ class CalendarMonthSection extends StatelessWidget {
                   : isActualOvulationDay || isPredictedOvulationDay
                       ? phaseColors?.ovulation ?? theme.colorScheme.secondary
                       : isActualFertileDay || isPredictedFertileDay
-                          ? phaseColors?.follicular ??
+                          ? phaseColors?.ovulation ??
                               theme.colorScheme.secondary
                       : null;
               final isPredictedPhase = isPredictedMenstruationDay ||

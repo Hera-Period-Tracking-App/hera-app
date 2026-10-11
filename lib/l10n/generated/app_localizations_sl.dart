@@ -22,40 +22,34 @@ class AppLocalizationsSl extends AppLocalizations {
   String get appLock => 'Zaklep aplikacije';
 
   @override
-  String get appLockBiometricsDescription =>
-      'Odkleni Hero z biometrijo, PIN je rezervna možnost.';
+  String get appLockBiometricsDescription => 'Odkleni Hero z biometrijo, PIN je rezervna možnost.';
 
   @override
   String get appLockPinDescription => 'Odkleni Hero s PIN-om.';
 
   @override
-  String get appLockDisabledDescription =>
-      'Zahtevaj biometrijo ali rezervni PIN ob odpiranju aplikacije.';
+  String get appLockDisabledDescription => 'Zahtevaj biometrijo ali rezervni PIN ob odpiranju aplikacije.';
 
   @override
   String get notes => 'Zapisi';
 
   @override
-  String get notesDescription =>
-      'Prikaži shranjene zapise in omogoči dodajanje novih zapisov.';
+  String get notesDescription => 'Prikaži shranjene zapise in omogoči dodajanje novih zapisov.';
 
   @override
   String get aiSummaries => 'AI povzetki';
 
   @override
-  String get aiSummariesDescription =>
-      'Dovoli Heri ustvarjanje povzetkov cikla iz lokalnih podatkov in zapisov.';
+  String get aiSummariesDescription => 'Dovoli Heri ustvarjanje povzetkov cikla iz lokalnih podatkov in zapisov.';
 
   @override
   String get automaticSync => 'Samodejna sinhronizacija';
 
   @override
-  String get automaticSyncSignedInDescription =>
-      'Samodejno sinhroniziraj šifrirane podatke s strežnikom.';
+  String get automaticSyncSignedInDescription => 'Samodejno sinhroniziraj šifrirane podatke s strežnikom.';
 
   @override
-  String get automaticSyncSignedOutDescription =>
-      'Za sinhronizacijo s strežnikom se najprej prijavi.';
+  String get automaticSyncSignedOutDescription => 'Za sinhronizacijo s strežnikom se najprej prijavi.';
 
   @override
   String get language => 'Jezik';
@@ -82,8 +76,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get startNewCycle => 'Začni nov cikel';
 
   @override
-  String get startNewCycleDescription =>
-      'Začni spremljati nov začetni datum cikla.';
+  String get startNewCycleDescription => 'Začni spremljati nov začetni datum cikla.';
 
   @override
   String couldNotLoadSettings(String error) {
@@ -123,8 +116,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get viewPredictions => 'Prikaži napovedi';
 
   @override
-  String get editCurrentCycleStartDate =>
-      'Uredi začetni datum trenutnega cikla';
+  String get editCurrentCycleStartDate => 'Uredi začetni datum trenutnega cikla';
 
   @override
   String get hideCalendarLegend => 'Skrij legendo kolendarja';
@@ -151,8 +143,7 @@ class AppLocalizationsSl extends AppLocalizations {
   }
 
   @override
-  String get editCycleInstruction =>
-      'Tapni dneve, ki jih želiš dodati ali odstraniti iz menstruacije.';
+  String get editCycleInstruction => 'Tapni dneve, ki jih želiš dodati ali odstraniti iz menstruacije.';
 
   @override
   String get selectNewCycleStartDate => 'Izberi začetni datum novega cikla.';
@@ -199,14 +190,25 @@ class AppLocalizationsSl extends AppLocalizations {
   String get saveNote => 'Shrani zapis';
 
   @override
-  String get writeNoteOrSymptomsBeforeSaving =>
-      'Pred shranjevanjem napiši zapis ali dodaj simptome.';
+  String get writeNoteOrSymptomsBeforeSaving => 'Pred shranjevanjem napiši zapis ali dodaj simptome.';
 
   @override
   String get noteSaved => 'Zapis shranjen.';
 
   @override
   String get noteUpdated => 'Zapis posodobljen.';
+
+  @override
+  String get deleteNote => 'Izbriši zapis';
+
+  @override
+  String get deleteNoteQuestion => 'Izbrišem zapis?';
+
+  @override
+  String get deleteNoteWarning => 'Ta zapis bo trajno izbrisan iz te naprave.';
+
+  @override
+  String get noteDeleted => 'Zapis je izbrisan.';
 
   @override
   String couldNotSaveNote(String error) {
@@ -314,16 +316,14 @@ class AppLocalizationsSl extends AppLocalizations {
   }
 
   @override
-  String get addCycleFirstForPredictions =>
-      'Najprej dodaj cikel, da vidiš napovedi.';
+  String get addCycleFirstForPredictions => 'Najprej dodaj cikel, da vidiš napovedi.';
 
   @override
   String get forecastExplanation =>
       'Te nastavitve napovedi so izračunane iz tvojih shranjenih prejšnjih ciklov. Zadnji cikel določi samo začetno točko prvega napovedanega datuma.';
 
   @override
-  String get predictionDisclaimer =>
-      'Napovedi so ocene in so lahko netočne. Niso zdravstveni nasvet.';
+  String get predictionDisclaimer => 'Napovedi so ocene in so lahko netočne. Niso zdravstveni nasvet.';
 
   @override
   String get forecastSettings => 'NASTAVITVE NAPOVEDI';
@@ -364,8 +364,7 @@ class AppLocalizationsSl extends AppLocalizations {
   }
 
   @override
-  String get predictedFullCyclePhaseTimeline =>
-      'Napovedana časovnica faz celotnega cikla';
+  String get predictedFullCyclePhaseTimeline => 'Napovedana časovnica faz celotnega cikla';
 
   @override
   String get phaseMenstruation => 'Menstruacija';
@@ -395,8 +394,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get current => 'TRENUTNO';
 
   @override
-  String get profileDescription =>
-      'Tukaj so zbrani osnovni podatki uporabnika, zasebnost in nastavitve aplikacije.';
+  String get profileDescription => 'Tukaj so zbrani osnovni podatki uporabnika, zasebnost in nastavitve aplikacije.';
 
   @override
   String get averageCycleSettings => 'Povprečne nastavitve cikla';
@@ -414,12 +412,10 @@ class AppLocalizationsSl extends AppLocalizations {
   String get loadingSavedAverages => 'Nalagam shranjena povprečja...';
 
   @override
-  String get couldNotLoadSavedAverages =>
-      'Shranjena povprečja se niso mogla naložiti.';
+  String get couldNotLoadSavedAverages => 'Shranjena povprečja se niso mogla naložiti.';
 
   @override
-  String get profileSettingsDescription =>
-      'Upravljaj obvestila, AI povzetke in druge nastavitve aplikacije.';
+  String get profileSettingsDescription => 'Upravljaj obvestila, AI povzetke in druge nastavitve aplikacije.';
 
   @override
   String get openSettings => 'Odpri nastavitve';
@@ -428,8 +424,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get account => 'Račun';
 
   @override
-  String get signedOutAccountDescription =>
-      'Nisi prijavljena. Ustvari račun ali se prijavi za varno sinhronizacijo.';
+  String get signedOutAccountDescription => 'Nisi prijavljena. Ustvari račun ali se prijavi za varno sinhronizacijo.';
 
   @override
   String get signedInAccountDescription => 'Prijavljena si.';
@@ -443,8 +438,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get checkingAccountStatus => 'Preverjam stanje računa...';
 
   @override
-  String get couldNotLoadAccountStatus =>
-      'Stanja računa ni bilo mogoče naložiti.';
+  String get couldNotLoadAccountStatus => 'Stanja računa ni bilo mogoče naložiti.';
 
   @override
   String get editAccount => 'Uredi račun';
@@ -475,8 +469,7 @@ class AppLocalizationsSl extends AppLocalizations {
       'Naloži šifrirane lokalne zapise, nato prenesi novejše šifrirane spremembe iz API-ja v lokalno bazo.';
 
   @override
-  String get syncSignedOutDescription =>
-      'Najprej se prijavi za sinhronizacijo lokalnih šifriranih podatkov z API-jem.';
+  String get syncSignedOutDescription => 'Najprej se prijavi za sinhronizacijo lokalnih šifriranih podatkov z API-jem.';
 
   @override
   String get syncing => 'Sinhroniziram...';
@@ -508,8 +501,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get updateEmail => 'Posodobi e-pošto';
 
   @override
-  String get updateEmailDescription =>
-      'Spremeni e-poštni naslov, povezan z računom.';
+  String get updateEmailDescription => 'Spremeni e-poštni naslov, povezan z računom.';
 
   @override
   String get newEmail => 'Nova e-pošta';
@@ -570,8 +562,7 @@ class AppLocalizationsSl extends AppLocalizations {
       'To izbriše tvoj račun in šifrirane sinhronizirane zapise. Tega ni mogoče razveljaviti.';
 
   @override
-  String get deleteAccountDescription =>
-      'Trajno izbriši račun in šifrirane sinhronizirane zapise.';
+  String get deleteAccountDescription => 'Trajno izbriši račun in šifrirane sinhronizirane zapise.';
 
   @override
   String get deleting => 'Brišem...';
@@ -583,8 +574,7 @@ class AppLocalizationsSl extends AppLocalizations {
   String get loadingCycleData => 'Nalagam podatke cikla...';
 
   @override
-  String get couldNotLoadCycleMonthRing =>
-      'Podatkov cikla za mesečni krog ni bilo mogoče naložiti.';
+  String get couldNotLoadCycleMonthRing => 'Podatkov cikla za mesečni krog ni bilo mogoče naložiti.';
 
   @override
   String dayOfCycle(int day, int length) {
@@ -614,16 +604,13 @@ class AppLocalizationsSl extends AppLocalizations {
   String get currentCycleSummary => 'Povzetek trenutnega cikla';
 
   @override
-  String get currentCycleSummaryUnavailable =>
-      'Povzetek trenutnega cikla ni na voljo';
+  String get currentCycleSummaryUnavailable => 'Povzetek trenutnega cikla ni na voljo';
 
   @override
-  String get buildingCurrentCycleSummary =>
-      'Ustvarjam povzetek iz podatkov cikla in zapisov...';
+  String get buildingCurrentCycleSummary => 'Ustvarjam povzetek iz podatkov cikla in zapisov...';
 
   @override
-  String get couldNotBuildCurrentCycleSummary =>
-      'Povzetka trenutnega cikla ni bilo mogoče ustvariti.';
+  String get couldNotBuildCurrentCycleSummary => 'Povzetka trenutnega cikla ni bilo mogoče ustvariti.';
 
   @override
   String get privacyModeTitle => 'Način zasebnosti';
@@ -646,6 +633,5 @@ class AppLocalizationsSl extends AppLocalizations {
   String get loadingPrivacyMode => 'Nalagam način zasebnosti...';
 
   @override
-  String get couldNotLoadPrivacyMode =>
-      'Načina zasebnosti ni bilo mogoče naložiti.';
+  String get couldNotLoadPrivacyMode => 'Načina zasebnosti ni bilo mogoče naložiti.';
 }

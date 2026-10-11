@@ -3,10 +3,6 @@ class AppRoutePaths {
 
   static const splash = '/splash';
   static const onboarding = '/onboarding';
-  static const accountSetup = '/onboarding/account-setup';
-  static const auth = '/auth';
-  static const authLogin = '/auth/login';
-  static const authSignup = '/auth/signup';
   static const home = '/home';
   static const calendar = '/calendar';
   static const calendarPredictions = '/calendar/predictions';
@@ -16,9 +12,7 @@ class AppRoutePaths {
   static const symptoms = '/symptoms';
   static const notes = '/notes';
   static const profile = '/profile';
-  static const editAccount = '/profile/account/edit';
   static const settings = '/profile/settings';
-  static const cycleConflicts = '/profile/settings/cycle-conflicts';
   static const appLockSetup = '/profile/settings/app-lock';
   static const appLockDisable = '/profile/settings/app-lock/disable';
 

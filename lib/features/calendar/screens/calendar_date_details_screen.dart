@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hera_app/core/routes/app_route_paths.dart';
 import 'package:hera_app/core/theme/app_colors.dart';
+import 'package:hera_app/core/utils/date_time_formatter.dart';
 import 'package:hera_app/features/notes/models/note.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
-import 'package:hera_app/features/settings/providers/auto_sync_provider.dart';
+import 'package:hera_app/features/notes/utils/note_content_codec.dart';
+import 'package:hera_app/features/notes/utils/note_option_labels.dart';
 import 'package:hera_app/features/settings/providers/settings_provider.dart';
+import 'package:hera_app/l10n/generated/app_localizations.dart';
 
 class CalendarDateDetailsScreen extends ConsumerWidget {
   const CalendarDateDetailsScreen({
@@ -23,22 +26,21 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Note note,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete note?'),
-          content: const Text(
-            'This note will be permanently deleted from this device.',
-          ),
+          title: Text(l10n.deleteNoteQuestion),
+          content: Text(l10n.deleteNoteWarning),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Delete'),
+              child: Text(l10n.deleteNote),
             ),
           ],
         );
@@ -50,15 +52,14 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
     }
 
     await ref.read(noteRepositoryProvider).deleteNote(note);
-    ref.read(autoSyncProvider).queueSync();
     if (!context.mounted) {
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         backgroundColor: AppColors.twilight,
-        content: Text('Note deleted.', style: TextStyle(color: Colors.white)),
+        content: Text(l10n.noteDeleted, style: const TextStyle(color: Colors.white)),
       ),
     );
     Navigator.of(context).maybePop();
@@ -66,6 +67,7 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final normalizedDate = DateTime(date.year, date.month, date.day);
     final notesEnabled = ref.watch(settingsProvider).maybeWhen(
@@ -76,7 +78,7 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_formatDateTitle(normalizedDate)),
+        title: Text(DateTimeFormatter.formatDateTitle(normalizedDate)),
         actions: [
           if (notesEnabled)
             noteAsync.maybeWhen(
@@ -85,7 +87,7 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
                   return IconButton(
                     onPressed: () => context.push(_noteEditorPath(normalizedDate)),
                     icon: const Icon(Icons.add),
-                    tooltip: 'Add note',
+                    tooltip: l10n.newNote,
                   );
                 }
 
@@ -98,12 +100,12 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
                         extra: note,
                       ),
                       icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Edit note',
+                      tooltip: l10n.editNote,
                     ),
                     IconButton(
                       onPressed: () => _deleteNote(context, ref, note),
                       icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Delete note',
+                      tooltip: l10n.deleteNote,
                     ),
                   ],
                 );
@@ -121,7 +123,7 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    'Notes are disabled in Settings.',
+                    l10n.notesDisabledInSettings,
                     style: theme.textTheme.bodyMedium,
                   ),
                 ),
@@ -136,37 +138,38 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
                         vertical: 8,
                       ),
                       child: Text(
-                        'No note for this date.',
+                        l10n.noNotesYet,
                         style: theme.textTheme.bodyMedium,
                       ),
                     );
                   }
 
-                  final noteDetails = _parseNoteDetails(note.encryptedContent);
+                  final noteDetails = NoteContentCodec.parse(
+                    note.encryptedContent,
+                  );
                   return Card(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (noteDetails.note.isNotEmpty)
+                          if (noteDetails.text.isNotEmpty)
                             _NoteDetailLine(
-                              label: 'Note:',
-                              value: noteDetails.note,
+                              label: '${l10n.notes}:',
+                              value: noteDetails.text,
                             ),
-                          if (noteDetails.note.isNotEmpty &&
-                              noteDetails.symptoms.isNotEmpty)
+                          if (noteDetails.text.isNotEmpty && noteDetails.symptoms.isNotEmpty)
                             const SizedBox(height: 12),
                           if (noteDetails.symptoms.isNotEmpty)
                             _NoteDetailLine(
-                              label: 'Symptoms:',
-                              value: noteDetails.symptoms,
+                              label: '${l10n.symptoms}:',
+                              value: noteDetails.symptoms.map((item) => symptomLabel(l10n, item)).join(', '),
                             ),
-                          if (noteDetails.flow.isNotEmpty) ...[
+                          if (noteDetails.flow != null) ...[
                             const SizedBox(height: 12),
                             _NoteDetailLine(
-                              label: 'Menstrual flow:',
-                              value: noteDetails.flow,
+                              label: '${l10n.menstrualFlow}:',
+                              value: flowLabel(l10n, noteDetails.flow!),
                             ),
                           ],
                         ],
@@ -175,7 +178,7 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Text('Could not load note: $error'),
+                error: (error, _) => Text(l10n.couldNotLoadNotes(error.toString())),
               ),
           ],
         ),
@@ -190,8 +193,7 @@ class CalendarDateDetailsScreen extends ConsumerWidget {
 }
 
 final _noteForDateProvider = StreamProvider.family(
-  (ref, DateTime date) =>
-      ref.watch(noteRepositoryProvider).watchNoteForDate(date),
+  (ref, DateTime date) => ref.watch(noteRepositoryProvider).watchNoteForDate(date),
 );
 
 class _NoteDetailLine extends StatelessWidget {
@@ -215,68 +217,4 @@ class _NoteDetailLine extends StatelessWidget {
       ),
     );
   }
-}
-
-_NoteDetails _parseNoteDetails(String content) {
-  final noteParts = <String>[];
-  var symptoms = '';
-  var flow = '';
-
-  for (final block in content.split('\n\n')) {
-    final value = block.trim();
-    if (value.startsWith('Symptoms: ')) {
-      symptoms = value.substring('Symptoms: '.length).trim();
-    } else if (value.startsWith('Menstrual flow: ')) {
-      flow = value.substring('Menstrual flow: '.length).trim();
-    } else if (value.isNotEmpty) {
-      noteParts.add(value);
-    }
-  }
-
-  return _NoteDetails(
-    note: noteParts.join('\n\n'),
-    symptoms: symptoms,
-    flow: flow,
-  );
-}
-
-class _NoteDetails {
-  const _NoteDetails({
-    required this.note,
-    required this.symptoms,
-    required this.flow,
-  });
-
-  final String note;
-  final String symptoms;
-  final String flow;
-}
-
-String _formatDateTitle(DateTime date) {
-  const weekdays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  return '${weekdays[date.weekday - 1]}, '
-      '${months[date.month - 1]} ${date.day}';
 }

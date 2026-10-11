@@ -45,11 +45,9 @@ extension _CalendarScreenScroll on _CalendarScreenState {
         firstMonth: firstMonth,
         monthIndex: focusedMonthIndex,
       );
-      final currentMonthSectionHeight =
-          CalendarViewUtils.estimateMonthSectionHeight(focusedMonth);
+      final currentMonthSectionHeight = CalendarViewUtils.estimateMonthSectionHeight(focusedMonth);
       final viewport = _monthScrollController.position.viewportDimension;
-      final centeredOffset =
-          targetOffset - ((viewport - currentMonthSectionHeight) / 2);
+      final centeredOffset = targetOffset - ((viewport - currentMonthSectionHeight) / 2);
       final positionedOffset = centeredOffset.clamp(0.0, maxOffset);
       _monthScrollController.jumpTo(positionedOffset);
       _lastCalendarScrollOffset = positionedOffset;
