@@ -59,13 +59,3 @@ Poleg tega je treba ročno preveriti na podprtem fizičnem Android in iOS telefo
 4. dovoljenje in prikaz lokalnih obvestil;
 5. nalaganje ter ustvarjanje lokalnega AI povzetka;
 6. namestitev čiste različice aplikacije in nadgradnjo obstoječe različice.
-
-## Izjava o uporabi generativne umetne inteligence
-
-Pri izdelavi dokumentacije za nalogo je bilo uporabljeno generativno orodje umetne inteligence **OpenAI Codex (agentski pomočnik)**.
-
-| Področje uporabe | Način uporabe | Kako je bil rezultat preverjen |
-| --- | --- | --- |
-| Ta dokument | Codex je pregledal prisotne teste, `analysis_options.yaml`, `pubspec.yaml`, `l10n.yaml` in strukturo repozitorija ter pripravil povzetek stanja. | Ročni pregled navedb proti datotekam v repozitoriju: najden je en widget test; najdene so konfiguracije lintanja, generatorjev in lokalizacije; niso najdene mape/konfiguracije za integracijske teste, CI ali poročila o pokritosti. |
-
-Generativna UI v okviru te naloge **ni spreminjala produkcijske Dart kode, testne kode ali platformskih nastavitev**. Njena uporaba je bila omejena na pripravo dokumentacije in povzetek dokazov, ki so bili nato preverjeni z neposrednim pregledom repozitorija.
