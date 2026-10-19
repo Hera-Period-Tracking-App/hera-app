@@ -74,11 +74,7 @@ check if there are errors in the test code and corect them. do not include the w
 
 Analiza je najprej odkrila napačno pot importa v koledarskem testu (`calendar/utils` namesto `cycles/utils`); ta je bila popravljena pred uspešno ponovno analizo in zagonom. Widget test ni bil vključen.
 
-### 11. Zamenjava testa za prekrivanje ciklov s testom dodajanja opombe
-
-Končna razporeditev je bila pozneje spremenjena na zahtevo uporabnika: test zavrnitve prekrivajočega se cikla je zamenjan s pozitivnim testom `NoteRepository.addNote`. Zgodovinski prompti zgoraj še vedno opisujejo prvotno različico; aktualno pokritost določa spodnja specifikacija in dejanska vsebina datotek `test/tc_*.dart`.
-
-### 12. Navodilo za pregled skladnosti dokumentacije
+### 11. Navodilo za pregled skladnosti dokumentacije
 
 ```text
 # NAVODILA ZA UI AGENTA – PRIPRAVA FUNKCIONALNIH TESTNIH PRIMEROV
