@@ -9,7 +9,8 @@ import 'package:hera_app/features/cycles/utils/period_boundary_editor.dart';
 /// Testni podatki: izbrani 5. 9. 2026 je 5. (zadnji) dan; 1. dan je začetek.
 /// Koraki: 1) Izvedi editPeriodBoundary za 5. 9. Pričakovano UpdatedPeriodBoundary.
 /// 2) Preveri rezultat. Pričakovano začetek 1. 9. in dolžina 4 dni.
-/// Končni rezultat: menstruacija zajema 1.–4. 9.; cikel ostane 28-dnevni.
+/// Končni rezultat: menstruacija zajema 1.–4. 9.; začetek ostane 1. 9.
+/// Dolžina cikla se v rezultatu te funkcije ne vrne in je ta test ne preverja.
 /// Sledljivost: calendar_screen_actions.dart in period_boundary_editor.dart.
 /// Predpostavka/omejitev: domenska funkcija je testirana neposredno, ne kliki/UI.
 /// Postpogoji/čiščenje: objekt rezultata je lokalen; ni trajnih sprememb.

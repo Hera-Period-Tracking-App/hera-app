@@ -3,11 +3,11 @@ import 'package:hera_app/features/notes/constants/note_options.dart';
 import 'package:hera_app/features/notes/utils/note_content_codec.dart';
 
 /// ISO/IEC/IEEE 29119-1:2022 opisuje splošne koncepte; ne predpisuje zapisa.
-/// ID: TC-NOTE-01 | Ime/cilj: ustvari in ponovno preberi opombo s simptomom/tokom.
+/// ID: TC-NOTE-01 | Ime/cilj: kodira in razčleni vsebino opombe s simptomom/tokom.
 /// Funkcionalnost: opombe in strukturirani simptomi/tok menstruacije. Prioriteta: srednja.
 /// Vrsta/tehnika: funkcionalni pozitivni test; round-trip serijske predstavitve.
 /// Predpogoji/okolje: NoteContentCodec; po končanem testu se lokalni niz zavrže.
-/// Testni podatki: datum 15. 9. 2026; tekst »Blagi krči.«; simptom Cramps;
+/// Testni podatki: tekst »Blagi krči.«; simptom Cramps;
 /// tok Medium (obe vrednosti sta v note_options.dart).
 /// Koraki: 1) Kodiraj tekst, simptom in tok. Pričakovano vsebina vključuje tri polja.
 /// 2) Razčleni kodirano vsebino. Pričakovano tekst, množica simptomov in tok se ujemajo.
