@@ -78,6 +78,241 @@ Analiza je najprej odkrila napačno pot importa v koledarskem testu (`calendar/u
 
 Končna razporeditev je bila pozneje spremenjena na zahtevo uporabnika: test zavrnitve prekrivajočega se cikla je zamenjan s pozitivnim testom `NoteRepository.addNote`. Zgodovinski prompti zgoraj še vedno opisujejo prvotno različico; aktualno pokritost določa spodnja specifikacija in dejanska vsebina datotek `test/tc_*.dart`.
 
+### 12. Navodilo za pregled skladnosti dokumentacije
+
+```text
+# NAVODILA ZA UI AGENTA – PRIPRAVA FUNKCIONALNIH TESTNIH PRIMEROV
+
+## 1. Vloga in cilj
+
+Deluj kot izkušen strokovnjak za zagotavljanje kakovosti programske opreme (QA Engineer), specializiran za funkcionalno testiranje in dokumentiranje testnih primerov po mednarodnem standardu ISO/IEC/IEEE 29119-3:2021.
+
+Tvoja naloga je za izbrani programski projekt pripraviti natanko **5 kakovostnih, medsebojno smiselno različnih funkcionalnih testnih primerov**, skupaj z dokumentacijo testne pokritosti in matriko sledljivosti.
+
+Pri pripravi upoštevaj:
+- ISO/IEC/IEEE 29119-3:2021, poglavje 8.3.2 – Test coverage items.
+- ISO/IEC/IEEE 29119-3:2021, poglavje 8.3.3 – Test cases.
+- ISO/IEC/IEEE 29119-3:2021, poglavje 8.4 – Test procedure specification.
+- Načela funkcionalnega testiranja in ustrezne tehnike načrtovanja testov, opisane v ISO/IEC/IEEE 29119-4:2021.
+
+Dokumentacija naj bo v slovenskem jeziku, strokovno pravilna, dosledna, razumljiva in primerna za oddajo pri univerzitetnem predmetu.
+
+## 2. Opis projekta
+
+**Naziv projekta:** [VSTAVI NAZIV]
+
+**Opis projekta:** [VSTAVI OPIS PROJEKTA]
+
+**Funkcionalnosti in poslovna pravila:** [VSTAVI FUNKCIONALNOSTI IN ZAHTEVE, ČE SO ZNANE]
+
+**Dokumentacija:** [PRILOŽI SZPO, UPORABNIŠKI PRIROČNIK ALI DRUGO DOKUMENTACIJO, ČE OBSTAJA]
+
+Če dokumentacija ne obstaja, iz opisa projekta identificiraj samo funkcionalnosti, ki jih je mogoče utemeljeno določiti. Ne izmišljaj si neznanih poslovnih pravil, uporabniških vmesnikov ali vedenja sistema.
+
+Če manjkajo bistvene informacije za pripravo preverljivih testov, najprej postavi vprašanja. Manjše predpostavke jasno označi in jih loči od potrjenih zahtev.
+
+## 3. Identifikacija funkcionalnosti
+
+Najprej določi funkcionalnosti, ki bodo predmet testiranja.
+
+Vsaki funkcionalnosti dodeli enolični identifikator F-01, F-02 itd.
+
+Pripravi tabelo:
+
+| ID funkcionalnosti | Naziv funkcionalnosti | Kratek opis | Vir zahteve |
+|---|---|---|---|
+
+Vključi samo funkcionalnosti, ki jih bo preverjal vsaj eden od petih testnih primerov.
+
+Če uradne dokumentacije ni, kot vir navedi »Opis projekta« ali »Predpostavka«, odvisno od izvora informacije.
+
+## 4. Določitev elementov testne pokritosti (Test Coverage Items)
+
+V skladu s poglavjem 8.3.2 standarda ISO/IEC/IEEE 29119-3:2021 identificiraj elemente testne pokritosti.
+
+Vsak element naj vsebuje:
+- Enolični identifikator (TCI-01, TCI-02 itd.).
+- Opis elementa testne pokritosti.
+- Prioriteto, kjer je potrebna.
+- Sledljivost do funkcionalnosti oziroma testnega modela.
+- Uporabljeno tehniko načrtovanja testa.
+
+Pripravi tabelo:
+
+| ID TCI | ID funkcionalnosti | Opis elementa testne pokritosti | Tehnika načrtovanja | Prioriteta |
+|---|---|---|---|---|
+
+Izberi tehnike, ki so primerne za konkretne funkcionalnosti, na primer:
+- Razredi ekvivalence (Equivalence Partitioning).
+- Analiza mejnih vrednosti (Boundary Value Analysis).
+- Odločitvene tabele (Decision Table Testing).
+- Prehodi med stanji (State Transition Testing).
+
+Tehnik ne uporabljaj zgolj zaradi raznolikosti. Vsako izbrano tehniko kratko utemelji in ne uporabljaj analize mejnih vrednosti, če ni znanih ustreznih omejitev.
+
+## 5. Izdelava petih testnih primerov (Test Case Specification)
+
+Na podlagi določenih elementov testne pokritosti pripravi natanko pet funkcionalnih testnih primerov z oznakami TC-001 do TC-005.
+
+Vsak testni primer mora vsebovati vse naslednje atribute, skladno s poglavjem 8.3.3 standarda:
+
+**1. Unique Identifier (8.3.3.2)**
+
+Enolični identifikator testnega primera, na primer TC-001.
+
+**2. Objective (8.3.3.3)**
+
+Kratek, jasen in nedvoumen cilj testiranja. Naziv naj opredeli, kaj test preverja.
+
+**3. Priority (8.3.3.4)**
+
+Prioriteta testnega primera (visoka, srednja ali nizka), določena glede na pomembnost funkcionalnosti, tveganje in posledice morebitne napake.
+
+**4. Traceability (8.3.3.5)**
+
+Povezava testnega primera na enega ali več elementov testne pokritosti (TCI) in pripadajoče funkcionalnosti (F).
+
+**5. Preconditions (8.3.3.6)**
+
+Natančno določeni predpogoji za izvedbo testa, vključno z zahtevanim stanjem sistema, testnimi podatki, uporabniškimi pravicami in omejitvami okolja, kadar so relevantni.
+
+**6. Inputs (8.3.3.7)**
+
+Konkretni vhodni podatki in dejanja, potrebna za izvedbo testa.
+
+Navedi dejanske testne vrednosti, kjer je to mogoče. Dejanja predstavi v logičnem vrstnem redu in jasno opredeli njihove medsebojne odvisnosti.
+
+**7. Expected Results (8.3.3.8)**
+
+Natančni, objektivno preverljivi pričakovani rezultati, ki določajo pravilno vedenje sistema.
+
+Izogibaj se nejasnim izrazom, kot so »sistem deluje pravilno«, »podatki se ustrezno shranijo« ali »prikaže se napaka«, brez dodatne konkretizacije.
+
+Za vsak testni primer uporabi enotno obliko dokumentacije.
+
+### Predloga posameznega testnega primera
+
+**TC-00X – [Naziv testnega primera]**
+
+| Atribut | Vsebina |
+|---|---|
+| Unique Identifier | TC-00X |
+| Objective | ... |
+| Priority | ... |
+| Traceability | F-XX → TCI-XX → TC-00X |
+| Preconditions | ... |
+| Test Data | ... |
+
+**Inputs in Expected Results**
+
+| Korak | Dejanje / vhodni podatki | Pričakovani rezultat |
+|---|---|---|
+| 1 | ... | ... |
+| 2 | ... | ... |
+| 3 | ... | ... |
+
+Dodaj tudi:
+- Popogoje (Postconditions), kadar so relevantni.
+- Dejanski rezultat (Actual Result): »Ni izvedeno«.
+- Status izvedbe: »Ni izveden«.
+
+Dodatna polja jasno loči od osnovnih elementov specifikacije testnega primera po poglavju 8.3.3.
+
+## 6. Testni postopki (Test Procedure Specification)
+
+Pri pripravi upoštevaj tudi poglavje 8.4 standarda ISO/IEC/IEEE 29119-3:2021.
+
+Za vsak test zagotovi jasen in ponovljiv vrstni red izvajanja dejanj.
+
+Ker gre za študijsko nalogo, lahko specifikacijo testnega primera in podrobne korake testnega postopka združiš v eno dokumentacijsko predlogo, vendar mora biti jasno razvidno, kateri podatki predstavljajo specifikacijo testa in kateri opisujejo njegovo izvedbo.
+
+Če je med testi potrebna odvisnost ali posebno zaporedje, to izrecno navedi.
+
+Ne trdi, da združena predloga predstavlja popolno samostojno specifikacijo testnega postopka po vseh določilih poglavja 8.4.
+
+## 7. Raznolikost in kakovost testnih primerov
+
+Izberi pet testnih primerov, ki skupaj preverjajo različne vidike funkcionalnosti.
+
+Kjer je smiselno, vključi:
+- Pozitivne testne primere z veljavnimi podatki.
+- Negativne testne primere z neveljavnimi podatki.
+- Preverjanje obveznih polj.
+- Preverjanje mejnih vrednosti.
+- Preverjanje sprememb stanja ali shranjevanja podatkov.
+
+Ne ustvarjaj petih skoraj enakih testnih primerov.
+
+Vsak testni primer mora biti:
+- Nedvoumen.
+- Ponovljiv.
+- Izvedljiv.
+- Neodvisen, kjer je to mogoče.
+- Povezan z jasno opredeljeno funkcionalnostjo.
+- Opremljen s konkretnimi vhodnimi podatki.
+- Opremljen z objektivno preverljivimi pričakovanimi rezultati.
+
+## 8. Matrika sledljivosti (Traceability Matrix)
+
+Pripravi matriko, ki povezuje funkcionalnosti, elemente testne pokritosti in testne primere.
+
+Uporabi naslednjo strukturo:
+
+| ID funkcionalnosti | Naziv funkcionalnosti | ID TCI | Opis TCI | ID testnega primera |
+|---|---|---|---|---|
+
+Zagotovi:
+- Vsak testni primer mora biti povezan z vsaj enim TCI.
+- Vsak TCI mora biti povezan z ustrezno funkcionalnostjo.
+- V matriki morajo biti zastopani vsi izdelani testni primeri.
+- Identifikatorji in opisi morajo biti skladni v celotni dokumentaciji.
+- Če en test preverja več elementov pokritosti, prikaži vse povezave.
+
+## 9. Pregled in validacija rezultatov
+
+Po pripravi dokumentacije izvedi kritičen pregled vseh petih testnih primerov.
+
+Preveri:
+1. Ali ima vsak test vse zahtevane atribute iz poglavja 8.3.3?
+2. Ali so cilji testiranja jasno opredeljeni?
+3. Ali so predpogoji dovolj natančni?
+4. Ali so testni podatki konkretni?
+5. Ali so koraki izvedbe ponovljivi?
+6. Ali so pričakovani rezultati objektivno preverljivi?
+7. Ali so testni primeri dovolj različni?
+8. Ali so vse povezave v matriki sledljivosti pravilne?
+9. Ali so vse predpostavke jasno označene?
+10. Ali so testi skladni z dejansko opisanimi funkcionalnostmi?
+
+Če ugotoviš pomanjkljivosti, popravi testne primere pred pripravo končne različice.
+
+Na koncu dodaj kratko tabelo:
+
+| Kriterij kakovosti | Rezultat preverjanja | Morebitne pripombe |
+|---|---|---|
+
+Ne trdi, da so bili testi dejansko izvedeni, če si pripravil samo njihovo specifikacijo.
+
+## 10. Oblika končne dokumentacije
+
+Pripravi enoten, profesionalno oblikovan dokument, primeren za izvoz v Word ali PDF, z naslednjo strukturo:
+
+1. Naslovnica – Funkcionalno testiranje [naziv projekta].
+2. Kratek opis projekta.
+3. Pregled izbranih funkcionalnosti.
+4. Elementi testne pokritosti.
+5. Pet dokumentiranih funkcionalnih testnih primerov.
+6. Matrika sledljivosti.
+7. Pregled kakovosti testnih primerov.
+8. Uporabljeni standardi in viri.
+
+Uporabi pregledne tabele, dosledne identifikatorje, oštevilčene korake in strokovno slovensko terminologijo.
+
+**Pomembno:** Dokumentacija naj temelji na standardu ISO/IEC/IEEE 29119-3:2021, vendar ne navajaj popolne skladnosti s standardom, če niso preverjene vse njegove zahteve.
+
+Ne izmišljaj si rezultatov izvedbe testiranja, neobstoječih zahtev, poslovnih pravil ali virov.
+```
+
 ## Pregled skladnosti z navodili za UI agenta
 
 Dokument je primerjan z navodili »NAVODILA ZA UI AGENTA – PRIPRAVA FUNKCIONALNIH TESTNIH PRIMEROV«. Ocena velja za dokumentacijo in trenutno prisotne testne datoteke, ne pomeni certifikacije ali popolne skladnosti s standardom.
