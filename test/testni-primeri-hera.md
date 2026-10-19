@@ -74,6 +74,10 @@ check if there are errors in the test code and corect them. do not include the w
 
 Analiza je najprej odkrila napačno pot importa v koledarskem testu (`calendar/utils` namesto `cycles/utils`); ta je bila popravljena pred uspešno ponovno analizo in zagonom. Widget test ni bil vključen.
 
+### 11. Zamenjava testa za prekrivanje ciklov s testom dodajanja opombe
+
+Končna razporeditev je bila pozneje spremenjena na zahtevo uporabnika: test zavrnitve prekrivajočega se cikla je zamenjan s pozitivnim testom `NoteRepository.addNote`. Zgodovinski prompti zgoraj še vedno opisujejo prvotno različico; aktualno pokritost določa spodnja specifikacija in dejanska vsebina datotek `test/tc_*.dart`.
+
 ## Pregled skladnosti z navodili za UI agenta
 
 Dokument je primerjan z navodili »NAVODILA ZA UI AGENTA – PRIPRAVA FUNKCIONALNIH TESTNIH PRIMEROV«. Ocena velja za dokumentacijo in trenutno prisotne testne datoteke, ne pomeni certifikacije ali popolne skladnosti s standardom.
@@ -98,19 +102,19 @@ Hera je Flutter aplikacija za zasebno, lokalno sledenje menstrualnemu ciklu. REA
 | ID funkcionalnosti | Naziv funkcionalnosti | Kratek opis | Vir zahteve |
 |---|---|---|---|
 | F-01 | Dodajanje cikla | Shrani datum začetka, dolžino cikla in dolžino menstruacije. | README projekta in `CycleRepository.addCycle`; testna vrednost je primer. |
-| F-02 | Preprečevanje prekrivanja ciklov | Zavrne nov cikel, ki se prekriva z obstoječim ciklom. | Implementacija `CycleRepository.addCycle`; test preverja pričakovano izjemo. |
+| F-02 | Dodajanje opombe | Doda opombo z normaliziranim datumom in šifrirano vsebino. | README opombe ter `NoteRepository.addNote` in `EncryptionService.encrypt`; test preverja obnašanje z fake shrambo. |
 | F-03 | Strukturirana vsebina opombe | Kodira in razčleni besedilo, simptome ter menstrualni tok. | `NoteContentCodec` in `note_options.dart`; README opisuje opombe. |
 | F-04 | Urejanje meje menstruacije | Uredi dolžino menstruacije z odstranitvijo izbranega zadnjega dne. | `editPeriodBoundary` v `period_boundary_editor.dart`; koledarska funkcionalnost v kodi. |
 | F-05 | Lokalno razporejanje opomnikov | Načrtuje obvestila glede na cikel, napoved, nastavitev in razpoložljivost obvestil. | README lokalnih opomnikov in `CycleNotificationScheduler.reschedule`. |
 
 ## Elementi testne pokritosti
 
-Tehnike v tabeli opisujejo dejansko zasnovo primerov. Razredi ekvivalence so uporabljeni le za veljaven oziroma prekrivajoč se cikel; mejna analiza je primerna za urejanje zadnjega dne. Ostali testi so usmerjeni v točno določen primer oziroma krožno kodiranje in razporejanje.
+Tehnike v tabeli opisujejo dejansko zasnovo primerov. Razred ekvivalence je uporabljen za veljaven cikel; mejna analiza je primerna za urejanje zadnjega dne. Ostali testi preverjajo dodajanje/šifriranje opombe, krožno kodiranje in razporejanje.
 
 | ID TCI | ID funkcionalnosti | Opis elementa testne pokritosti | Tehnika načrtovanja | Prioriteta |
 |---|---|---|---|---|
 | TCI-01 | F-01 | Veljaven cikel z začetkom 1. 9. 2026, dolžino 28 dni in menstruacijo 5 dni se doda v prazno shrambo. | Razred ekvivalence: veljavna kombinacija vhodov. | Visoka |
-| TCI-02 | F-02 | Nov cikel z začetkom 15. 9. 2026 se prekriva z obstoječim ciklom 1.–28. 9. 2026; dodajanje se zavrne, obstoječi zapis ostane. | Razred ekvivalence: prekrivajoč se interval (negativni primer). | Visoka |
+| TCI-02 | F-02 | Opomba z datumom 15. 9. 2026 ob 14:30 in vsebino z robnimi presledki se shrani z datumom brez ure, vsebina pa je šifrirana in se dešifrira v obrezano besedilo. | Preverjanje transformacije in povratnega dešifriranja; fake lokalna shramba. | Srednja |
 | TCI-03 | F-03 | Kodiranje in ponovno razčlenjevanje ohrani besedilo »Blagi krči.«, simptom `Cramps` in tok `Medium`. | Testiranje krožnega pretvarjanja (round-trip) znanih vrednosti. | Srednja |
 | TCI-04 | F-04 | Izbira zadnjega dne petdnevne menstruacije skrajša menstruacijo na štiri dni, začetni datum pa ostane enak. | Analiza mejne vrednosti zadnjega dne intervala. | Srednja |
 | TCI-05 | F-05 | Pri omogočenih obvestilih scheduler pripravi tri `period_soon` opomnike; prvi ima pričakovani naslov in čas. | Preverjanje izhoda storitve z determinističnim fake-om in časovnim oracle-om. | Srednja |
@@ -133,18 +137,18 @@ Spodnji povzetki združujejo specifikacijo testnega primera in postopek. Testna 
 | Postconditions | Fake vsebuje en zapis; po testu se zavrže. |
 | Actual Result / Status | Ni zabeležen / Ni dokumentiran. |
 
-### TC-002 – Zavrni prekrivajoči se cikel (TC-CYC-02)
+### TC-002 – Dodaj opombo (TC-NOTE-02)
 
 | Atribut | Vsebina |
 |---|---|
-| Unique Identifier | TC-002; ID v testni kodi TC-CYC-02; datoteka `tc_cyc_02_zavrni_prekrivanje_test.dart` |
-| Objective | Preveriti, da prekrivajoč se cikel sproži `OverlappingCycleException` in ne spremeni obstoječega zapisa. |
-| Priority | Visoka |
+| Unique Identifier | TC-002; ID v testni kodi TC-NOTE-02; datoteka `tc_note_02_dodaj_opombo_test.dart` |
+| Objective | Preveriti, da `NoteRepository.addNote` shrani opombo za datum brez ure in šifrira obrezano vsebino. |
+| Priority | Srednja |
 | Traceability | F-02 → TCI-02 → TC-002 |
-| Preconditions | Fake vsebuje cikel z začetkom 1. 9. 2026; cikel traja 28 dni, torej vključujoče do 28. 9. 2026; menstruacija traja 5 dni. |
-| Test Data | Nov cikel: začetek 15. 9. 2026, dolžina 28 dni, menstruacija 5 dni. |
-| Inputs in Expected Results | 1) Poskusi dodati novi cikel → vrže se `OverlappingCycleException`. 2) Preveri fake → še vedno vsebuje natanko en prvotni cikel z istimi vrednostmi. |
-| Postconditions | Fake se zavrže; trajna baza ni uporabljena. |
+| Preconditions | Pomnilniški fake `NoteLocalDataSource` in `SecureStorageDataSource`; uporabi se pravi `EncryptionService`, ne prava baza ali OS varna shramba. |
+| Test Data | Datum 15. 9. 2026 ob 14:30; vsebina `  Blagi krči.  `; `cycleId` ni podan. |
+| Inputs in Expected Results | 1) Pokliči `addNote` → klic se zaključi brez izjeme. 2) Preveri fake → vsebuje natanko en zapis z datumom 15. 9. 2026 ob 00:00, `cycleId` je `null`, vsebina ni shranjena kot čisto besedilo in JSON payload ima algoritem `A256GCM`. 3) Dešifriraj vsebino → rezultat je `Blagi krči.` brez začetnih/končnih presledkov. |
+| Postconditions | Fake zapis in ključ v pomnilniku se po testu zavržeta; SQLCipher baza ni uporabljena. |
 | Actual Result / Status | Ni zabeležen / Ni dokumentiran. |
 
 ### TC-003 – Ohrani strukturirana polja opombe (TC-NOTE-01)
@@ -196,7 +200,7 @@ Spodnji povzetki združujejo specifikacijo testnega primera in postopek. Testna 
 | ID funkcionalnosti | Naziv funkcionalnosti | ID TCI | Opis TCI | ID testnega primera |
 |---|---|---|---|---|
 | F-01 | Dodajanje cikla | TCI-01 | Doda veljaven cikel 1. 9. 2026 z dolžino 28 dni in menstruacijo 5 dni. | [TC-001 / TC-CYC-01](tc_cyc_01_dodaj_cikel_test.dart) |
-| F-02 | Preprečevanje prekrivanja ciklov | TCI-02 | Zavrne cikel z začetkom 15. 9., ki se prekriva z obstoječim 1.–28. 9. 2026. | [TC-002 / TC-CYC-02](tc_cyc_02_zavrni_prekrivanje_test.dart) |
+| F-02 | Dodajanje opombe | TCI-02 | Opombo zapiše z datumom brez ure ter šifrira in dešifrira vsebino. | [TC-002 / TC-NOTE-02](tc_note_02_dodaj_opombo_test.dart) |
 | F-03 | Strukturirana vsebina opombe | TCI-03 | Round-trip ohrani besedilo, simptom `Cramps` in tok `Medium`. | [TC-003 / TC-NOTE-01](tc_note_01_opomba_simptom_tok_test.dart) |
 | F-04 | Urejanje meje menstruacije | TCI-04 | Odstranitev izbranega zadnjega dne skrajša petdnevno menstruacijo na štiri dni. | [TC-004 / TC-CAL-01](tc_cal_01_meja_menstruacije_test.dart) |
 | F-05 | Lokalno razporejanje opomnikov | TCI-05 | Načrtuje tri `period_soon` opomnike; test preveri naslov in čas prvega. | [TC-005 / TC-NOTIF-01](tc_notif_01_urnik_opomnika_test.dart) |
@@ -207,9 +211,10 @@ Spodnji povzetki združujejo specifikacijo testnega primera in postopek. Testna 
 |---|---|---|
 | Vseh pet primerov ima enoličen ID in cilj | Ustrezno po dopolnitvi | TC-001–TC-005 so dokumentacijske oznake, preslikane na enolične ID-je v imenih testov in komentarjih izvornih datotek. |
 | Vhodi in pričakovani rezultati so konkretni | Večinoma ustrezno | Scheduler test uporablja relativni datum (`DateTime.now()`), a preverja konkretno relativno časovno razliko, naslov, payload in število opomnikov. |
-| Primeri so različni in ponovljivi | Večinoma ustrezno | Pokrivajo cikel, prekrivanje, codec opombe, mejo menstruacije in obvestila. Scheduler je determinističen glede na lokalni datum zagona. |
+| Primeri so različni in ponovljivi | Večinoma ustrezno | Pokrivajo dodajanje cikla, dodajanje in kodiranje opombe, mejo menstruacije ter obvestila. Scheduler je determinističen glede na lokalni datum zagona. |
 | Sledljivost funkcionalnost → TCI → test | Ustrezno | Vzpostavljena je v tabelah funkcionalnosti, TCI in specifikacijah ter povzeta v matriki. |
 | UI pokritost | Delno / nezadostno | Samo obstoječi `widget_test.dart` preverja UI; pet funkcionalnih primerov uporablja neposredne klice in fake objekte. |
+| Pozitivni in negativni primeri | Delno | Trenutnih pet funkcionalnih testov preverja pozitivne tokove; negativen primer zavrnitve prekrivanja ciklov je bil zamenjan. Smiselna naslednja dopolnitev je test zavrnitve prazne ali podvojene opombe. |
 | Nastavitve, varnost in prava baza | Ni pokrito s petimi primeri | Manjkajoči obsegi so izrecno navedeni zgoraj; za trditev o polni uporabniški pokritosti je treba dodati ustrezne teste. |
 | Rezultat in status dejanske izvedbe | Ni trajno dokumentirano | Testna koda ne vsebuje poročila o zadnjem zagonu. Zabeležiti je treba ukaz, okolje, datum, rezultate in napake po dejanski izvedbi. |
 | Predpostavke in omejitve | Večinoma navedene | Testi ne uporabljajo pravega OS obvestilnega sistema, SQLCipher baze ali zaslonov, zato teh plasti ne potrjujejo. |
