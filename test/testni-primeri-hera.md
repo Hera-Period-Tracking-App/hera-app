@@ -309,22 +309,6 @@ Uporabi pregledne tabele, dosledne identifikatorje, oštevilčene korake in stro
 Ne izmišljaj si rezultatov izvedbe testiranja, neobstoječih zahtev, poslovnih pravil ali virov.
 ```
 
-## Pregled skladnosti z navodili za UI agenta
-
-Dokument je primerjan z navodili »NAVODILA ZA UI AGENTA – PRIPRAVA FUNKCIONALNIH TESTNIH PRIMEROV«. Ocena velja za dokumentacijo in trenutno prisotne testne datoteke, ne pomeni certifikacije ali popolne skladnosti s standardom.
-
-| Zahteva iz navodil | Stanje | Ugotovitev / dopolnitev |
-|---|---|---|
-| Natanko pet funkcionalnih primerov | Delno izpolnjeno | Prisotnih je pet `tc_*` funkcionalnih testov in dodatni začetni widget test. Pet funkcionalnih primerov je spodaj označenih TC-001–TC-005; pri vsakem je naveden tudi ID TC-* iz testne kode. |
-| Identifikacija funkcionalnosti F-01… | Dopolnjeno v tem dokumentu | Dodana je tabela funkcionalnosti, ki jih dejanski testi pokrivajo. |
-| Elementi testne pokritosti TCI-01… | Dopolnjeno v tem dokumentu | Dodana je tabela TCI z vezavo na funkcionalnost in tehniko. |
-| Atributi iz 8.3.3: ID, cilj, prioriteta, sledljivost, predpogoji, vhodi, pričakovani rezultati | Delno izpolnjeno | Testne datoteke vsebujejo cilj, prioriteto, predpogoje, podatke, korake, pričakovane rezultate in sledljivost v komentarjih. Spodaj so podatki poenoteni v preglednicah. Noben od petih `tc_*` primerov ne izvede celotnega UI-toka skozi aplikacijo. |
-| Testni postopek po 8.4 | Delno izpolnjeno | Vsak Dart test ima zaporedje dejanj in asercij, toda dokument ne podaja ločenih postopkov zagona/priprave/čiščenja za vse primere. Za študijsko nalogo sta specifikacija in koraki združeni, kot dovoljujejo navodila. |
-| Actual Result in status | Manjka kot trajen zapis | V repozitoriju ni shranjenega poročila o rezultatih posameznih testov. Zato je dejanski rezultat označen kot »Ni zabeležen«, status pa »Ni dokumentiran«; ne sklepamo o uspehu iz same prisotnosti kode. |
-| Kakovostni pregled in viri | Dopolnjeno v tem dokumentu | Dodana sta pregled kakovosti ter seznam standardov in projektnih virov. |
-| Popolna skladnost s standardom | Ni zatrjevana | Dokument uporablja izbrane elemente predloge. Ne trdi popolne skladnosti z ISO/IEC/IEEE 29119-3:2021 ali 29119-4:2021. |
-
-**Pomembna razlika v obsegu:** prvotna navodila zahtevajo UI funkcionalne primere, vendar vseh pet `tc_*` testov neposredno kliče repository, codec, domensko funkcijo ali scheduler z fake-om. Zato so to avtomatizirani funkcionalni testi na ravni kode, ne dokaz, da je uporabniški tok preverjen skozi zaslon. Poleg tega sedanja razporeditev ne vsebuje testa nastavitev/varnosti; peti primer pokriva načrtovanje obvestil.
 
 ## Opis projekta in izbrani vir zahtev
 
