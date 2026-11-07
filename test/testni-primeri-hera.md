@@ -11,6 +11,26 @@ te mape. Spodnji opis fake objektov se nanaša na prvotne teste v `test/`.
 
 Dokument povezuje pet funkcionalnih testov v mapi `test/` z deli aplikacije, ki jih preverjajo. Testi so ločeni v Dart datoteke; komentarji v vsaki datoteki vsebujejo cilj, predpogoje, podatke, korake, pričakovane rezultate, predpostavke in čiščenje. Testi `tc_*` preverjajo domensko logiko ali storitve z uporabo fake/pomnilniških objektov; samo `widget_test.dart` je UI widget test.
 
+## Popravki po pregledu avtomatiziranih testov
+
+### 1. Koraki, predpogoji in testni podatki
+
+Dodal sem preverjanje, da vsak test začne s praznima tabelama ciklov in opomb, ter preverjanje datuma naprave za primera s fiksnimi datumi. Pri TC-004 in TC-005 sem dodal preverjanje pripravljenega cikla: začetnega datuma, dolžine cikla in menstruacije. Popravil sem tudi dokumentacijo, saj TC-002 ne potrebuje obstoječega cikla.
+
+Poslovni koraki in podatki vseh petih primerov so zajeti. Integracijski testi uporabljajo pravo testno bazo in platformne storitve namesto prvotnih ponaredkov.
+
+### 2. Preverjanje pričakovanih rezultatov
+
+Preveril sem, da skripte primerjajo konkretne rezultate: shranjeni cikel, datum in šifriranje opombe, besedilo s simptomom in tokom, štiridnevno menstruacijo ter podatke treh opomnikov. Uspeh zato ni odvisen samo od prikaza zaslona.
+
+Dokumentiral sem omejitve: obrezovanje besedila prav v repozitoriju in notranji tip `UpdatedPeriodBoundary` neposredno preverjata prvotna testa. Integracijska testa preverjata končni rezultat. Test opomnikov preverja registracijo pri sistemu, ne njihove prihodnje dostave.
+
+### 3. Robustnost skript
+
+Izbiro gumba z `.last` sem zamenjal z izbiro po vrsti gumba in besedilu. Klik po koordinatah sem zamenjal s platformnim dejanjem Nazaj. Dodal sem čakanje na zahtevano stanje elementa oziroma zaključek shranjevanja s časovno omejitvijo 30 sekund. Odstranil sem fiksno 11-sekundno pavzo pri opomnikih in s `try/finally` izboljšal čiščenje po testu.
+
+Vseh pet testov je uspešno prestalo zagon v premešanem vrstnem redu. To potrjuje delovanje v preverjenem zaporedju, ne vseh možnih vrstnih redov.
+
 ## Uporabljena navodila in ukazi po vrsti
 
 ### Izhodiščno navodilo uporabnika
@@ -417,7 +437,7 @@ Spodnji povzetki združujejo specifikacijo testnega primera in postopek. Testna 
 | Postconditions | Razporeditve so shranjene samo v fake objektu, ki se zavrže. |
 | Actual Result / Status | Ni zabeležen / Ni dokumentiran. |
 
-**Odvisnosti:** Testni primeri so zasnovani kot neodvisni. TC-002 sam pripravi svoj obstoječi cikel; TC-005 uporablja datum, izračunan iz lokalnega `DateTime.now()`, zato je ponovljiv glede na relativni datum, ne pa glede na en nespremenljiv koledarski datum.
+**Odvisnosti:** Testni primeri so zasnovani kot neodvisni. TC-002 ne potrebuje obstoječega cikla (`cycleId` ni podan); TC-004 sam pripravi cikel za urejanje. TC-005 uporablja datum, izračunan iz lokalnega `DateTime.now()`, zato je ponovljiv glede na relativni datum, ne pa glede na en nespremenljiv koledarski datum.
 
 ## Matrika sledljivosti
 

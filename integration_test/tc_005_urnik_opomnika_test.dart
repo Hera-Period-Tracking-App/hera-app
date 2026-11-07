@@ -21,12 +21,13 @@ void main() {
   testWidgets('TC-005: registriraj tri opomnike period_soon v sistemu', (tester) async {
     final env = TestEnvironment();
     final notifications = ObservedNotifications(env.storage);
-    final scheduler = CycleNotificationScheduler(notifications);
+    final scheduler = CycleNotificationScheduler(notifications, debugDiagnosticsEnabled: false);
     addTearDown(() async {
-      // The production scheduler also emits debug diagnostics, including a timer.
-      await Future<void>.delayed(const Duration(seconds: 11));
-      await notifications.cancelMany([...scheduler.notificationIds, 49996, 49997, 49998, 49999]);
-      await env.dispose(tester);
+      try {
+        await notifications.cancelMany(scheduler.notificationIds);
+      } finally {
+        await env.dispose(tester);
+      }
     });
     await env.initialize();
     expect(await notifications.notificationsEnabled(), isTrue,
@@ -39,6 +40,10 @@ void main() {
       menstruationLength: 5,
     );
     final cycles = await env.cycles.watchSummaries().first;
+    expect(cycles, hasLength(1));
+    expect(cycles.single.startDate, start);
+    expect(cycles.single.cycleLength, 28);
+    expect(cycles.single.menstruationLength, 5);
     expect(
         await scheduler.reschedule(
           cycles: cycles,

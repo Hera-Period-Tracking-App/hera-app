@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -13,11 +14,18 @@ void main() {
     final env = TestEnvironment();
     addTearDown(() => env.dispose(tester));
     await env.initialize();
+    requirePastDate(DateTime(2026, 9, 5));
     await env.cycles.addCycle(startDate: DateTime(2026, 9, 1), cycleLength: 28, menstruationLength: 5);
     final original = (await env.cycles.watchSummaries().first).single;
+    expect(original.startDate, DateTime(2026, 9, 1));
+    expect(original.cycleLength, 28);
+    expect(original.menstruationLength, 5);
     await env.mount(tester, '/calendar?editCurrentCycle=true&focusDate=2026-09-05');
     await tapCalendarDay(tester, DateTime(2026, 9, 5));
-    await tester.tap(find.text('Save changes'));
+    final save = find.widgetWithText(FilledButton, 'Save changes');
+    await waitForElement(tester, save.hitTestable());
+    await tester.tap(save);
+    await waitForElement(tester, save, absent: true);
     await tester.pumpAndSettle();
 
     final cycles = await env.cycles.watchSummaries().first;

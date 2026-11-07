@@ -7,12 +7,16 @@ import 'package:hera_app/features/cyclePrediction/cycle_forecast.dart';
 import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 
 final cycleNotificationSchedulerProvider = Provider<CycleNotificationScheduler>(
-  (ref) =>
-      CycleNotificationScheduler(ref.watch(notificationDataSourceProvider)),
+  (ref) => CycleNotificationScheduler(ref.watch(notificationDataSourceProvider)),
 );
 
 class CycleNotificationScheduler {
-  const CycleNotificationScheduler(this._notifications);
+  const CycleNotificationScheduler(
+    this._notifications, {
+    this.debugDiagnosticsEnabled = true,
+  });
+
+  final bool debugDiagnosticsEnabled;
 
   static const int _cycleCount = 3;
   static const int _latePeriodReminderDays = 7;
@@ -24,8 +28,7 @@ class CycleNotificationScheduler {
 
   List<int> get notificationIds => [
         for (var cycleIndex = 0; cycleIndex < _cycleCount; cycleIndex++)
-          for (var offset = 0; offset < _idsPerCycle; offset++)
-            _baseId + (cycleIndex * _idsPerCycle) + offset,
+          for (var offset = 0; offset < _idsPerCycle; offset++) _baseId + (cycleIndex * _idsPerCycle) + offset,
       ];
 
   Future<bool> reschedule({
@@ -40,21 +43,21 @@ class CycleNotificationScheduler {
       return false;
     }
 
-    final permissionsGranted = requestPermission
-        ? await _notifications.requestPermissions()
-        : await _notifications.notificationsEnabled();
+    final permissionsGranted =
+        requestPermission ? await _notifications.requestPermissions() : await _notifications.notificationsEnabled();
     if (!permissionsGranted) {
       return false;
     }
 
-    await _scheduleDebugTestNotification();
+    if (debugDiagnosticsEnabled) {
+      await _scheduleDebugTestNotification();
+    }
 
     if (cycles.isEmpty || forecast == null) {
       return true;
     }
 
-    final sortedCycles = [...cycles]
-      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+    final sortedCycles = [...cycles]..sort((a, b) => a.startDate.compareTo(b.startDate));
     final latestCycleStart = _dateOnly(sortedCycles.last.startDate);
 
     for (var cycleIndex = 0; cycleIndex < _cycleCount; cycleIndex++) {
@@ -62,8 +65,7 @@ class CycleNotificationScheduler {
         Duration(days: forecast.cycleLength * cycleIndex),
       );
       final nextPeriod = cycleStart.add(Duration(days: forecast.cycleLength));
-      final ovulation =
-          cycleStart.add(Duration(days: forecast.ovulationDay - 1));
+      final ovulation = cycleStart.add(Duration(days: forecast.ovulationDay - 1));
       final fertileWindowStart = ovulation.subtract(const Duration(days: 5));
       final lutealStart = ovulation.add(const Duration(days: 1));
       final baseId = _baseId + (cycleIndex * _idsPerCycle);
@@ -189,9 +191,7 @@ class CycleNotificationScheduler {
     required int baseId,
     required DateTime predictedPeriodStart,
   }) async {
-    for (var daysLate = 1;
-        daysLate <= _latePeriodReminderDays;
-        daysLate++) {
+    for (var daysLate = 1; daysLate <= _latePeriodReminderDays; daysLate++) {
       await _scheduleMorningReminder(
         id: baseId + daysLate - 1,
         date: predictedPeriodStart.add(Duration(days: daysLate)),
@@ -208,6 +208,5 @@ class CycleNotificationScheduler {
         'Log it if it has started.';
   }
 
-  DateTime _dateOnly(DateTime date) =>
-      DateTime(date.year, date.month, date.day);
+  DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 }

@@ -37,8 +37,12 @@ izključno testni napravi. Zahteva dovoljenje pred začetkom in ne upravlja
 sistemskega dialoga. Datum preverja z opazovanjem klica pravega datasource;
 ID, naslov in payload dodatno preveri pri OS. Dejanska prihodnja dostava ni
 preverjena. Testna priprava prihodnjega cikla gre neposredno prek datasource,
-saj običajni vnos prihodnjih ciklov ni dovoljen. Čiščenje počaka tudi na
-produkcijski diagnostični časovnik in odstrani njegove opomnike.
+saj običajni vnos prihodnjih ciklov ni dovoljen. Test izključi diagnostična
+debug obvestila in njihov časovnik, zato za čiščenje ne potrebuje fiksne
+pavze. Poslovne opomnike prekliče po vsakem zagonu.
+
+Podrobni [pregled skladnosti](pregled-skladnosti.md) preslika vsak primer na
+podatke, korake in asercije ter dokumentira popravke robustnosti in omejitve.
 
 ## Zagon
 

@@ -42,6 +42,10 @@ class TestEnvironment {
     if (Platform.isAndroid) {
       await applyWorkaroundToOpenSqlCipherOnOldAndroidVersions();
     }
+    expect(await database.select(database.cycleEntries).get(), isEmpty,
+        reason: 'Vsak test mora začeti brez ciklov drugih testov.');
+    expect(await database.select(database.noteEntries).get(), isEmpty,
+        reason: 'Vsak test mora začeti brez opomb drugih testov.');
     await database.into(database.userSettings).insert(
           UserSettingsCompanion.insert(
             id: 'default',
@@ -96,14 +100,8 @@ class TestEnvironment {
   Future<void> waitForNoteSaved(WidgetTester tester) async {
     // Native key storage/encryption may still be pending when there are no
     // scheduled frames; pumpAndSettle alone does not await those operations.
-    for (var attempt = 0; attempt < 300; attempt++) {
-      if (find.byType(AddNoteScreen).evaluate().isEmpty) {
-        await tester.pumpAndSettle();
-        return;
-      }
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-    fail('Urejevalnik se po shranjevanju opombe ni zaprl v 30 sekundah.');
+    await waitForElement(tester, find.byType(AddNoteScreen), absent: true);
+    await tester.pumpAndSettle();
   }
 
   Future<void> dispose(WidgetTester tester) async {
@@ -113,6 +111,22 @@ class TestEnvironment {
     await database.close();
     await storage.clearTestKeys();
   }
+}
+
+Future<void> waitForElement(WidgetTester tester, Finder finder, {bool absent = false}) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 30));
+  while (DateTime.now().isBefore(deadline)) {
+    final matches = finder.evaluate();
+    if (absent ? matches.isEmpty : matches.length == 1) return;
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  expect(finder, absent ? findsNothing : findsOneWidget,
+      reason: 'Pogoj za element ni bil izpolnjen v 30 sekundah: $finder');
+}
+
+void requirePastDate(DateTime date) {
+  expect(DateUtils.dateOnly(DateTime.now()).isBefore(DateUtils.dateOnly(date)), isFalse,
+      reason: 'Datum testne naprave mora biti vsaj $date.');
 }
 
 AppDatabase _testDatabase() {

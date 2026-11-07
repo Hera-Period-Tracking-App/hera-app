@@ -26,7 +26,8 @@ void main() {
     await tester.ensureVisible(medium);
     await tester.tap(medium);
     await tester.pumpAndSettle();
-    await tester.tapAt(const Offset(10, 10));
+    // Close the modal using the platform back action, independent of coordinates.
+    expect(await tester.binding.handlePopRoute(), isTrue);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save note'));
     await env.waitForNoteSaved(tester);
