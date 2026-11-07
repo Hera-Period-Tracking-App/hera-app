@@ -1,0 +1,95 @@
+name: Functional tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: functional-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-functional-tests:
+    name: Functional tests (Android)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout source and model
+        uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - name: Prepare report directory
+        run: mkdir -p reports
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install native build dependencies
+        run: >-
+          sdkmanager
+          'platforms;android-35'
+          'platforms;android-36'
+          'ndk;28.2.13676358'
+          'cmake;3.22.1'
+
+      - name: Get packages and generate code
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build integration test application
+        run: >-
+          flutter build apk --debug --no-pub
+          --target-platform android-x64
+          --target integration_test/functional_suite.dart
+
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run five functional tests on Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-port: 5554
+          emulator-boot-timeout: 600
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
+          script: bash .github/scripts/run-integration-tests.sh
+
+      - name: Upload test reports and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-functional-tests-${{ github.run_attempt }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 14

@@ -34,6 +34,9 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Allows tests to use an isolated database without opening hera.sqlite.
+  AppDatabase.forTesting(super.executor);
+
   @override
   int get schemaVersion => 1;
 }

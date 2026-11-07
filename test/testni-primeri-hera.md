@@ -1,5 +1,14 @@
 # Funkcionalni testi za aplikacijo Hera
 
+## Integracijska izvedba petih primerov
+
+Primeri TC-001–TC-005 so dodatno avtomatizirani v mapi
+[`integration_test/`](../integration_test/README.md). Prvi štirje uporabljajo
+prave zaslone, repozitorije in izolirano SQLite bazo; peti poveže bazo,
+razporejevalnik in sistemski vtičnik za obvestila. Podrobna preslikava,
+predpogoji, izolacija in ukazi za lokalni zagon oziroma cevovod so v navodilih
+te mape. Spodnji opis fake objektov se nanaša na prvotne teste v `test/`.
+
 Dokument povezuje pet funkcionalnih testov v mapi `test/` z deli aplikacije, ki jih preverjajo. Testi so ločeni v Dart datoteke; komentarji v vsaki datoteki vsebujejo cilj, predpogoje, podatke, korake, pričakovane rezultate, predpostavke in čiščenje. Testi `tc_*` preverjajo domensko logiko ali storitve z uporabo fake/pomnilniških objektov; samo `widget_test.dart` je UI widget test.
 
 ## Uporabljena navodila in ukazi po vrsti

@@ -75,10 +75,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   int? _editedMenstruationLength;
   bool _isSavingCycle = false;
   bool _isLegendVisible = true;
+  late final ShellNavigationVisibilityNotifier _shellNavigationVisibility;
 
   @override
   void initState() {
     super.initState();
+    _shellNavigationVisibility = ref.read(shellNavigationVisibleProvider.notifier);
     final restoredEditScrollOffset = widget.editScrollOffset ?? _lastCalendarScrollOffset;
     _monthScrollController = ScrollController(
       initialScrollOffset: widget.isEditCurrentCycleFlow ? restoredEditScrollOffset ?? 0.0 : 0.0,
@@ -158,7 +160,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   void dispose() {
-    ref.read(shellNavigationVisibleProvider.notifier).setVisible(true);
+    _shellNavigationVisibility.restoreVisibilityAfterUnmount();
     _monthScrollController.dispose();
     super.dispose();
   }

@@ -133,6 +133,7 @@ class CalendarMonthSection extends StatelessWidget {
                   isPredictedFertileDay;
 
               return InkWell(
+                  key: ValueKey('calendar-day-${date.year}-${date.month}-${date.day}'),
                   onTap: isFutureDate
                       ? null
                       : () async {
