@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hera_app/core/datasources/secure_storage_data_source.dart';
 import 'package:hera_app/core/encryption/encryption_service.dart';
+import 'package:hera_app/features/cycles/models/cycle_summary.dart';
 import 'package:hera_app/features/notes/datasources/note_local_datasource.dart';
 import 'package:hera_app/features/notes/repositories/note_repository.dart';
 
@@ -12,6 +13,7 @@ import 'package:hera_app/features/notes/repositories/note_repository.dart';
 /// Vrsta/tehnika: funkcionalni pozitivni test; preverjanje transformacije vhoda.
 /// Predpogoji/okolje: prazen pomnilniški fake NoteLocalDataSource in fake varna shramba;
 /// uporablja se pravi EncryptionService, ne operacijska varna shramba ali baza.
+/// Test sam pripravi obstoječi cikel 1.–28. 9. 2026 s petdnevno menstruacijo.
 /// Testni podatki: datum 15. 9. 2026 ob 14:30; vsebina z zunanjimi presledki
 /// »  Blagi krči.  «; cycleId ni podan.
 /// Koraki: 1) Pokliči NoteRepository.addNote z navedenim datumom in vsebino.
@@ -24,7 +26,13 @@ import 'package:hera_app/features/notes/repositories/note_repository.dart';
 /// Postpogoji/čiščenje: fake podatki in ključ v pomnilniški shrambi se zavržejo.
 void main() {
   test('TC-NOTE-02: doda opombo z datumom brez ure in šifrirano vsebino', () async {
-    final dataSource = _MemoryNotes();
+    final existingCycle = CycleSummary(
+      id: 'cycle-1',
+      startDate: DateTime(2026, 9, 1),
+      cycleLength: 28,
+      menstruationLength: 5,
+    );
+    final dataSource = _MemoryNotes(cycles: [existingCycle]);
     final secureStorage = _MemorySecureStorage();
     final encryption = EncryptionService(secureStorage: secureStorage);
     final repository = NoteRepository(dataSource, secureStorage, encryption);
@@ -38,6 +46,7 @@ void main() {
     final entry = dataSource.entries.single;
     expect(entry.date, DateTime(2026, 9, 15));
     expect(entry.cycleId, isNull);
+    expect(dataSource.cycles, [existingCycle]);
     expect(entry.encryptedContent, isNot('Blagi krči.'));
     expect(jsonDecode(entry.encryptedContent), containsPair('alg', 'A256GCM'));
     expect(await encryption.decrypt(entry.encryptedContent), 'Blagi krči.');
@@ -45,6 +54,9 @@ void main() {
 }
 
 class _MemoryNotes implements NoteLocalDataSource {
+  _MemoryNotes({required this.cycles});
+
+  final List<CycleSummary> cycles;
   final entries = <({String? cycleId, DateTime date, String encryptedContent})>[];
 
   @override
@@ -61,6 +73,9 @@ class _MemoryNotes implements NoteLocalDataSource {
     required DateTime date,
     required String encryptedContent,
   }) async {
+    if (cycleId != null && !cycles.any((cycle) => cycle.id == cycleId)) {
+      throw StateError('Cycle $cycleId does not exist.');
+    }
     entries.add((
       cycleId: cycleId,
       date: date,

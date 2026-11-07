@@ -1,0 +1,70 @@
+name: Functional tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: functional-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  functional-tests:
+    name: Five functional test cases
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TZ: Europe/Ljubljana
+
+    steps:
+      - name: Check out source and model asset
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show SDK versions
+        run: flutter --version
+
+      - name: Install dependencies from lockfile
+        run: flutter pub get --enforce-lockfile
+
+      - name: Generate localization
+        run: flutter gen-l10n
+
+      - name: Generate Dart code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run five functional tests
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          flutter test --no-pub --reporter expanded \
+            --file-reporter json:test-results/functional-tests.json \
+            test/tc_cyc_01_dodaj_cikel_test.dart \
+            test/tc_note_02_dodaj_opombo_test.dart \
+            test/tc_note_01_opomba_simptom_tok_test.dart \
+            test/tc_cal_01_meja_menstruacije_test.dart \
+            test/tc_notif_01_urnik_opomnika_test.dart \
+            2>&1 | tee test-results/functional-tests.log
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-test-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
