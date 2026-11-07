@@ -45,6 +45,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # v3 defaults to "tools platform-tools"; Google removed "tools".
+          packages: platform-tools
 
       - name: Install native build dependencies
         run: >-
