@@ -114,11 +114,14 @@ class TestEnvironment {
 }
 
 Future<void> waitForElement(WidgetTester tester, Finder finder, {bool absent = false}) async {
-  final deadline = DateTime.now().add(const Duration(seconds: 30));
-  while (DateTime.now().isBefore(deadline)) {
+  // Check after each frame without adding a fixed delay. The timeout only
+  // prevents a missing element from leaving the test running indefinitely.
+  const timeout = Duration(seconds: 30);
+  final elapsed = Stopwatch()..start();
+  while (elapsed.elapsed < timeout) {
     final matches = finder.evaluate();
     if (absent ? matches.isEmpty : matches.length == 1) return;
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
   }
   expect(finder, absent ? findsNothing : findsOneWidget,
       reason: 'Pogoj za element ni bil izpolnjen v 30 sekundah: $finder');
